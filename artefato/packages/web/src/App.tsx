@@ -3,7 +3,7 @@ import { Scenario, Plan, VisitResult, planScenario } from '@routing/core';
 import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
 import { MapView } from './components/MapView';
-import { generatePlan, registerVisitResults, saveScenario } from './services/api';
+import { fetchExperimentalScenario, fetchExperimentalScenarios, generatePlan, registerVisitResults, saveScenario, ExperimentalScenarioSummary } from './services/api';
 
 const defaultScenario: Scenario = {
   id: 'cenario_demo',
@@ -73,13 +73,37 @@ export const App: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState<string>('2026-09-29');
   const [selectedStrategy, setSelectedStrategy] = useState<string>('main-heuristic');
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
+  const [experimentalScenarios, setExperimentalScenarios] = useState<ExperimentalScenarioSummary[]>([]);
+  const [isLoadingExperimentalScenarios, setIsLoadingExperimentalScenarios] = useState<boolean>(true);
 
   // Inicializar o banco de dados via API ou calcular offline se backend indisponível
   useEffect(() => {
     saveScenario(defaultScenario).catch(() => {
       console.log('Servidor backend offline; utilizando modo de cálculo local em memória.');
     });
+    fetchExperimentalScenarios()
+      .then(setExperimentalScenarios)
+      .catch(() => setExperimentalScenarios([]))
+      .finally(() => setIsLoadingExperimentalScenarios(false));
   }, []);
+
+  const handleImportScenario = (newScenario: Scenario) => {
+    setScenario(newScenario);
+    setPlan(null);
+    setSelectedDate(newScenario.startDate);
+    saveScenario(newScenario).catch(() => {
+      console.log('Cenário carregado localmente; servidor backend indisponível.');
+    });
+  };
+
+  const handleLoadExperimentalScenario = async (scenarioId: string) => {
+    try {
+      const newScenario = await fetchExperimentalScenario(scenarioId);
+      handleImportScenario(newScenario);
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
 
   const handleGeneratePlan = async () => {
     setIsGenerating(true);
@@ -148,11 +172,10 @@ export const App: React.FC = () => {
           scenario={scenario}
           plan={plan}
           selectedDate={selectedDate}
-          onImportScenario={(newScenario) => {
-            setScenario(newScenario);
-            setPlan(null);
-            setSelectedDate(newScenario.startDate);
-          }}
+          experimentalScenarios={experimentalScenarios}
+          isLoadingExperimentalScenarios={isLoadingExperimentalScenarios}
+          onLoadExperimentalScenario={handleLoadExperimentalScenario}
+          onImportScenario={handleImportScenario}
           onRegisterResults={handleRegisterResults}
         />
       </div>

@@ -1,11 +1,15 @@
 import React, { useState } from 'react';
 import { Plan, Scenario, VisitResult, DailyTeamRoute, PlannedVisit, Patient } from '@routing/core';
 import { CheckCircle, XCircle, AlertTriangle, Users, Clock, Navigation } from 'lucide-react';
+import { ExperimentalScenarioSummary } from '../services/api';
 
 interface SidebarProps {
   scenario: Scenario | null;
   plan: Plan | null;
   selectedDate: string;
+  experimentalScenarios: ExperimentalScenarioSummary[];
+  isLoadingExperimentalScenarios: boolean;
+  onLoadExperimentalScenario: (scenarioId: string) => void;
   onImportScenario: (scenario: Scenario) => void;
   onRegisterResults: (results: VisitResult[]) => void;
 }
@@ -16,6 +20,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   scenario,
   plan,
   selectedDate,
+  experimentalScenarios,
+  isLoadingExperimentalScenarios,
+  onLoadExperimentalScenario,
   onImportScenario,
   onRegisterResults
 }) => {
@@ -123,6 +130,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <input type="file" accept=".json" onChange={handleFileUpload} style={{ display: 'none' }} />
             </label>
           </div>
+          <select
+            aria-label="Cenários experimentais"
+            defaultValue=""
+            disabled={isLoadingExperimentalScenarios || experimentalScenarios.length === 0}
+            onChange={(event) => {
+              if (event.target.value) onLoadExperimentalScenario(event.target.value);
+              event.target.value = '';
+            }}
+            style={{ width: '100%', marginTop: '0.65rem', padding: '0.45rem', border: '1px solid #cbd5e1', borderRadius: '0.25rem', background: 'white', color: '#334155' }}
+          >
+            <option value="">
+              {isLoadingExperimentalScenarios ? 'Carregando cenários...' : 'Carregar cenário experimental'}
+            </option>
+            {experimentalScenarios.map(item => (
+              <option key={item.id} value={item.id}>
+                {item.id} - {item.patientCount} pacientes / {item.teamCount} equipes
+              </option>
+            ))}
+          </select>
         </div>
 
         {/* ABA 1: ROTAS DO DIA */}

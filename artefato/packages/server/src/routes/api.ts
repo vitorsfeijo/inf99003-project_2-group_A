@@ -3,8 +3,61 @@ import { db } from '../db/database.js';
 import { planScenario, applyVisitResults, Scenario, Plan, VisitResult, PlanOptions, DailyTeamRoute } from '@routing/core';
 import { generateRouteCsv } from '../export/csv.js';
 import { generateRouteGpx } from '../export/gpx.js';
+import fs from 'node:fs';
+import path from 'node:path';
+
+const experimentalScenariosDirectories = [
+  path.resolve(process.cwd(), 'experimentos/cenarios'),
+  path.resolve(process.cwd(), '../../../experimentos/cenarios')
+];
+
+function getExperimentalScenariosDirectory(): string {
+  return experimentalScenariosDirectories.find(directory => fs.existsSync(directory))
+    || experimentalScenariosDirectories[0];
+}
+
+function readExperimentalScenario(id: string): Scenario | undefined {
+  const filePath = path.join(getExperimentalScenariosDirectory(), `${id}.json`);
+  if (!fs.existsSync(filePath)) return undefined;
+  return JSON.parse(fs.readFileSync(filePath, 'utf-8')) as Scenario;
+}
 
 export async function registerApiRoutes(fastify: FastifyInstance) {
+
+  // Cenários JSON produzidos pela bancada experimental.
+  fastify.get('/api/experimental-scenarios', async (_request, reply) => {
+    const directory = getExperimentalScenariosDirectory();
+    if (!fs.existsSync(directory)) {
+      return reply.status(404).send({ error: 'Diretório de cenários experimentais não encontrado.' });
+    }
+
+    const scenarios = fs.readdirSync(directory)
+      .filter(fileName => fileName.endsWith('.json'))
+      .map(fileName => {
+        const id = fileName.slice(0, -'.json'.length);
+        const scenario = readExperimentalScenario(id);
+        if (!scenario) return undefined;
+        return {
+          id: scenario.id,
+          name: scenario.healthCenter.name,
+          patientCount: scenario.patients.length,
+          teamCount: scenario.teams.length,
+          startDate: scenario.startDate,
+          planningHorizonDays: scenario.planningHorizonDays
+        };
+      })
+      .filter(Boolean);
+
+    return scenarios;
+  });
+
+  fastify.get<{ Params: { id: string } }>('/api/experimental-scenarios/:id', async (request, reply) => {
+    const scenario = readExperimentalScenario(request.params.id);
+    if (!scenario) {
+      return reply.status(404).send({ error: 'Cenário experimental não encontrado.' });
+    }
+    return scenario;
+  });
 
   // 1. Criar / Importar Cenário JSON
   fastify.post('/api/scenarios', async (request: FastifyRequest, reply: FastifyReply) => {

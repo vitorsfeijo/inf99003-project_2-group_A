@@ -2,9 +2,30 @@ import { Scenario, Plan, VisitResult, PlanOptions } from '@routing/core';
 
 const API_BASE_URL = 'http://localhost:3001/api';
 
+export interface ExperimentalScenarioSummary {
+  id: string;
+  name: string;
+  patientCount: number;
+  teamCount: number;
+  startDate: string;
+  planningHorizonDays: number;
+}
+
 export async function fetchScenarios(): Promise<any[]> {
   const res = await fetch(`${API_BASE_URL}/scenarios`);
   if (!res.ok) throw new Error('Falha ao carregar lista de cenários.');
+  return res.json();
+}
+
+export async function fetchExperimentalScenarios(): Promise<ExperimentalScenarioSummary[]> {
+  const res = await fetch(`${API_BASE_URL}/experimental-scenarios`);
+  if (!res.ok) throw new Error('Falha ao carregar cenÃ¡rios experimentais.');
+  return res.json();
+}
+
+export async function fetchExperimentalScenario(id: string): Promise<Scenario> {
+  const res = await fetch(`${API_BASE_URL}/experimental-scenarios/${encodeURIComponent(id)}`);
+  if (!res.ok) throw new Error('Falha ao carregar o cenÃ¡rio experimental.');
   return res.json();
 }
 
