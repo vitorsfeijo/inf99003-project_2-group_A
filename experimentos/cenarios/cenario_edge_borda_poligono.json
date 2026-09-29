@@ -1,0 +1,140 @@
+{
+  "id": "cenario_edge_borda_poligono",
+  "version": 1,
+  "healthCenter": {
+    "id": "hc_cenario_edge_borda_poligono",
+    "name": "Posto de Saúde cenario_edge_borda_poligono",
+    "location": {
+      "lat": -30.0346,
+      "lng": -51.2177
+    }
+  },
+  "polygons": [
+    {
+      "id": "poly_cenario_edge_borda_poligono",
+      "name": "Região de Atuação Sintética",
+      "vertices": [
+        {
+          "lat": -30.056221621621624,
+          "lng": -51.24267521035115
+        },
+        {
+          "lat": -30.056221621621624,
+          "lng": -51.19272478964885
+        },
+        {
+          "lat": -30.012978378378378,
+          "lng": -51.19272478964885
+        },
+        {
+          "lat": -30.012978378378378,
+          "lng": -51.24267521035115
+        }
+      ]
+    }
+  ],
+  "patients": [
+    {
+      "id": "pat_1",
+      "code": "P001",
+      "location": {
+        "lat": -30.056221621621624,
+        "lng": -51.2177
+      },
+      "defaultVisitDurationMinutes": 30,
+      "conditions": [
+        {
+          "conditionId": "cond_principal",
+          "initialDueDate": "2026-10-05",
+          "maxIntervalDays": 14,
+          "priorityWeight": 5
+        }
+      ]
+    },
+    {
+      "id": "pat_2",
+      "code": "P002",
+      "location": {
+        "lat": -30.03033727667848,
+        "lng": -51.220148082175214
+      },
+      "defaultVisitDurationMinutes": 30,
+      "conditions": [
+        {
+          "conditionId": "cond_principal",
+          "initialDueDate": "2026-09-27",
+          "maxIntervalDays": 14,
+          "priorityWeight": 2
+        }
+      ]
+    },
+    {
+      "id": "pat_3",
+      "code": "P003",
+      "location": {
+        "lat": -30.023714835303,
+        "lng": -51.23003804628541
+      },
+      "defaultVisitDurationMinutes": 30,
+      "conditions": [
+        {
+          "conditionId": "cond_principal",
+          "initialDueDate": "2026-10-05",
+          "maxIntervalDays": 14,
+          "priorityWeight": 4
+        }
+      ]
+    },
+    {
+      "id": "pat_4",
+      "code": "P004",
+      "location": {
+        "lat": -30.03158706809313,
+        "lng": -51.230775830099475
+      },
+      "defaultVisitDurationMinutes": 30,
+      "conditions": [
+        {
+          "conditionId": "cond_principal",
+          "initialDueDate": "2026-10-04",
+          "maxIntervalDays": 14,
+          "priorityWeight": 4
+        }
+      ]
+    },
+    {
+      "id": "pat_5",
+      "code": "P005",
+      "location": {
+        "lat": -30.02417815196882,
+        "lng": -51.22138979887882
+      },
+      "defaultVisitDurationMinutes": 30,
+      "conditions": [
+        {
+          "conditionId": "cond_principal",
+          "initialDueDate": "2026-09-21",
+          "maxIntervalDays": 14,
+          "priorityWeight": 2
+        }
+      ]
+    }
+  ],
+  "teams": [
+    {
+      "id": "team_1",
+      "name": "Equipe A",
+      "doctorName": "Dr(a). Medico 1",
+      "nurseName": "Enf. Enfermeiro 1",
+      "socialWorkerName": "AS Assistente 1",
+      "dailyWorkMinutes": 240,
+      "availableDays": []
+    }
+  ],
+  "startDate": "2026-10-01",
+  "planningHorizonDays": 3,
+  "maxAnticipationDays": 2,
+  "costParameters": {
+    "travelSpeedKmh": 20
+  }
+}
