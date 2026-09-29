@@ -119,7 +119,7 @@ flowchart LR
 1. **Gerar demanda:** o histórico de visitas concluídas e os intervalos produzem visitas pendentes e previstas para os `N` dias. Cada candidato tem paciente, prazo, duração, urgência e eventual dependência de uma visita anterior prevista. Resultado: uma fila temporal; não há rotas ainda.
 2. **Montar o grafo:** o posto e as casas elegíveis são vértices. Para o cálculo inicial, cada par de vértices recebe peso de tempo/distância em uma matriz. Esse grafo de planejamento representa **possibilidades de deslocamento**, enquanto o mapa mostra apenas as arestas escolhidas nas rotas. Se houver malha viária, ela pode fornecer os pesos e a geometria dos trajetos.
 3. **Construir o plano:** a heurística escolhe quais visitas cabem, em qual dia e equipe, e sua posição na sequência. Para testar uma inserção entre `a` e `b`, calcula o acréscimo de viagem `d(a,i) + d(i,b) − d(a,b)` e soma a duração da visita. Só aceita a inserção se a jornada da equipe comportar o novo total e os prazos/recorrências permanecerem válidos. Quando falta capacidade, o paciente permanece na fila.
-4. **Melhorar e verificar:** trocas como `2-opt` reduzem o deslocamento dentro das rotas; o verificador confere origem e retorno ao posto, unicidade, disponibilidade da equipe, jornada e regras temporais. Uma rota inválida não é publicada no mapa.
+4. **Melhorar e verificar:** trocas como `1.5-opt` reduzem o deslocamento dentro das rotas; o verificador confere origem e retorno ao posto, unicidade, disponibilidade da equipe, jornada e regras temporais. Uma rota inválida não é publicada no mapa.
 5. **Replanejar:** ao registrar uma visita concluída ou não realizada, recalcular prazos e candidatos a partir do histórico real, descartar recorrências condicionais afetadas e executar novamente o planejador para os dias futuros. O resultado gera nova versão e uma lista do que mudou.
 
 Assim, **gerar candidatos**, **escolher visitas/dias/equipes**, **ordenar cada rota** e **reagir ao resultado real** são operações diferentes, com entradas e saídas próprias. A interface só envia o cenário e apresenta as rotas; a mesma lógica pode ser executada em lote nos experimentos.
@@ -142,14 +142,14 @@ O núcleo deve funcionar sem a interface para permitir testes em lote. Uma matri
 1. **Baseline diário de urgência:** processar os dias em ordem; em cada dia, ordenar visitas disponíveis por vencimento e inserir cada uma na equipe com menor custo adicional viável. Ao simular uma conclusão prevista, gerar sua próxima visita condicional, se couber na janela. Empates seguem identificadores estáveis.
 2. **Baseline diário geográfico:** processar os mesmos dias e construir cada rota pelo vizinho viável mais próximo, mantendo a mesma capacidade e as mesmas regras de recorrência.
 3. **Heurística principal com antecipação:** em cada dia, pontuar visitas disponíveis usando atraso, peso configurado, proximidade do prazo dos próximos dias e custo incremental de inserção. Permitir antecipar uma visita futura quando há capacidade, mas registrar o efeito sobre as visitas vencidas e os próximos prazos previstos. Uma regra por classe de urgência deve impedir que uma visita futura de baixo peso desloque uma vencida sem justificativa explícita. Documentar função de pontuação, empates e custo incremental zero antes dos experimentos.
-4. **Melhoria local:** aplicar `2-opt` dentro de cada rota para reduzir deslocamento sem alterar os dias de atendimento; testar realocação entre dias/equipes se houver tempo, respeitando prazos de recorrência, capacidade e congelamento do histórico executado.
+4. **Melhoria local:** aplicar `1.5-opt` dentro de cada rota para reduzir deslocamento sem alterar os dias de atendimento; testar realocação entre dias/equipes se houver tempo, respeitando prazos de recorrência, capacidade e congelamento do histórico executado.
 5. **Referência exata em instâncias pequenas (opcional):** resolver uma formulação inteira ou enumerar soluções pequenas com limite de tempo, para estimar a distância das heurísticas ao melhor resultado conhecido. Resultados sem prova de ótimo devem ser identificados como limites, não como ótimo.
 
 Todos os métodos devem produzir planos viáveis quando a capacidade é insuficiente, mantendo visitas não atendidas na fila. Reexecutar o mesmo método após um resultado real deve preservar o histórico e atualizar todos os dias futuros afetados. Casos sem paciente elegível ou sem equipe disponível geram plano vazio válido, com justificativa.
 
 ## 8. Análise de complexidade e desempenho
 
-Usar `n` para pacientes, `m` para equipes, `N` para dias na janela e `P` para passagens de melhoria local. Pode haver até `V ≤ nN` visitas previstas na janela, pois um paciente aparece no máximo uma vez por dia. A análise abaixo considera matriz **simétrica**, consultas de custo em tempo constante e verificação incremental de capacidade, sem janelas de horário. Os limites são conservadores e serão revistos após a implementação. Se uma matriz viária assimétrica for usada, a avaliação de `2-opt` precisará ser adaptada e seu custo reanalisado.
+Usar `n` para pacientes, `m` para equipes, `N` para dias na janela e `P` para passagens de melhoria local. Pode haver até `V ≤ nN` visitas previstas na janela, pois um paciente aparece no máximo uma vez por dia. A análise abaixo considera matriz **simétrica**, consultas de custo em tempo constante e verificação incremental de capacidade, sem janelas de horário. Os limites são conservadores e serão revistos após a implementação. Se uma matriz viária assimétrica for usada, a avaliação de `1.5-opt` precisará ser adaptada e seu custo reanalisado.
 
 | Etapa | Tempo assintótico esperado | Espaço esperado | Premissa |
 | --- | --- | --- | --- |
@@ -159,7 +159,7 @@ Usar `n` para pacientes, `m` para equipes, `N` para dias na janela e `P` para pa
 | Baseline diário de urgência | `O(N(n log n + n² + mn))` | `O(n² + V + Nm)` incluindo a matriz e o plano | Ordenação e menor inserção viável para até `n` pacientes por dia. |
 | Baseline diário geográfico | `O(Nmn²)` como limite superior | `O(n² + V + Nm)` | Varredura direta de candidatos por dia e equipe. |
 | Heurística diária com reavaliação global de candidatos | `O(Nmn³)` como limite superior simples | `O(n² + V + Nm)` | Até `n` escolhas por dia; cada escolha pode examinar pacientes, equipes e posições. |
-| `2-opt` com `P` passagens por dia | `O(NPn²)` | `O(n² + V + Nm)` | Avaliação incremental de cada troca; `P` limitado por parâmetro. |
+| `1.5-opt` com `P` passagens por dia | `O(NPn²)` | `O(n² + V + Nm)` | Avaliação incremental de cada troca; `P` limitado por parâmetro. |
 | Replanejamento completo após `R` eventos | `O(R × T_plano)` | `O(n² + V + Nm + R V)` se todas as versões forem mantidas em memória | `T_plano` é o custo do método escolhido; salvar versões em arquivo evita mantê-las todas em memória. |
 
 Esses limites são da **implementação proposta**, não garantias universais das técnicas. A atualização geométrica de regiões e o custo de obter uma matriz por serviço de mapas devem ser medidos separadamente. Medir preparação, primeira geração e cada replanejamento, além de memória máxima. Variar `n`, `m`, `N` e número de eventos para observar se o tempo empírico acompanha a análise. Estabelecer orçamento de tempo por execução e reportar o melhor plano válido encontrado até o limite.
@@ -189,7 +189,7 @@ Esses limites são da **implementação proposta**, não garantias universais da
 | --- | --- | --- |
 | 1. Especificação | Fixar formato de entrada/saída, estados de visita, calendário, geometria, restrições e métricas | Exemplo de `N` dias com falha e replanejamento calculado manualmente. |
 | 2. Núcleo temporal e dados | Criar gerador, validador, estado persistente, matriz de custos e verificador de planos | Cenários reproduzíveis; prazos e versões corretos após conclusão e falha. |
-| 3. Baselines e heurística | Implementar baselines diários, heurística com antecipação e `2-opt` | Planos viáveis para toda a janela; análise assintótica conferida com o código. |
+| 3. Baselines e heurística | Implementar baselines diários, heurística com antecipação e `1.5-opt` | Planos viáveis para toda a janela; análise assintótica conferida com o código. |
 | 4. Interface mínima | Implementar mini CRUD, mapa com posto/casas/polígonos, rotas coloridas por equipe, registro do resultado de visitas e exportação de rotas em CSV e GPX | Fluxo completo de cadastrar → visualizar todas as rotas de um dia saindo e voltando ao posto → exportar rota em CSV e GPX → registrar falha → ver plano atualizado. |
 | 5. Avaliação e escrita | Fazer experimentos de escala, falhas e sensibilidade, interpretar resultados e limites | Tabelas/gráficos, parâmetros reproduzíveis, projeto/relatório final. |
 
