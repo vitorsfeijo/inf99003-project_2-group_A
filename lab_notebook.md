@@ -17,3 +17,6 @@
 
 ### 29-09-2026
 - Start of the implemetation of the APS artifact
+- Experiments generation added of from the algorithms in the /experiments folder
+- statistics and charts from the experiments added to the /results and /analise folder
+
