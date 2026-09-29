@@ -1,0 +1,16 @@
+{
+  "name": "inf99003-routing-artefact",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Artefato computacional de planejamento de visitas domiciliares de equipes de saúde",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces",
+    "test": "npm run test --workspaces"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  }
+}

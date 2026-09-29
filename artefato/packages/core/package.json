@@ -1,0 +1,17 @@
+{
+  "name": "@routing/core",
+  "version": "0.1.0",
+  "description": "Núcleo de otimização e geração de rotas de visitas domiciliares em TypeScript",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch"
+  }
+}

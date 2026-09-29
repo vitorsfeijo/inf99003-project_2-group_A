@@ -1,0 +1,23 @@
+{
+  "name": "@routing/server",
+  "version": "0.1.0",
+  "description": "Servidor backend Node.js, Fastify e SQLite para persistência e API do framework de roteamento",
+  "main": "./dist/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "@fastify/cors": "^9.0.1",
+    "@routing/core": "file:../core",
+    "better-sqlite3": "^11.0.0",
+    "fastify": "^4.26.2"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.9",
+    "@types/node": "^20.11.0",
+    "typescript": "^5.4.0"
+  }
+}
