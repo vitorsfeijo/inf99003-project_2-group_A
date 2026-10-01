@@ -20,13 +20,13 @@
 	arr/.style={-{Stealth[length=5pt]}, thick, gray!75}
 }
 
-\begin{tikzpicture}[node distance=0.42cm and 0.85cm]
+\begin{tikzpicture}[node distance=0.42cm and 0.75cm]
 	\node[prep] (validation) {Validação de Dados};
 	\node[prep, below=of validation] (deadlines) {Prazos e Pendências};
 	\node[prep, below=of deadlines] (graph) {Grafo e Matriz de Custos};
-	\node[opt, right=of validation] (planner) {Planejador ($N$ dias)\\[-1pt]\scriptsize Heurística / Baseline};
-	\node[opt, below=of planner] (improvement) {Melhoria Local\\[-1pt]\scriptsize (1.5-opt nas rotas)};
-	\node[opt, below=of improvement] (verifier) {Verificador\\[-1pt]\scriptsize (Capacidade e Regras)};
+	\node[opt, right=of deadlines] (planner) {Planejador ($N$ dias)\\[-1pt]\scriptsize Heurística / Baseline};
+	\node[opt, right=of planner, yshift=0.15cm] (improvement) {Melhoria Local\\[-1pt]\scriptsize (1.5-opt nas rotas)};
+	\node[opt, below=of improvement, yshift=0.15cm] (verifier) {Verificador\\[-1pt]\scriptsize (Capacidade e Regras)};
 
 	\begin{scope}[on background layer]
 		\node[draw=orange!55, fill=orange!3, rounded corners=6pt,
@@ -38,8 +38,8 @@
 	\draw[arr] (validation) -- (deadlines);
 	\draw[arr] (deadlines) -- (graph);
 	\draw[arr] (deadlines.east) -- (planner.west);
-	\draw[arr] (graph.east) -- ++(0.25,0) |- (planner.west);
-	\draw[arr] (planner) -- (improvement);
+	\draw[arr] (graph.east) -| (planner.south);
+	\draw[arr] (planner.east) -- (improvement.west);
 	\draw[arr] (improvement) -- (verifier);
 \end{tikzpicture}
 

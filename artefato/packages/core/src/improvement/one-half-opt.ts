@@ -2,7 +2,8 @@ import { DailyTeamRoute, CostMatrix, PlannedVisit } from '../types/index.js';
 
 /**
  * Algoritmo 1.5-Opt para Otimização Intra-Rota (Etapa 5 do Pipeline)
- * Combina o 2-Opt (inversão de sub-segmentos) com o 1-Opt / Relocate (remoção de um nó e reinserção em outra posição da sequência),
+ * Combina reinserção de um nó com inversão de sub-segmentos (operação 2-opt),
+ * formando o 1.5-opt oficial do projeto,
  * visando reduzir o tempo/distância total de deslocamento dentro de uma mesma rota diária.
  */
 export function apply1Point5Opt(route: DailyTeamRoute, costMatrix: CostMatrix): DailyTeamRoute {
@@ -59,7 +60,7 @@ export function apply1Point5Opt(route: DailyTeamRoute, costMatrix: CostMatrix): 
 
     if (improved) continue;
 
-    // --- PASSO 2: 2-Opt (Inverter sub-segmentos da rota) ---
+    // --- PASSO 2: Inversão de sub-segmentos ---
     for (let i = 0; i < currentVisits.length - 1; i++) {
       for (let k = i + 1; k < currentVisits.length; k++) {
         const tempVisits = [
