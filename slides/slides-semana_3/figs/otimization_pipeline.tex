@@ -1,0 +1,46 @@
+\documentclass[tikz,border=5pt]{standalone}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[brazilian]{babel}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, fit, backgrounds, calc}
+
+\begin{document}
+
+\tikzset{
+	box/.style={
+		rectangle, rounded corners=5pt,
+		text width=2.35cm, minimum height=0.72cm,
+		align=center, font=\scriptsize\sffamily,
+		draw, thick
+	},
+	prep/.style={box, fill=orange!10, draw=orange!75},
+	opt/.style={box, fill=orange!18, draw=orange!75},
+	arr/.style={-{Stealth[length=5pt]}, thick, gray!75}
+}
+
+\begin{tikzpicture}[node distance=0.42cm and 0.85cm]
+	\node[prep] (validation) {Validação de Dados};
+	\node[prep, below=of validation] (deadlines) {Prazos e Pendências};
+	\node[prep, below=of deadlines] (graph) {Grafo e Matriz de Custos};
+	\node[opt, right=of validation] (planner) {Planejador ($N$ dias)\\[-1pt]\scriptsize Heurística / Baseline};
+	\node[opt, below=of planner] (improvement) {Melhoria Local\\[-1pt]\scriptsize (1.5-opt nas rotas)};
+	\node[opt, below=of improvement] (verifier) {Verificador\\[-1pt]\scriptsize (Capacidade e Regras)};
+
+	\begin{scope}[on background layer]
+		\node[draw=orange!55, fill=orange!3, rounded corners=6pt,
+					fit=(validation)(deadlines)(graph)(planner)(improvement)(verifier),
+					inner sep=8pt,
+					  label={[font=\small\sffamily\bfseries, text=orange!90]above:Núcleo de Otimização}] (background) {};
+	\end{scope}
+
+	\draw[arr] (validation) -- (deadlines);
+	\draw[arr] (deadlines) -- (graph);
+	\draw[arr] (deadlines.east) -- (planner.west);
+	\draw[arr] (graph.east) -- ++(0.25,0) |- (planner.west);
+	\draw[arr] (planner) -- (improvement);
+	\draw[arr] (improvement) -- (verifier);
+\end{tikzpicture}
+
+\end{document}
