@@ -1,0 +1,63 @@
+{
+  "id": "cenario_edge_zero_pacientes",
+  "version": 1,
+  "healthCenter": {
+    "id": "hc_cenario_edge_zero_pacientes",
+    "name": "Posto de Saúde cenario_edge_zero_pacientes",
+    "location": {
+      "lat": -30.0346,
+      "lng": -51.2177
+    }
+  },
+  "polygons": [
+    {
+      "id": "poly_cenario_edge_zero_pacientes",
+      "name": "Região de Atuação Sintética",
+      "vertices": [
+        {
+          "lat": -30.056221621621624,
+          "lng": -51.24267521035115
+        },
+        {
+          "lat": -30.056221621621624,
+          "lng": -51.19272478964885
+        },
+        {
+          "lat": -30.012978378378378,
+          "lng": -51.19272478964885
+        },
+        {
+          "lat": -30.012978378378378,
+          "lng": -51.24267521035115
+        }
+      ]
+    }
+  ],
+  "patients": [],
+  "teams": [
+    {
+      "id": "team_1",
+      "name": "Equipe A",
+      "doctorName": "Dr(a). Medico 1",
+      "nurseName": "Enf. Enfermeiro 1",
+      "socialWorkerName": "AS Assistente 1",
+      "dailyWorkMinutes": 240,
+      "availableDays": []
+    },
+    {
+      "id": "team_2",
+      "name": "Equipe B",
+      "doctorName": "Dr(a). Medico 2",
+      "nurseName": "Enf. Enfermeiro 2",
+      "socialWorkerName": "AS Assistente 2",
+      "dailyWorkMinutes": 240,
+      "availableDays": []
+    }
+  ],
+  "startDate": "2026-10-01",
+  "planningHorizonDays": 3,
+  "maxAnticipationDays": 2,
+  "costParameters": {
+    "travelSpeedKmh": 20
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "name": "inf99003-experiments",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Bancada de testes, gerador sintético e simulador em lote para a pesquisa",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "generate": "node dist/gerador/index.js",
+    "simulate": "node dist/simulador/index.js",
+    "simulate-dynamic": "node dist/simulador/simulador-dinamico.js",
+    "analyse": "node analise/generate_html_charts.js"
+  },
+  "dependencies": {
+    "@routing/core": "file:../artefato/packages/core"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "typescript": "^5.4.0"
+  }
+}

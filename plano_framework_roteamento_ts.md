@@ -26,7 +26,7 @@ O núcleo exporá `planScenario(scenario, options)`, `applyVisitResults(state, r
 2. **Gerar demanda.** Calcular o prazo de cada condição pela última visita efetivamente concluída ou pelo prazo inicial informado. Agrupar condições atendidas na mesma visita, classificar visitas como vencidas, devidas hoje ou futuras e gerar recorrências condicionais apenas após visitas previstas. `N` conta dias úteis; prazos e `A` contam dias corridos.
 3. **Montar grafo e custos.** Usar posto e casas elegíveis como vértices. Calcular matriz Haversine de distância e tempo por velocidade configurável, registrando os parâmetros para reprodução. A matriz de tempo determina a viabilidade da jornada; a distância é também uma métrica. O contrato aceitará outra matriz no futuro.
 4. **Planejar.** Implementar baseline por urgência, baseline geográfico por vizinho viável mais próximo e heurística principal. Esta prioriza pendências e usa prazo, peso clínico configurado e custo incremental de inserção para escolher visita, dia, equipe e posição, permitindo antecipação somente dentro de `A`. Empates seguem identificadores estáveis. Visitas que não couberem ficam na fila com motivo.
-5. **Melhorar e verificar.** Aplicar `2-opt` dentro de cada rota, sem trocar o dia das visitas. Conferir origem e retorno ao posto, unicidade, precedência temporal, território, disponibilidade e limite de jornada. Um plano inválido não será salvo como versão válida nem exibido como resultado.
+5. **Melhorar e verificar.** Aplicar `1.5-opt` dentro de cada rota, sem trocar o dia das visitas. Conferir origem e retorno ao posto, unicidade, precedência temporal, território, disponibilidade e limite de jornada. Um plano inválido não será salvo como versão válida nem exibido como resultado.
 6. **Avaliar e exportar.** Calcular cobertura, atraso, deslocamento, utilização e desequilíbrio das jornadas. Gerar CSV e GPX por equipe e dia, com pontos na ordem planejada. A linha exibida no mapa e no GPX será identificada como aproximação direta entre pontos, sem representar ruas.
 
 ## Replanejamento e persistência
@@ -49,7 +49,7 @@ Os demais campos do cenário poderão ser alterados no JSON importado. Formulár
 | Etapa | Entrega | Evidência |
 | --- | --- | --- |
 | 1. Contratos e dados | Esquemas, exemplo JSON, gerador sintético com semente, validação, regras temporais e matriz de custos | Exemplo pequeno com prazos e replanejamento conferidos manualmente |
-| 2. Framework | Três estratégias, `2-opt`, verificador, métricas e API independente da interface | Todos os métodos produzem planos válidos e mantêm visitas sem capacidade na fila |
+| 2. Framework | Três estratégias, `1.5-opt`, verificador, métricas e API independente da interface | Todos os métodos produzem planos válidos e mantêm visitas sem capacidade na fila |
 | 3. Aplicação | Servidor, SQLite, mapa, importação, resultados, versões e exportação | Fluxo completo: importar → planejar → visualizar → registrar falha → replanejar → exportar |
 | 4. Avaliação | Executor em lote e relatórios comparativos | Mesmas sementes, calendários e eventos para todos os métodos; métricas previstas e realizadas separadas |
 

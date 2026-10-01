@@ -1,0 +1,17 @@
+{
+  "name": "inf99003-project-2-group-a",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Repositório de Pesquisa e Artefato Computacional para Planejamento de Visitas Domiciliares na APS",
+  "type": "module",
+  "scripts": {
+    "prestart": "npm run build",
+    "start": "node run-artefact.js",
+    "build": "npm run build --prefix artefato",
+    "start:server": "npm start --prefix artefato/packages/server",
+    "start:web": "npm run dev --prefix artefato/packages/web",
+    "experiments": "npm run simulate --prefix experimentos",
+    "experiments-dynamic": "npm run simulate-dynamic --prefix experimentos",
+    "experiments:all": "node run-experiments.js"
+  }
+}

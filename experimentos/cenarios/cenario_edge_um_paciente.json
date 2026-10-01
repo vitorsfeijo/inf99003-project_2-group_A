@@ -1,0 +1,72 @@
+{
+  "id": "cenario_edge_um_paciente",
+  "version": 1,
+  "healthCenter": {
+    "id": "hc_cenario_edge_um_paciente",
+    "name": "Posto de Saúde cenario_edge_um_paciente",
+    "location": {
+      "lat": -30.0346,
+      "lng": -51.2177
+    }
+  },
+  "polygons": [
+    {
+      "id": "poly_cenario_edge_um_paciente",
+      "name": "Região de Atuação Sintética",
+      "vertices": [
+        {
+          "lat": -30.04541081081081,
+          "lng": -51.23018760517558
+        },
+        {
+          "lat": -30.04541081081081,
+          "lng": -51.20521239482442
+        },
+        {
+          "lat": -30.02378918918919,
+          "lng": -51.20521239482442
+        },
+        {
+          "lat": -30.02378918918919,
+          "lng": -51.23018760517558
+        }
+      ]
+    }
+  ],
+  "patients": [
+    {
+      "id": "pat_1",
+      "code": "P001",
+      "location": {
+        "lat": -30.02648252815145,
+        "lng": -51.21590970098479
+      },
+      "defaultVisitDurationMinutes": 30,
+      "conditions": [
+        {
+          "conditionId": "cond_principal",
+          "initialDueDate": "2026-09-27",
+          "maxIntervalDays": 14,
+          "priorityWeight": 2
+        }
+      ]
+    }
+  ],
+  "teams": [
+    {
+      "id": "team_1",
+      "name": "Equipe A",
+      "doctorName": "Dr(a). Medico 1",
+      "nurseName": "Enf. Enfermeiro 1",
+      "socialWorkerName": "AS Assistente 1",
+      "dailyWorkMinutes": 240,
+      "availableDays": []
+    }
+  ],
+  "startDate": "2026-10-01",
+  "planningHorizonDays": 3,
+  "maxAnticipationDays": 2,
+  "costParameters": {
+    "travelSpeedKmh": 20
+  }
+}

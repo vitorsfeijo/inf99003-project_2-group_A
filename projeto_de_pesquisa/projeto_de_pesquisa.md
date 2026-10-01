@@ -27,7 +27,7 @@ Construir, implementar e avaliar experimentalmente uma heurística de horizonte 
 ### Objetivos específicos
 
 1. **Modelar** o problema de planejamento de visitas domiciliares como um problema de seleção, roteamento e atribuição de visitas a equipes e dias, com restrições de capacidade de jornada, prazos por condição clínica e replanejamento após eventos reais.
-2. **Implementar** dois baselines diários (urgência e geográfico) e uma heurística principal de horizonte móvel com antecipação, além de melhoria local por 2-opt.
+2. **Implementar** dois baselines diários (urgência e geográfico) e uma heurística principal de horizonte móvel com antecipação, além de melhoria local por 1.5-opt.
 3. **Construir** um gerador de cenários sintéticos reproduzíveis, um validador de planos e um avaliador de métricas, de modo que todos os experimentos sejam replicáveis a partir de semente e configuração.
 4. **Desenvolver** uma interface gráfica mínima com mapa interativo (tiles do OpenStreetMap), cadastros de posto, pacientes e equipes, visualização das rotas por dia e equipe, registro dos resultados das visitas e exportação das rotas em CSV e GPX.
 5. **Avaliar** os métodos em cenários com capacidade folgada, equilibrada e insuficiente, variando distribuição geográfica, fração de pendências, frequência de falhas e parâmetros da função de pontuação, e comparar os resultados por métricas de cobertura, atraso, deslocamento e tempo de execução.
@@ -57,7 +57,7 @@ A pesquisa tem abordagem **quantitativa experimental** com dados sintéticos. N�
 1. *Baseline diário de urgência:* em cada dia, ordenar candidatos por vencimento e inserir cada um na equipe com menor custo adicional viável.
 2. *Baseline diário geográfico:* construir cada rota pelo vizinho viável mais próximo, mantendo capacidade e regras de recorrência.
 3. *Heurística principal com antecipação:* pontuar candidatos por atraso, peso clínico, proximidade do prazo e custo incremental de inserção; permitir antecipação dentro do limite A; impedir que visita futura de baixo peso desloque visita vencida.
-4. *Melhoria local (2-opt):* reduzir deslocamento dentro de cada rota sem alterar os dias de atendimento.
+4. *Melhoria local (1.5-opt):* combinar reinserção de nós e inversão de subsegmentos para reduzir deslocamento dentro de cada rota sem alterar os dias de atendimento.
 5. *Referência exata em instâncias pequenas (opcional):* estimar a distância das heurísticas ao melhor resultado conhecido.
 
 **Avaliação.** Todos os métodos recebem o mesmo estado inicial, o mesmo calendário, o mesmo limite de tempo e a mesma sequência de eventos reais. As métricas são: fração de pendências efetivamente concluídas; dias de atraso acumulados; atraso remanescente ao fim da janela; visitas concluídas e não realizadas; deslocamento efetivo e planejado; utilização e desequilíbrio de jornada; alterações entre versões; tempo de geração e replanejamento; memória máxima. Resultados do plano previsto e do simulado são separados. A comparação usa medianas e dispersão por cenário, além de análise de dominância de Pareto para evitar assumir um peso universal entre objetivos.
@@ -72,7 +72,7 @@ A pesquisa tem abordagem **quantitativa experimental** com dados sintéticos. N�
 |---|---|
 | Semana 1 | **Revisão bibliográfica e Entendimento do Domínio** — levantamento dos papers de APS e roteirização; fixar formato de entrada/saída, estados de visita, calendário, geometria, restrições e métricas; elaborar exemplo manual de N dias com falha e replanejamento. |
 | Semana 2 | **Concepção do projeto** — redigir projeto de pesquisa e plano de desenvolvimento; definir pergunta de pesquisa, hipótese, modelo de dados, restrições, métricas e protocolo experimental; revisar literatura complementar de roteamento. |
-| Semana 3 | **Núcleo de otimização e interface** — implementar gerador de cenários, validador, estado temporal, matriz de custos, verificador de planos, baselines de urgência e geográfico, heurística com antecipação, 2-opt, mini CRUD, mapa interativo com tiles OSM, visualização das rotas, registro de resultados e exportação em CSV e GPX. |
+| Semana 3 | **Núcleo de otimização e interface** — implementar gerador de cenários, validador, estado temporal, matriz de custos, verificador de planos, baselines de urgência e geográfico, heurística com antecipação, 1.5-opt, mini CRUD, mapa interativo com tiles OSM, visualização das rotas, registro de resultados e exportação em CSV e GPX. |
 | Semana 4 | **Experimentos, avaliação e escrita do artigo** — executar experimentos de escala, falhas e sensibilidade em todos os métodos; calcular métricas, comparar resultados, construir tabelas e gráficos; interpretar limites e ameaças à validade; redigir e revisar o artigo final. |
 
 ## Recursos
@@ -81,8 +81,8 @@ A pesquisa tem abordagem **quantitativa experimental** com dados sintéticos. N�
 |---|---|---|---|
 | Semana 1 | **Revisão bibliográfica** | **Revisão bibliográfica** | **Revisão bibliográfica** |
 | Semana 2 | **Projeto de pesquisa e plano de desenvolvimento** | **Projeto de pesquisa e plano de desenvolvimento** | **Projeto de pesquisa e plano de desenvolvimento** |
-| Semana 3 | **Gerador de cenários, validador e baselines** | **Estado temporal, heurística com antecipação e 2-opt** | **Interface, mapa OSM e exportação CSV/GPX** |
-| Semana 4 | **Experimentos e análise dos resultados** | **Tabelas, gráficos e interpretação** | **Redação e revisão do artigo final** |
+| Semana 3 | **Experimentação e Construção do artefato** | **Experimentação e Construção do artefato** | **Experimentação e Construção do artefato** |
+| Semana 4 | **Análise dos resultados e redação do artigo** | **Análise dos resultados e redação do artigo** | **Análise dos resultados e redação do artigo** |
 
 **Recursos materiais e infraestrutura:** computadores pessoais dos integrantes; Python 3.x com bibliotecas numpy, pandas, shapely, gpxpy e folium/leaflet; repositório Git compartilhado para controle de versão do código e dos cenários experimentais; nenhum dado clínico real será utilizado.
 
