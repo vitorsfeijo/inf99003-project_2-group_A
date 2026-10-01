@@ -28,6 +28,8 @@ slides/**/_minted-*/
 # ---------------------------------------------------------------------------
 projeto_de_pesquisa/Estrutura de Projeto de Pesquisa.pdf
 projeto_de_pesquisa/Guia_Template_Projeto.pdf
+projeto_de_pesquisa.aux
+projeto_de_pesquisa.log
 
 # ---------------------------------------------------------------------------
 # NODE.JS / MONOREPO
