@@ -8,7 +8,7 @@
 
 | Disciplina | Ciclo | Grupo |
 | --- | --- | --- |
-| **Projeto em Ciência e Inovação (INF99003)** | 2 | D / A |
+| **Projeto em Ciência e Inovação (INF99003)** | 2 | A |
 
 * **Tobias Marion**
 * **Vitor Feijo**
@@ -81,7 +81,7 @@ O relatório interativo ficará disponível em: [experimentos/analise/relatorio_
 ## 📄 Documentação Técnica e Diretrizes
 
 * Documentação do Artefato: [artefato/README.md](artefato/README.md)
-* Guia para Agentes de I.A. no Artefato: [artefato/AGENT.md](artefato/AGENT.md)
+* Guia para Agentes de I.A. no Artefato: [artefato/AGENTS.md](artefato/AGENTS.md)
 * Documentação dos Experimentos: [experimentos/README.md](experimentos/README.md)
-* Guia para Agentes de I.A. nos Experimentos: [experimentos/AGENT.md](experimentos/AGENT.md)
-* Bibliografia de Referência: [papers/_papers.md](papers/_papers.md)
+* Guia para Agentes de I.A. nos Experimentos: [experimentos/AGENTS.md](experimentos/AGENTS.md)
+* Bibliografia de Referência: [papers/_papers.md](papers/_papers.md) e [papers/artifacts.md](papers/artifacts.md) 
