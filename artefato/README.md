@@ -37,6 +37,8 @@ O núcleo não depende de banco, servidor, navegador ou bibliotecas externas. Re
 
 ## Instalação, compilação e execução
 
+Para uma instalação guiada, com comandos para iniciar o OSRM e usar a interface, veja [Como abrir a interface no seu computador](GUIA_EXECUCAO_LOCAL.md).
+
 Requisitos: Node.js 22+ e npm. O backend usa `better-sqlite3` 13, compatível com Node 22 e 24. Os comandos desta seção partem da **raiz do repositório**, um nível acima de `artefato/`.
 
 ```bash
