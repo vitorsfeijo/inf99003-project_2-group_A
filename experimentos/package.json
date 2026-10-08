@@ -10,6 +10,7 @@
     "generate:geosaude": "node dist/gerador/geosaude.js",
     "factorial": "node dist/fatorial/index.js",
     "factorial:report": "node analise/generate_factorial_report.js",
+    "factorial:validate": "node scripts/compare-heuristic-versions.mjs",
     "simulate": "node dist/simulador/index.js",
     "simulate-dynamic": "node dist/simulador/simulador-dinamico.js",
     "analyse": "node analise/generate_html_charts.js"

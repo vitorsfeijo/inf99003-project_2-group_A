@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import {
   planScenario, sampleTerritoryPatients, verifyPlan,
   type Scenario, type Coordinates, type TerritoryPolygon
@@ -59,7 +59,7 @@ function territoryAreaKm2(polygons: TerritoryPolygon[], referenceLat: number): n
     - (polygon.holes ?? []).reduce((holes, hole) => holes + ringAreaKm2(hole, referenceLat), 0), 0);
 }
 
-function createScenario(base: Scenario, seed: number, patientCount: number, areaMultiplier: number,
+export function createScenario(base: Scenario, seed: number, patientCount: number, areaMultiplier: number,
   planningDays: number, overdueFraction: number): { scenario: Scenario; realizedOverdueFraction: number } {
   // Amostra única por semente. Subconjuntos de 15/30/45 preservam os mesmos pacientes.
   const sampled = sampleTerritoryPatients(base, Math.max(...DESIGN.patients), seed);
@@ -175,4 +175,4 @@ function main(): void {
   console.log(`Resultados fatoriais em ${outputDir}`);
 }
 
-main();
+if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) main();

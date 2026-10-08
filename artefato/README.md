@@ -230,27 +230,28 @@ A métrica `teamWorkloadImbalance` mede o desequilíbrio após o planejamento, m
 
 ## Como funciona a `main-heuristic`
 
-A implementação está em [`strategies/main-heuristic.ts`](packages/core/src/strategies/main-heuristic.ts). Ela começa com o cronograma viável do vizinho mais próximo, aplica 1.5-opt às rotas e faz uma busca mensal por **reinserções e trocas de visitas entre dias ou equipes**. A mesma construção inicial é publicada separadamente como baseline; a melhoria adicional é o que distingue a heurística principal.
+A implementação está em [`strategies/main-heuristic.ts`](packages/core/src/strategies/main-heuristic.ts). Ela começa com o cronograma viável do vizinho mais próximo, aplica 1.5-opt às rotas e faz duas buscas mensais por **reinserções e trocas de visitas entre dias ou equipes**. A primeira reduz custo de caminhada e atraso. A segunda tenta encaixar visitas pendentes, valoriza a resposta pronta e, quando a jornada já está cheia, pode substituir uma visita de menor prioridade por uma pendente de maior peso clínico.
 
 Para cada movimento, a busca calcula com a matriz de custos a variação exata de tempo de caminhada e de atraso acionável ponderado pelo peso clínico. O objetivo local, em minutos equivalentes, é:
 
 ```text
-Δobjetivo = Δminutos de caminhada + 12 × Δ(dias de atraso acionável × peso clínico)
+Primeira busca: Δobjetivo = Δminutos de caminhada + 12 × Δ(dias de atraso acionável × peso clínico)
+Segunda busca:  Δobjetivo da primeira - 24 × Δ(pontos de prioridade com resposta pronta)
 ```
 
-O coeficiente 12 é uma preferência de planejamento explícita; não representa custo financeiro ou evidência clínica de equivalência. Uma mudança só é aceita quando reduz esse objetivo. No máximo 80 mudanças são realizadas por execução. A busca é local e não garante ótimo global.
+Os coeficientes 12 e 24 são preferências de planejamento explícitas; não representam custo financeiro ou evidência clínica de equivalência. Uma mudança só é aceita quando reduz o objetivo da respectiva busca. Cada busca aceita no máximo 80 mudanças. O método é local e não garante ótimo global.
 
 Além do objetivo, cada movimento deve preservar:
 
 - Jornada diária, incluindo atendimento, caminhada e retorno ao posto.
 - Disponibilidade da equipe e limite de antecipação `A`. Visitas já vencidas podem ser atendidas depois do prazo, com atraso contabilizado.
 - Unicidade do paciente na rota e alocação única de cada candidato.
-- Cobertura inicial e pontuação de prioridade atendida em tempo acionável.
-- Tetos de tempo **e** distância totais definidos pelo plano geográfico inicial. Um controle final considera o arredondamento dos totais exibidos.
+- Cobertura e pontuação de prioridade atendida em tempo acionável durante as buscas de reinserção e troca.
+- Tetos de tempo **e** distância totais definidos pelo plano de entrada de cada busca. A inserção de uma visita adicional pode elevar o total de caminhada, pois aumenta a cobertura. Um controle final considera o arredondamento dos totais exibidos.
 
-As trocas ajudam quando duas jornadas já estão cheias: o algoritmo pode trocar uma visita de baixa prioridade de hoje por uma de alta prioridade de amanhã e, ao mesmo tempo, agrupar pacientes próximos. A reinserção pode antecipar uma visita dentro de `A` se isso reduzir o custo total. Após cada alteração, as duas rotas afetadas são reconstruídas e recebem novamente o 1.5-opt. As visitas não alocadas pelo ponto inicial permanecem pendentes nesta versão; o algoritmo não faz busca de inserção de pendências.
+As trocas ajudam quando duas jornadas já estão cheias: o algoritmo pode trocar uma visita de baixa prioridade de hoje por uma de alta prioridade de amanhã e, ao mesmo tempo, agrupar pacientes próximos. A reinserção pode antecipar uma visita dentro de `A`. Após cada alteração, as duas rotas afetadas são reconstruídas e recebem novamente o 1.5-opt. O reparo tenta inserir cada pendência em uma jornada com capacidade e, depois da busca, tenta novamente caso algum movimento tenha liberado espaço. Se ainda não houver capacidade, uma pendência de maior prioridade pode substituir uma visita menos prioritária sem reduzir a pontuação de resposta pronta, piorar o atraso ponderado ou exceder o orçamento de caminhada da etapa.
 
-Como a heurística usa o baseline geográfico como ponto inicial e impõe limites de distância, tempo, cobertura e prioridade pronta, ela pode **empatar** com esse baseline quando não encontra uma melhoria viável. A comparação na interface continua exibindo as métricas originais dos três métodos, inclusive empates. O verificador formal é executado pelo núcleo antes de qualquer plano ser retornado.
+Como a heurística usa o baseline geográfico como ponto inicial, ela pode **empatar** com esse baseline quando não encontra uma melhoria viável. Quando aumenta cobertura, é possível percorrer mais quilômetros totais; compare também a cobertura ponderada e a distância por visita. A comparação na interface continua exibindo as métricas originais dos três métodos, inclusive empates. O verificador formal é executado pelo núcleo antes de qualquer plano ser retornado.
 
 ## Etapas após a construção
 
@@ -303,7 +304,7 @@ O verificador atual não recalcula a matriz ou os totais e não verifica antecip
 
 | Estratégia | Elegibilidade diária | Escolha e posição de inserção |
 | --- | --- | --- |
-| `main-heuristic` | Construção inicial apenas com vencidas/devidas; movimentos posteriores podem antecipar até A dias. | Usa o baseline geográfico como ponto inicial e busca reinserções e trocas entre rotas que melhorem caminhada e atraso ponderado, sob limites de não regressão. |
+| `main-heuristic` | Construção inicial apenas com vencidas/devidas; reparo e movimentos posteriores podem antecipar até A dias. | Usa o baseline geográfico, busca economia de caminhada e atraso, depois repara pendências e prioriza resposta pronta dentro da capacidade. |
 | `urgency-baseline` | Apenas vencidas ou devidas hoje. | Ordena por `priorityScore` decrescente e acrescenta ao fim as visitas que cabem. |
 | `nearest-baseline` | Apenas vencidas ou devidas hoje. | Escolhe o candidato viável com menor tempo desde o último nó e acrescenta ao fim. |
 

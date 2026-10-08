@@ -12,44 +12,44 @@
 
 Valores positivos de ganho favorecem a heurística principal: principal menos baseline para coberturas; baseline menos principal para atraso, distância e tempo. Cada par usa a mesma instância e taxa de falha. Médias marginais usam o mesmo número de combinações nos demais fatores.
 
-**Leitura sugerida:** frente ao vizinho mais próximo, a heurística obteve ganho médio de 6,14 pontos percentuais em resposta pronta ponderada (564 vitórias, 139 empates e 26 derrotas em 729 pares). Na distância efetiva, o ganho médio foi de 0,73 km, com 326 derrotas; com 10% de falha, o ganho médio de distância foi -0,10 km. Portanto, a vantagem clínica simulada é mais consistente que a economia de caminhada efetiva. O método principal também consumiu em média 26,70 ms adicionais de planejamento no horizonte completo.
+**Leitura sugerida:** frente ao vizinho mais próximo, a heurística obteve ganho médio de 6,64 pontos percentuais em resposta pronta ponderada (580 vitórias, 111 empates e 38 derrotas em 729 pares). Na distância efetiva, o ganho médio foi de 0,69 km, com 334 derrotas; com 10% de falha, o ganho médio de distância foi -0,25 km. Portanto, a vantagem clínica simulada é mais consistente que a economia de caminhada efetiva. O método principal também consumiu em média 33,14 ms adicionais de planejamento no horizonte completo.
 
 | Baseline | Métrica | Ganho médio | Ganho mediano | Vitórias/empates/derrotas |
 |---|---|---:|---:|---:|
-| nearest-baseline | Cobertura efetiva | 0,84 p.p. | 0,00 p.p. | 163/545/21 |
-| nearest-baseline | Resposta pronta ponderada | 6,14 p.p. | 4,88 p.p. | 564/139/26 |
-| nearest-baseline | Atraso controlável ponderado | 0,36 dias | 0,29 dias | 634/72/23 |
-| nearest-baseline | Distância percorrida | 0,73 km | 0,00 km | 334/69/326 |
-| nearest-baseline | Tempo total de planejamento | -26,70 ms | -7,40 ms | 0/0/729 |
-| urgency-baseline | Cobertura efetiva | 7,43 p.p. | 0,00 p.p. | 345/381/3 |
-| urgency-baseline | Resposta pronta ponderada | 11,79 p.p. | 10,53 p.p. | 710/19/0 |
-| urgency-baseline | Atraso controlável ponderado | 0,96 dias | 0,65 dias | 670/11/48 |
-| urgency-baseline | Distância percorrida | 16,71 km | 13,01 km | 709/0/20 |
-| urgency-baseline | Tempo total de planejamento | -27,34 ms | -7,80 ms | 0/0/729 |
+| nearest-baseline | Cobertura efetiva | 0,89 p.p. | 0,00 p.p. | 171/531/27 |
+| nearest-baseline | Resposta pronta ponderada | 6,64 p.p. | 5,36 p.p. | 580/111/38 |
+| nearest-baseline | Atraso controlável ponderado | 0,38 dias | 0,29 dias | 644/57/28 |
+| nearest-baseline | Distância percorrida | 0,69 km | 0,00 km | 339/56/334 |
+| nearest-baseline | Tempo total de planejamento | -33,14 ms | -11,60 ms | 0/0/729 |
+| urgency-baseline | Cobertura efetiva | 7,47 p.p. | 0,00 p.p. | 344/382/3 |
+| urgency-baseline | Resposta pronta ponderada | 12,28 p.p. | 10,72 p.p. | 713/16/0 |
+| urgency-baseline | Atraso controlável ponderado | 0,97 dias | 0,66 dias | 671/8/50 |
+| urgency-baseline | Distância percorrida | 16,67 km | 13,17 km | 703/0/26 |
+| urgency-baseline | Tempo total de planejamento | -33,79 ms | -11,90 ms | 0/0/729 |
 
 ### Ganho médio por chance de falha
 
 | Falha | Baseline | Cobertura | Resposta pronta | Atraso controlável | Distância |
 |---:|---|---:|---:|---:|---:|
-| 0% | nearest-baseline | 0,80 p.p. | 5,59 p.p. | 0,33 dias | 1,23 km |
-| 0% | urgency-baseline | 7,13 p.p. | 12,36 p.p. | 0,93 dias | 16,65 km |
-| 5% | nearest-baseline | 0,81 p.p. | 6,06 p.p. | 0,37 dias | 1,06 km |
-| 5% | urgency-baseline | 7,33 p.p. | 11,49 p.p. | 0,93 dias | 16,63 km |
-| 10% | nearest-baseline | 0,92 p.p. | 6,77 p.p. | 0,39 dias | -0,10 km |
-| 10% | urgency-baseline | 7,82 p.p. | 11,50 p.p. | 1,02 dias | 16,86 km |
+| 0% | nearest-baseline | 0,91 p.p. | 6,22 p.p. | 0,35 dias | 1,28 km |
+| 0% | urgency-baseline | 7,24 p.p. | 12,99 p.p. | 0,95 dias | 16,70 km |
+| 5% | nearest-baseline | 0,83 p.p. | 6,49 p.p. | 0,38 dias | 1,05 km |
+| 5% | urgency-baseline | 7,35 p.p. | 11,92 p.p. | 0,94 dias | 16,61 km |
+| 10% | nearest-baseline | 0,91 p.p. | 7,21 p.p. | 0,41 dias | -0,25 km |
+| 10% | urgency-baseline | 7,81 p.p. | 11,94 p.p. | 1,04 dias | 16,70 km |
 
 ### Plano inicial, antes das falhas
 
 | Baseline | Métrica | Ganho médio | Vitórias/empates/derrotas |
 |---|---|---:|---:|
-| nearest-baseline | Cobertura planejada | 0,00 p.p. | 0/243/0 |
-| nearest-baseline | Resposta pronta planejada | 8,23 p.p. | 198/45/0 |
-| nearest-baseline | Atraso controlável planejado | 0,37 dias | 210/33/0 |
-| nearest-baseline | Distância planejada | 1,66 km | 209/34/0 |
-| urgency-baseline | Cobertura planejada | 6,53 p.p. | 107/136/0 |
-| urgency-baseline | Resposta pronta planejada | 8,54 p.p. | 207/6/30 |
-| urgency-baseline | Atraso controlável planejado | 0,69 dias | 223/1/19 |
-| urgency-baseline | Distância planejada | 17,03 km | 243/0/0 |
+| nearest-baseline | Cobertura planejada | 0,91 p.p. | 48/195/0 |
+| nearest-baseline | Resposta pronta planejada | 10,11 p.p. | 218/25/0 |
+| nearest-baseline | Atraso controlável planejado | 0,40 dias | 216/18/9 |
+| nearest-baseline | Distância planejada | 1,15 km | 185/18/40 |
+| urgency-baseline | Cobertura planejada | 7,45 p.p. | 108/135/0 |
+| urgency-baseline | Resposta pronta planejada | 10,41 p.p. | 214/1/28 |
+| urgency-baseline | Atraso controlável planejado | 0,73 dias | 226/1/16 |
+| urgency-baseline | Distância planejada | 16,52 km | 241/0/2 |
 
 ### Cinco condições mais desfavoráveis para resposta pronta frente ao vizinho mais próximo
 
@@ -61,7 +61,7 @@ Valores positivos de ganho favorecem a heurística principal: principal menos ba
 | 20261009 | 30 | 0,50× | 22 | 25% | 10% | -3,92 p.p. |
 | 20261010 | 30 | 1,00× | 10 | 25% | 0% | -3,89 p.p. |
 
-O [relatório interativo](relatorio.html) mostra o efeito marginal de cada fator, a distribuição dos ganhos pareados e a contagem de vitórias/empates/derrotas. Os valores completos estão em [resumo-fatores.csv](resumo-fatores.csv); os registros por execução são regenerados em `experimentos/resultados/fatorial/`.
+O [relatório interativo](relatorio.html) mostra o efeito marginal de cada fator, a distribuição dos ganhos pareados e a contagem de vitórias/empates/derrotas. Os valores completos estão em [resumo-fatores.csv](resumo-fatores.csv); os registros por execução são regenerados em `experimentos/resultados/fatorial/`. A [validação separada da heurística](validacao-versoes.md) compara a versão atual com o commit anterior em outras sementes e em duas regiões.
 
 ## Limites de interpretação
 

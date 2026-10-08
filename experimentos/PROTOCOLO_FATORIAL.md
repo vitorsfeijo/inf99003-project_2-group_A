@@ -29,6 +29,8 @@ O plano inicial mede cobertura, resposta pronta ponderada pela prioridade, atras
 
 O relatório usa **ganhos pareados**: `principal − baseline` para coberturas e `baseline − principal` para atraso, distância e tempo. Portanto, ganho positivo favorece a heurística principal. Cada média marginal de um nível de fator agrega todas as combinações dos demais fatores com a mesma quantidade de repetições. O CSV inclui média, mediana, quartis e número de vitórias, empates e derrotas; a mediana e os quartis mostram dispersão sem supor distribuição normal. As taxas de falha representam chances por tentativa, não porcentagens garantidas de visitas perdidas.
 
+A heurística principal atual usa duas etapas: primeiro melhora a solução do vizinho mais próximo com limite de caminhada; depois tenta inserir pendências e elevar a resposta pronta das prioridades sem perder a capacidade diária. Ao atender pessoas adicionais, pode aumentar a distância total. Uma [validação separada](analise/fatorial/validacao-versoes.md) compara essa implementação com o commit anterior em duas regiões e sementes não usadas nesta grade.
+
 ## Saídas e reprodução
 
 ```bash
@@ -36,6 +38,7 @@ npm run build --prefix artefato/packages/core
 npm run build --prefix experimentos
 npm run factorial --prefix experimentos
 npm run factorial:report --prefix experimentos
+npm run factorial:validate --prefix experimentos
 ```
 
 `resultados/fatorial/manifest.json` registra fatores, fonte, contagens e modelos de custo e área. `static.json/.csv` e `dynamic.json/.csv` guardam cada execução; são saídas regeneráveis e não entram no Git. `analise/fatorial/relatorio.html`, `resumo.md` e `resumo-fatores.csv` são materiais de apresentação versionados, gerados diretamente dos resultados brutos. Se código ou parâmetros mudarem, regenere todos os arquivos e registre a revisão no trabalho acadêmico.

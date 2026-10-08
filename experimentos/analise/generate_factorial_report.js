@@ -174,7 +174,7 @@ const markdown = `# Resultados para apresentação — experimento fatorial\n\n`
   `### Cinco condições mais desfavoráveis para resposta pronta frente ao vizinho mais próximo\n\n` +
   `| Semente | Pacientes | Área | Dias úteis | Já vencidas | Falha | Ganho |\n|---:|---:|---:|---:|---:|---:|---:|\n` +
   unfavorableRows.join('\n') + '\n\n' +
-  `O [relatório interativo](relatorio.html) mostra o efeito marginal de cada fator, a distribuição dos ganhos pareados e a contagem de vitórias/empates/derrotas. Os valores completos estão em [resumo-fatores.csv](resumo-fatores.csv); os registros por execução são regenerados em \`experimentos/resultados/fatorial/\`.\n\n` +
+  `O [relatório interativo](relatorio.html) mostra o efeito marginal de cada fator, a distribuição dos ganhos pareados e a contagem de vitórias/empates/derrotas. Os valores completos estão em [resumo-fatores.csv](resumo-fatores.csv); os registros por execução são regenerados em \`experimentos/resultados/fatorial/\`. A [validação separada da heurística](validacao-versoes.md) compara a versão atual com o commit anterior em outras sementes e em duas regiões.\n\n` +
   `## Limites de interpretação\n\n` +
   `- A área 1× preserva o contorno real; 0,5× e 2× são transformações geométricas para teste controlado e não representam territórios oficiais. Os pacientes, prioridades, prazos e ausências são sintéticos.\n` +
   `- Distâncias são Haversine, em linha reta. A velocidade de caminhada converte distância em minutos, mas não captura ruas, barreiras ou inclinação. Este experimento não mede custo de rota OSRM.\n` +
