@@ -7,12 +7,14 @@ import {
 } from '../../../artefato/packages/core/dist/index.js';
 import { runDynamicSimulation } from '../simulador/simulador-dinamico.js';
 import { mulberry32 } from '../gerador/index.js';
+import { buildWalkingCostMatrix } from '../../../artefato/packages/server/dist/routes/road-matrix.js';
+import { validateScenario } from '../../../artefato/packages/core/dist/validation/scenario.js';
 
 /** Grade fatorial completa: os cinco fatores variam independentemente. */
 export const DESIGN = {
   sourceScenario: 'geosaude_us_restinga_20261106_30',
   seeds: [20261008, 20261009, 20261010],
-  patients: [15, 30, 45],
+  patients: [15, 30, 45, 90],
   areaMultipliers: [0.5, 1, 2],
   planningDays: [5, 10, 22],
   overdueFractions: [0, 0.25, 0.5],
@@ -20,7 +22,6 @@ export const DESIGN = {
   strategies: ['main-heuristic', 'nearest-baseline', 'urgency-baseline'],
   startDate: '2026-10-01',
   dailyWorkMinutes: 240,
-  walkingSpeedKmh: 4.5,
   maxAnticipationDays: 2
 } as const;
 
@@ -61,7 +62,7 @@ function territoryAreaKm2(polygons: TerritoryPolygon[], referenceLat: number): n
 
 export function createScenario(base: Scenario, seed: number, patientCount: number, areaMultiplier: number,
   planningDays: number, overdueFraction: number): { scenario: Scenario; realizedOverdueFraction: number } {
-  // Amostra única por semente. Subconjuntos de 15/30/45 preservam os mesmos pacientes.
+  // Amostra única por semente. Subconjuntos de 15/30/45/90 preservam os mesmos pacientes.
   const sampled = sampleTerritoryPatients(base, Math.max(...DESIGN.patients), seed);
   const random = mulberry32(seed ^ 0x5a17cafe);
   const patientDraws = sampled.patients.map(() => ({
@@ -90,7 +91,6 @@ export function createScenario(base: Scenario, seed: number, patientCount: numbe
     startDate: DESIGN.startDate,
     planningHorizonDays: planningDays,
     maxAnticipationDays: DESIGN.maxAnticipationDays,
-    costParameters: { travelSpeedKmh: DESIGN.walkingSpeedKmh },
     teams: base.teams.map(team => ({ ...team, dailyWorkMinutes: DESIGN.dailyWorkMinutes, availableDays: [] })),
     polygons: base.polygons.map(polygon => scalePolygon(polygon, origin, scale)),
     patients
@@ -106,16 +106,21 @@ function csv(rows: Record<string, string | number>[]): string {
   return [fields.join(','), ...rows.map(row => fields.map(field => cell(row[field])).join(','))].join('\n') + '\n';
 }
 
-function main(): void {
+async function main(): Promise<void> {
+  const refreshMatrices = process.argv.includes('--refresh-matrices');
+  if (!process.env.OSRM_BASE_URL) throw new Error('Configure OSRM_BASE_URL para o experimento fatorial a pé.');
   const experimentRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
   const base: Scenario = JSON.parse(fs.readFileSync(path.join(experimentRoot,
     'cenarios', `${DESIGN.sourceScenario}.json`), 'utf8'));
-  const outputDir = path.join(experimentRoot, 'resultados', 'fatorial');
+  const outputDir = path.join(experimentRoot, 'resultados', 'fatorial-caminhada');
   fs.mkdirSync(outputDir, { recursive: true });
+  const matrixDir = path.join(outputDir, 'matrices');
+  fs.mkdirSync(matrixDir, { recursive: true });
   const baseArea = territoryAreaKm2(base.polygons, base.healthCenter.location.lat);
   if (!(baseArea > 0)) throw new Error('A área do território base deve ser positiva.');
   const staticRows: Record<string, string | number>[] = [];
   const dynamicRows: Record<string, string | number>[] = [];
+  const exclusions: { scenarioId: string; reason: string }[] = [];
   const totalInstances = DESIGN.seeds.length * DESIGN.patients.length * DESIGN.areaMultipliers.length
     * DESIGN.planningDays.length * DESIGN.overdueFractions.length;
   let completed = 0;
@@ -125,6 +130,20 @@ function main(): void {
         for (const overdueFraction of DESIGN.overdueFractions) {
           const { scenario, realizedOverdueFraction } = createScenario(base, seed, patientCount,
             areaMultiplier, planningDays, overdueFraction);
+          const eligiblePatients = validateScenario(scenario).eligiblePatients;
+          let costMatrix;
+          try {
+            const matrixFile = path.join(matrixDir, `s${seed}_p${patientCount}_a${areaMultiplier}.json`);
+            if (!refreshMatrices && fs.existsSync(matrixFile)) costMatrix = JSON.parse(fs.readFileSync(matrixFile, 'utf8'));
+            else {
+              costMatrix = await buildWalkingCostMatrix({ ...scenario, patients: eligiblePatients });
+              fs.writeFileSync(matrixFile, JSON.stringify(costMatrix));
+            }
+          } catch (error) {
+            if (!String(error).includes('Sem caminho a pé')) throw error;
+            exclusions.push({ scenarioId: scenario.id, reason: String(error) });
+            continue;
+          }
           const areaKm2 = baseArea * areaMultiplier;
           const factors = {
             scenarioId: scenario.id, seed, patientCount, areaMultiplier,
@@ -134,7 +153,7 @@ function main(): void {
           };
           for (const strategyId of DESIGN.strategies) {
             const started = performance.now();
-            const plan = planScenario(scenario, { strategyId, enable1_5Opt: true });
+            const plan = planScenario(scenario, { strategyId, enable1_5Opt: true, costMatrix });
             const planningTimeMs = performance.now() - started;
             const verification = verifyPlan(scenario, plan);
             if (!verification.isValid) throw new Error(`${scenario.id}/${strategyId}: ${verification.errors.join('; ')}`);
@@ -151,23 +170,26 @@ function main(): void {
               delayUnallocated: delayBuckets.unallocated });
             for (const missRate of DESIGN.missRates) {
               const record = runDynamicSimulation(scenario, strategyId, missRate, planningDays,
-                `restinga|${seed}`);
+                costMatrix, `restinga|${seed}`);
               dynamicRows.push({ ...record, ...factors });
             }
           }
           completed++;
           if (completed % 27 === 0 || completed === totalInstances) {
-            console.log(`Fatorial: ${completed}/${totalInstances} instâncias concluídas`);
+            console.log(`Fatorial: ${completed}/${totalInstances} instâncias avaliadas`);
           }
         }
+  if (!completed) throw new Error('Nenhuma instância fatorial possui matriz de caminhada completa.');
   const manifest = { design: DESIGN, sourceScenario: DESIGN.sourceScenario,
     sourceAreaKm2: Number(baseArea.toFixed(4)), instanceCount: completed,
+    attemptedInstanceCount: totalInstances, excludedInstanceCount: exclusions.length,
     staticRecordCount: staticRows.length, dynamicRecordCount: dynamicRows.length,
-    costModel: 'Haversine entre endereços sintéticos, 4,5 km/h; não é roteamento viário OSRM',
+    costModel: 'OSRM foot / OpenStreetMap: distância e duração da API Table',
     areaModel: 'Polígono GeoSaúde Restinga escalado ao redor da UBS; área aproximada por projeção local',
     dateModel: 'Vencimentos futuros entre 0 e 4 dias corridos; vencidos entre 1 e 10 dias antes do início',
-    output: ['static.json', 'static.csv', 'dynamic.json', 'dynamic.csv'] };
+    output: ['static.json', 'static.csv', 'dynamic.json', 'dynamic.csv', 'exclusions.json'] };
   fs.writeFileSync(path.join(outputDir, 'manifest.json'), JSON.stringify(manifest, null, 2));
+  fs.writeFileSync(path.join(outputDir, 'exclusions.json'), JSON.stringify(exclusions, null, 2));
   for (const [name, rows] of [['static', staticRows], ['dynamic', dynamicRows]] as const) {
     fs.writeFileSync(path.join(outputDir, `${name}.json`), JSON.stringify(rows, null, 2));
     fs.writeFileSync(path.join(outputDir, `${name}.csv`), csv(rows));
@@ -175,4 +197,6 @@ function main(): void {
   console.log(`Resultados fatoriais em ${outputDir}`);
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) main();
+if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
+  main().catch(error => { console.error(error); process.exitCode = 1; });
+}

@@ -67,7 +67,7 @@ Para cada paciente $i$ e condição clínica:
 
 ### 2.3. Grafo e Matriz de Custos
 * Modela o território como um grafo completo ponderado $G = (V, E)$, onde $V = \{0\} \cup \{1, \dots, n\}$ representa o posto de saúde ($0$) e as residências elegíveis ($1 \dots n$).
-* **Matriz de Distâncias e Tempos ($d_{ij}$):** No modelo inicial, calcula distâncias geodésicas (fórmula de Haversine) multiplicadas por uma velocidade média de deslocamento documentada. A arquitetura é desacoplada, permitindo receber futuramente uma matriz de tempos reais por rede viária (OSRM/OSMnx) sem alterações no planejador.
+* **Matriz de Distâncias e Tempos ($d_{ij}$):** O OSRM calcula distâncias e durações na rede de caminhada do OpenStreetMap e entrega a matriz ao planejador.
 
 ---
 
@@ -104,7 +104,7 @@ O resultado calculado pelo núcleo de otimização é consolidado para exibiçã
 ### 4.1. Rotas por Equipe no Mapa OSM
 * Exibe no mapa interativo com tiles de fundo do **OpenStreetMap** (renderizados via Leaflet.js na web ou Folium em scripts de avaliação).
 * Cada equipe possui uma **cor estável** ao longo de todos os dias. As residências são identificadas com numeração ordinal da sequência de atendimento.
-* Traçados entre casas são renderizados como segmentos em linha reta, sinalizados explicitamente como aproximações do trajeto real.
+* Traçados seguem a geometria de caminhada retornada pelo OSRM.
 
 ### 4.2. Métricas de Qualidade e Fila Restante
 * Relatório consolidado contendo:

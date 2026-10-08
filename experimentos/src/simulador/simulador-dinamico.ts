@@ -10,17 +10,14 @@
 
 import {
   planScenario,
+  verifyPlan,
   applyVisitResults,
   Scenario,
   ScenarioState,
   VisitResult,
-  PlannedVisit,
-  DailyTeamRoute
+  DailyTeamRoute,
+  CostMatrix
 } from '../../../artefato/packages/core/dist/index.js';
-
-import fs from 'fs';
-import path from 'path';
-import { pathToFileURL } from 'node:url';
 
 // ---------------------------------------------------------------------------
 // Tipos de saída
@@ -47,6 +44,8 @@ export interface DynamicSimulationRecord {
   totalPlanningTimeMs: number;
   avgReplanningTimeMs: number;
   replanningCount: number;
+  daysToComplete: number;
+  completionDate: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -119,7 +118,9 @@ export function runDynamicSimulation(
   strategyId: string,
   missRate: number,
   totalSimulationDays: number,
-  failureKey = baseScenario.id
+  costMatrix: CostMatrix,
+  failureKey = baseScenario.id,
+  horizonMode: 'rolling' | 'fixed' = 'rolling'
 ): DynamicSimulationRecord {
   // Estado inicial: avança a janela de planejamento para cada dia simulado
   let state: ScenarioState = {
@@ -134,6 +135,10 @@ export function runDynamicSimulation(
   let totalPlanningTimeMs = 0;
   let replanningCount = 0;
   let initialDemand: { patientId: string; conditionId: string }[] | undefined;
+  let scheduledRoutes: DailyTeamRoute[] = [];
+  let needsReplan = true;
+  let daysToComplete = 0;
+  let completionDate = '';
   const completedDates = new Map<string, string>();
   let lastSimulationDate = baseScenario.startDate;
 
@@ -153,7 +158,10 @@ export function runDynamicSimulation(
     // Atualiza o startDate do cenário para refletir o dia atual da simulação
     const scenarioForDay: Scenario = {
       ...state.scenario,
-      startDate: currentDate
+      startDate: currentDate,
+      planningHorizonDays: horizonMode === 'fixed'
+        ? totalSimulationDays - simulationDay + 1
+        : state.scenario.planningHorizonDays
     };
 
     // 1. Medir tempo de planejamento/replanejamento
@@ -161,21 +169,31 @@ export function runDynamicSimulation(
     let routesForToday: DailyTeamRoute[] = [];
 
     try {
-      const plan = planScenario(scenarioForDay, { strategyId, enable1_5Opt: true });
-      const t1 = performance.now();
-      totalPlanningTimeMs += t1 - t0;
-      replanningCount++;
-      if (!initialDemand) {
-        const unique = new Map<string, { patientId: string; conditionId: string }>();
-        for (const visit of [...plan.routes.flatMap(route => route.visits), ...plan.unallocatedVisits]) {
-          const key = JSON.stringify([visit.patientId, visit.conditionId]);
-          unique.set(key, { patientId: visit.patientId, conditionId: visit.conditionId });
+      if (horizonMode === 'fixed' && !needsReplan) {
+        routesForToday = scheduledRoutes.filter(route => route.date === currentDate);
+      } else {
+        const plan = planScenario(scenarioForDay, { strategyId, enable1_5Opt: true, costMatrix });
+        const t1 = performance.now();
+        const verification = verifyPlan(scenarioForDay, plan);
+        if (!verification.isValid) throw new Error(`Plano inválido: ${verification.errors.join('; ')}`);
+        totalPlanningTimeMs += t1 - t0;
+        replanningCount++;
+        if (!initialDemand) {
+          const unique = new Map<string, { patientId: string; conditionId: string }>();
+          for (const visit of [...plan.routes.flatMap(route => route.visits), ...plan.unallocatedVisits]) {
+            const key = JSON.stringify([visit.patientId, visit.conditionId]);
+            unique.set(key, { patientId: visit.patientId, conditionId: visit.conditionId });
+          }
+          initialDemand = [...unique.values()];
         }
-        initialDemand = [...unique.values()];
-      }
 
-      // 2. Filtrar apenas as rotas planejadas para o dia atual
-      routesForToday = plan.routes.filter(r => r.date === currentDate);
+        // 2. Filtrar apenas as rotas planejadas para o dia atual
+        routesForToday = plan.routes.filter(r => r.date === currentDate);
+        if (horizonMode === 'fixed') {
+          scheduledRoutes = plan.routes;
+          needsReplan = false;
+        }
+      }
     } catch (err: any) {
       throw new Error(`Falha ao planejar ${baseScenario.id}/${strategyId} no dia ${simulationDay}: ${err.message}`);
     }
@@ -219,6 +237,15 @@ export function runDynamicSimulation(
     } else {
       // Sem visitas hoje → apenas avança a data no estado
       state = { ...state, scenario: scenarioForDay };
+    }
+
+    if (horizonMode === 'fixed' && dayResults.some(result => result.status === 'missed')) {
+      needsReplan = true;
+    }
+    if (initialDemand && daysToComplete === 0 && completedDates.size === initialDemand.length) {
+      daysToComplete = simulationDay;
+      completionDate = currentDate;
+      if (horizonMode === 'fixed') break;
     }
 
     currentDate = nextWorkingDay(currentDate);
@@ -276,101 +303,8 @@ export function runDynamicSimulation(
       replanningCount > 0
         ? Number((totalPlanningTimeMs / replanningCount).toFixed(3))
         : 0,
-    replanningCount
+    replanningCount,
+    daysToComplete,
+    completionDate
   };
-}
-
-// ---------------------------------------------------------------------------
-// Entrypoint: executa todas as combinações e salva resultados
-// ---------------------------------------------------------------------------
-
-if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
-const cenariosDir = path.resolve(process.cwd(), 'cenarios');
-const resultadosDir = path.resolve(process.cwd(), 'resultados');
-
-if (!fs.existsSync(resultadosDir)) {
-  fs.mkdirSync(resultadosDir, { recursive: true });
-}
-
-const scenarioFiles = fs.readdirSync(cenariosDir).filter((f: string) => f.endsWith('.json'));
-
-if (scenarioFiles.length === 0) {
-  console.error('Nenhum cenário encontrado em experimentos/cenarios. Execute o gerador primeiro.');
-  process.exit(1);
-}
-
-const strategiesToCompare = ['main-heuristic', 'urgency-baseline', 'nearest-baseline'];
-const missRates = [0.0, 0.1, 0.2, 0.4];
-const totalSimulationDays = 5; // 1 semana útil
-
-const allRecords: DynamicSimulationRecord[] = [];
-
-const totalRuns = scenarioFiles.length * strategiesToCompare.length * missRates.length;
-console.log(`🚀 Simulador Dinâmico — ${scenarioFiles.length} cenários × ${strategiesToCompare.length} estratégias × ${missRates.length} taxas de falha = ${totalRuns} rodadas\n`);
-
-for (const file of scenarioFiles) {
-  const scenario: Scenario = JSON.parse(fs.readFileSync(path.join(cenariosDir, file), 'utf-8'));
-  console.log(`📌 Cenário: ${scenario.id} (${scenario.patients.length} pacientes, ${scenario.teams.length} equipes)`);
-
-  for (const strategyId of strategiesToCompare) {
-    for (const missRate of missRates) {
-      try {
-        const record = runDynamicSimulation(scenario, strategyId, missRate, totalSimulationDays);
-        allRecords.push(record);
-
-        const missLabel = (missRate * 100).toFixed(0).padStart(2, ' ');
-        console.log(
-          `  └─ [${strategyId.padEnd(20)}] missRate=${missLabel}% | ` +
-          `Cobertura: ${record.realCoveragePercentage.toFixed(1).padStart(5)}% | ` +
-          `Atraso: ${String(record.realAccumulatedOverdueDays).padStart(4)}d | ` +
-          `Dist: ${record.realTravelDistanceKm.toFixed(1).padStart(7)} km | ` +
-          `AvgReplanning: ${record.avgReplanningTimeMs.toFixed(1)} ms`
-        );
-      } catch (err: any) {
-        throw new Error(`Falha em ${strategyId} / ${scenario.id} / missRate=${missRate}: ${err.message}`);
-      }
-    }
-  }
-}
-
-// Salvar JSON
-const jsonOut = path.join(resultadosDir, 'dynamic_simulation_results.json');
-fs.writeFileSync(jsonOut, JSON.stringify(allRecords, null, 2), 'utf-8');
-console.log(`\n💾 JSON salvo: ${jsonOut}`);
-
-// Salvar CSV
-const csvHeader = [
-  'scenarioId', 'patientCount', 'teamCount', 'strategyId', 'missRate',
-  'totalSimulationDays', 'completedVisits', 'missedVisits', 'unservedVisits',
-  'realCoveragePercentage', 'realAccumulatedOverdueDays', 'realPriorityWeightedCoveragePercentage',
-  'realPriorityWeightedPromptCoveragePercentage', 'realPriorityWeightedActionableDelayDays', 'realTravelDistanceKm',
-  'totalPlanningTimeMs', 'avgReplanningTimeMs', 'replanningCount'
-].join(',');
-
-const csvRows = allRecords.map(r => [
-  `"${r.scenarioId}"`,
-  r.patientCount,
-  r.teamCount,
-  `"${r.strategyId}"`,
-  r.missRate,
-  r.totalSimulationDays,
-  r.completedVisits,
-  r.missedVisits,
-  r.unservedVisits,
-  r.realCoveragePercentage,
-  r.realAccumulatedOverdueDays,
-  r.realPriorityWeightedCoveragePercentage,
-  r.realPriorityWeightedPromptCoveragePercentage,
-  r.realPriorityWeightedActionableDelayDays,
-  r.realTravelDistanceKm,
-  r.totalPlanningTimeMs,
-  r.avgReplanningTimeMs,
-  r.replanningCount
-].join(','));
-
-const csvOut = path.join(resultadosDir, 'dynamic_simulation_results.csv');
-fs.writeFileSync(csvOut, `${csvHeader}\n${csvRows.join('\n')}`, 'utf-8');
-console.log(`💾 CSV salvo: ${csvOut}`);
-
-console.log('\n✨ Simulação dinâmica concluída com sucesso!');
 }

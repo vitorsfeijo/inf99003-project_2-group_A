@@ -1,6 +1,6 @@
 # Roteiro de Apresentação — Semana 2
 **Projeto:** Planejamento de Visitas Domiciliares na APS (PHVD-APS)  
-**Disciplina:** INF99003 — Projeto 2 — Grupo D  
+**Disciplina:** INF99003 — Projeto 2 — Grupo A
 **Integrantes:** Fábio, Tobias e Vítor  
 **Tempo Estimado:** 7 a 8 minutos (média de ~40 a 50 segundos por slide)
 
@@ -74,7 +74,7 @@
 * **O que citar:**
   * Apresentar o diagrama da esquerda para a direita:
     1. **Entradas:** Cenário territorial, histórico de visitas anteriores e calendário das equipes.
-    2. **Preparação no Núcleo:** Valida os polígonos territoriais, gera a fila de pendências e constrói o grafo com a matriz de custos Haversine.
+    2. **Preparação no Núcleo:** Valida os polígonos territoriais, gera a fila de pendências e recebe a matriz de caminhada calculada pelo OSRM.
     3. **Otimização:** O *Planejador* aloca as visitas para os $N$ dias; o *2-opt* desfaz cruzamentos dentro de cada rota; e o *Verificador* garante que nenhuma rota exceda a jornada diária.
     4. **Saídas:** As rotas são renderizadas no mapa OSM e exportadas para CSV e GPX.
     5. **Ciclo Dinâmico de Replanejamento (Faixa inferior):** Ao final do dia, o resultado real de campo alimenta o replanejamento: o histórico já executado é congelado, a janela avança mantendo $N$ dias úteis à frente e uma nova versão auditável do plano é gerada.
@@ -88,7 +88,7 @@
   * A interface foi concebida para ser simples e funcional, sem complexidade desnecessária:
     * **Cadastros (mini-CRUD):** Permite configurar postos, pacientes e equipes sem editar código.
     * **Mapa com OpenStreetMap (Leaflet/Folium):** Visualização das rotas coloridas por equipe e numeração das paradas.
-    * **Tratamento das rotas:** Os traçados são segmentos em linha reta sobre o OSM como aproximação experimental.
+    * **Tratamento das rotas:** Os traçados seguem a geometria de caminhada retornada pelo OSRM.
     * **Exportação em CSV e GPX:** Requisito crucial para campo. O arquivo GPX permite que o agente comunitário carregue a rota em aplicativos de navegação offline no celular (como OsmAnd ou Google Maps) mesmo sem sinal de internet.
 * **Frase de transição:** *"Para validar se a nossa heurística é de fato vantajosa, precisamos compará-la com baselines bem definidos."*
 
@@ -123,7 +123,7 @@
 * **O que citar:**
   * **Status:** A Semana 2 encerra a concepção formal do projeto e o plano de desenvolvimento.
   * **Semana 3 (Implementação):**
-    * Construção do núcleo de otimização (gerador, matriz Haversine, heurística, baselines e 2-opt).
+    * Construção do núcleo de otimização (gerador, matriz de caminhada, heurística, baselines e 2-opt).
     * Desenvolvimento da interface com mapa OSM e exportador CSV/GPX.
   * **Semana 4 (Avaliação e Escrita):**
     * Execução dos experimentos em lote com todas as instâncias sintéticas.
@@ -148,8 +148,8 @@
 
 ## Possíveis Perguntas da Banca e Como Responder
 
-1. **Pergunta:** *"Por que usar distância Haversine em vez de rotas por ruas já no primeiro protótipo?"*
-   * **Resposta:** *"A distância em linha reta com Haversine é uma aproximação controlada para avaliar o comportamento do algoritmo de horizonte móvel. No entanto, nossa arquitetura foi projetada de forma modular: o grafo e a matriz de custos são independentes do planejador, permitindo conectar uma matriz de tempos reais por malha viária (como OSMnx ou OSRM) futuramente sem alterar uma única linha da heurística."*
+1. **Pergunta:** *"Como são calculados os deslocamentos a pé?"*
+   * **Resposta:** *"O OSRM usa a malha OpenStreetMap preparada com o perfil de caminhada. A matriz de distâncias e durações entra no planejador; a geometria das rotas exibidas vem da API Route."*
 
 2. **Pergunta:** *"Qual a diferença entre o problema de vocês e um Vehicle Routing Problem (VRP) padrão?"*
    * **Resposta:** *"Um VRP clássico apenas roteia pontos conhecidos em um único dia. O nosso problema combina: (1) horizonte temporal de múltiplos dias; (2) seleção e priorização sob capacidade insuficiente (nem todo mundo cabe); (3) dinâmica de intervalos clínicos recorrentes; e (4) ciclo de replanejamento diário com avanço de janela móvel após falhas reais de atendimento."*

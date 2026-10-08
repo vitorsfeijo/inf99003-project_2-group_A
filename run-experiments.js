@@ -1,6 +1,7 @@
 import { spawnSync } from 'node:child_process';
 
 const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+if (!process.env.OSRM_BASE_URL) throw new Error('Configure OSRM_BASE_URL para executar os experimentos com caminhada.');
 
 const steps = [
   {
@@ -8,30 +9,29 @@ const steps = [
     args: ['run', 'build', '--prefix', 'artefato/packages/core']
   },
   {
+    label: 'Compilando o servidor de rotas',
+    args: ['run', 'build', '--prefix', 'artefato/packages/server']
+  },
+  {
     label: 'Compilando os experimentos',
     args: ['run', 'build', '--prefix', 'experimentos']
   },
   {
-    label: 'Gerando cenarios',
-    args: ['run', 'generate', '--prefix', 'experimentos']
+    label: 'Comparando os territórios de Porto Alegre com caminhada',
+    args: ['run', 'citywide:report', '--prefix', 'experimentos']
   },
   {
-    label: 'Executando benchmark em lote',
-    args: ['run', 'simulate', '--prefix', 'experimentos']
+    label: 'Executando a análise fatorial com caminhada',
+    args: ['run', 'factorial', '--prefix', 'experimentos']
   },
   {
-    label: 'Executando simulacao dinamica',
-    args: ['run', 'simulate-dynamic', '--prefix', 'experimentos']
-  },
-  {
-    label: 'Gerando relatorio HTML',
-    command: 'node',
-    args: ['experimentos/analise/generate_html_charts.js']
+    label: 'Gerando o relatório fatorial',
+    args: ['run', 'factorial:report', '--prefix', 'experimentos']
   }
 ];
 
 console.log('===========================================================');
-console.log('EXECUTANDO A BANCADA COMPLETA DE EXPERIMENTOS');
+console.log('EXECUTANDO AS ANÁLISES TERRITORIAL E FATORIAL');
 console.log('===========================================================');
 
 for (const [index, step] of steps.entries()) {
@@ -55,6 +55,6 @@ for (const [index, step] of steps.entries()) {
   }
 }
 
-console.log('\nBancada completa executada com sucesso.');
+console.log('\nAnálises territorial e fatorial executadas com sucesso.');
 console.log('Resultados: experimentos/resultados/');
-console.log('Relatorio: experimentos/analise/relatorio_experimentos.html');
+console.log('Relatorio: experimentos/analise/fatorial-caminhada/relatorio.html');

@@ -19,7 +19,7 @@ export async function buildWalkingCostMatrix(scenario: Scenario): Promise<CostMa
       const sources = sourceIndices.map((_, index) => index).join(';');
       const destinations = destinationIndices.map((_, index) => sourceIndices.length + index).join(';');
       const url = `${baseUrl.replace(/\/$/, '')}/table/v1/foot/${coordinates}?annotations=distance,duration&sources=${sources}&destinations=${destinations}`;
-      const response = await fetch(url, { signal: AbortSignal.timeout(30000) });
+      const response = await fetch(url, { signal: AbortSignal.timeout(120000) });
       if (!response.ok) throw new Error(`OSRM caminhada respondeu HTTP ${response.status}.`);
       const table = await response.json() as TableResponse;
       if (table.code !== 'Ok' || !table.distances || !table.durations) {

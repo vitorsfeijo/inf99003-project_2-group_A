@@ -1,95 +1,38 @@
-# Bancada de Experimentos e Avaliação — Pesquisa INF99003
+# Experimentos com rotas a pé
 
-Este diretório contém os scripts de **geração de dados sintéticos, simulação em lote e análise de resultados** utilizados para responder às perguntas de pesquisa do projeto (Ciclo 2 - INF99003).
+A bancada compara `main-heuristic`, `urgency-baseline` e `nearest-baseline` com pacientes sintéticos e matrizes de distância e duração calculadas pela API Table do OSRM sobre a rede OpenStreetMap preparada com `foot.lua`. A mesma matriz, equipe, calendário e demanda são usados pelos três métodos. Cada plano passa por `verifyPlan`.
 
----
+## Reproduzir
 
-## 📂 Estrutura de Módulos
-
-```text
-experimentos/
-├── package.json
-├── tsconfig.json
-├── src/            # Código-fonte TypeScript da bancada experimental
-├── cenarios/       # Arquivos JSON dos cenários gerados (folgado, equilibrado, escasso)
-├── resultados/     # Datasets de saída da simulação em CSV e JSON
-└── analise/        # Relatórios e gráficos comparativos
-```
-
----
-
-## 🔬 Protocolo Experimental e Reprodutibilidade
-
-1. **Preparação Sintética:**
-   * Utiliza o algoritmo *Mulberry32* com semente determinística.
-   * Cria instâncias controladas variando o número de pacientes ($n$), número de equipes ($m$), janela móvel ($N$) e taxa de visitas vencidas.
-   * Garante que cenários sejam 100% reproduzíveis.
-
-2. **Execução em Lote:**
-   * Submete exatamente o mesmo cenário e calendário a todas as estratégias comparadas:
-     - `main-heuristic` (Heurística Principal + 1.5-opt)
-     - `urgency-baseline` (Baseline por Urgência)
-     - `nearest-baseline` (Baseline por Vizinho Mais Próximo)
-   * Mede de forma isolada:
-     - **Atraso Acumulado** (dias totais de atraso ao longo do horizonte)
-     - **Deslocamento Total** (km)
-     - **Tempo de Viagem** (minutos)
-     - **Utilização e Desequilíbrio de Carga**
-     - **Tempo Computacional de Execução** (ms)
-
-3. **Relatórios e Visualização de Dados (`analise/`):**
-   * Produz o arquivo interativo [experimentos/analise/relatorio_experimentos.html](file:///c:/Users/vitor/Documents/uni/pci/inf99003-project_2-group_A/experimentos/analise/relatorio_experimentos.html) alimentado com *Chart.js*.
-   * Exporta datasets brutos em CSV ([experimentos/resultados/benchmark_results.csv](file:///c:/Users/vitor/Documents/uni/pci/inf99003-project_2-group_A/experimentos/resultados/benchmark_results.csv)) para análise estatística externa.
-
----
-
-## 🚀 Como Executar os Experimentos
-
-### Varredura fatorial para apresentação
-
-Para a síntese curta de **todos os 132 territórios importados de Porto Alegre**, execute `npm run citywide:report --prefix experimentos` após compilar o núcleo e os experimentos. O [resumo pronto para slides](analise/porto-alegre/resumo-slides.md) informa ganhos relativos, custos e limites; os registros por território e taxa de falha são gerados em `resultados/porto-alegre/`. Essa média dá o mesmo peso a cada território e usa 30 pacientes sintéticos em cada um; não representa a população real da cidade.
-
-O [protocolo fatorial](PROTOCOLO_FATORIAL.md) varia independentemente **pacientes, área do território, horizonte de planejamento, proporção inicialmente vencida e chance de falha**. As taxas de falha são **0%, 5% e 10% por tentativa**. O experimento completo usa três sementes, uma equipe e o território GeoSaúde US Restinga como geometria base; as versões de área reduzida ou ampliada são cenários sintéticos de sensibilidade. Os três métodos recebem exatamente os mesmos casos. Os arquivos de saída e o relatório são gerados com:
+Inicie o servidor conforme [instruções do artefato](../artefato/README.md) e defina `OSRM_BASE_URL`. Na raiz do repositório:
 
 ```bash
 npm run build --prefix artefato/packages/core
+npm run build --prefix artefato/packages/server
 npm run build --prefix experimentos
-npm run factorial --prefix experimentos
+OSRM_BASE_URL=http://127.0.0.1:5000 npm run citywide:report --prefix experimentos
+OSRM_BASE_URL=http://127.0.0.1:5000 npm run factorial --prefix experimentos
 npm run factorial:report --prefix experimentos
 ```
 
-Abra [o relatório fatorial](analise/fatorial/relatorio.html) e use [o resumo para apresentação](analise/fatorial/resumo.md). Os resultados brutos ficam em `resultados/fatorial/` e podem ser regenerados com os comandos acima.
+O comando `OSRM_BASE_URL=http://127.0.0.1:5000 npm run experiments:all` executa as análises territorial e fatorial. O estudo de 250 pacientes tem os comandos próprios abaixo. As matrizes ficam em cache em `resultados/*-caminhada/matrices/`. Passe `-- --refresh-matrices` à simulação quando mudar o grafo OSRM. `npm run verify:walking-matrices --prefix experimentos` confere o cache contra o servidor ativo. Instâncias sem caminho completo entram em `exclusions.json` e não nas médias.
 
-Para comparar a heurística atual com a versão anterior em sementes e áreas separadas da varredura principal, execute `npm run factorial:validate --prefix experimentos` após os builds. A [validação de versões](analise/fatorial/validacao-versoes.md) registra os resultados de US Restinga e CF Santa Marta e o commit de referência.
+## Estudos e saídas
 
-### Territórios GeoSaúde
+- [Varredura fatorial](PROTOCOLO_FATORIAL.md): são 324 cenários = 1 território base × 3 sementes × 4 quantidades de pacientes (15, 30, 45 e 90) × 3 versões de área desse território × 3 horizontes × 3 proporções de visitas vencidas. Cada cenário recebe 3 estratégias e 3 probabilidades de ausência. Veja o [resumo](analise/fatorial-caminhada/resumo.md), o [relatório](analise/fatorial-caminhada/relatorio.html) e os registros em `resultados/fatorial-caminhada/`.
+- [Territórios de Porto Alegre](analise/porto-alegre-caminhada/resumo-slides.md): 132 áreas GeoSaúde importadas. Uma foi excluída por falta de caminho a pé completo. As 131 avaliadas têm 30 pacientes sintéticos por área; resultados em `resultados/porto-alegre-caminhada/`.
+- [Estudo de 250 pacientes](analise/longo-250-caminhada/resumo.md): um território base, uma equipe de 300 minutos por dia e três sementes. Os prazos das visitas ficam entre outubro de 2026 e janeiro de 2027. Quatro meses medem a capacidade inicial. A comparação usa **12 meses, de outubro de 2026 a setembro de 2027**, como prazo amplo comum. São **261 dias de segunda a sexta**, sem retirar feriados. Todos os nove planos iniciais (3 sementes × 3 estratégias) devem incluir **250 de 250 visitas**. Medimos quantos dias úteis cada método leva para concluir todas elas, com probabilidades de ausência de 0%, 5% e 10%. São **27 execuções = 3 sementes × 3 estratégias × 3 probabilidades de ausência**. Os comandos estão abaixo.
+- [Material para o colega montar os slides](../slides/apoio-banca/README.md): roteiro, números, métricas e pseudocódigo copiáveis.
 
-Exporte **GeoJSON WGS84 (EPSG:4326), KML ou KMZ completo** do GeoSaúde. O arquivo completo usado para os cenários versionados está em `dados/GEOSAUDE - Território Base (Jul25) (1).kmz`; o SHA-256 aparece em cada arquivo de `provenance/`. As outras exportações locais em `dados/` são auxiliares e não são versionadas. Arquivos KMZ que contêm somente `NetworkLink` não incluem as áreas e são rejeitados. O gerador percorre a camada **Territórios da Atenção Primária**, cria um cenário separado por território e associa a unidade de saúde por nome exato. No arquivo de julho de 2025, 131 das 132 áreas têm associação exata; a área `US Ramos` usa a unidade mais próxima do centro geométrico e essa aproximação fica registrada na proveniência. Cada cenário usa **uma equipe**, um mês corrido a partir da data inicial (22 dias úteis em outubro de 2026) e 30 atendimentos sintéticos por padrão: 3.960 pessoas no conjunto, distribuídas entre as 132 áreas. A distribuição é uniforme dentro dos polígonos e não representa endereços reais, densidade populacional, prevalência clínica ou efetivo observado das equipes. Para estimar demanda proporcional à população, ainda são necessários setores censitários, contagens populacionais e parâmetros clínicos observados.
-
-```bash
-npm run build --prefix artefato/packages/core
-npm run build --prefix experimentos
-cd experimentos
-npm run generate:geosaude -- 'dados/GEOSAUDE - Território Base (Jul25) (1).kmz' --all 30 20261008
-```
-
-Para uma única área, defina `GEOSAUDE_TERRITORY_NAME='Nome exato da área'` e use `npm run generate:geosaude -- '/caminho/territorio.kmz' 30 20261008`. Para GeoJSON sem ponto de UBS, informe `GEOSAUDE_HC_LAT` e `GEOSAUDE_HC_LNG`. O planejamento mantém o limite de jornada da equipe; visitas excedentes permanecem como não alocadas. O GeoSaúde fornece territórios e unidades, não uma lista de pacientes.
-
-O relatório mostra distribuição das visitas alocadas em faixas de atraso e as pendências em faixa separada. A cobertura ponderada é `soma dos pesos clínicos alocados / soma dos pesos clínicos de todas as visitas candidatas`; a versão pontual conta apenas as visitas até o prazo. **Resposta pronta** conta visitas já vencidas quando atendidas no primeiro dia e visitas futuras até seu prazo, sempre ponderadas pelo peso clínico. O **atraso controlável** multiplica pelo peso clínico somente os dias após `max(início da janela, prazo)`; pendências são censuradas no último dia. Assim a comparação não atribui ao planejador o atraso herdado antes da janela. A eficiência clínica por quilômetro é `soma dos pesos clínicos alocados / distância total estimada`; compare esta razão **junto** à cobertura e ao tempo por visita para não premiar um método que abandona parte da demanda. Distâncias e tempos de viagem do benchmark continuam estimativas Haversine, iguais para as três estratégias.
-
-O relatório HTML incorpora uma cópia local do Chart.js 4.5.1 e abre sem conexão; a licença MIT está em `analise/vendor/LICENSE.chartjs.md`.
-
-Na simulação dinâmica, a cobertura efetiva usa como denominador a demanda inicial completa, inclusive quem nunca recebeu tentativa de atendimento. Falhas são determinadas por um sorteio estável para `(cenário, paciente, dia)`; a taxa de falha define o limiar desse sorteio, garantindo a mesma ausência quando estratégias diferentes visitam a mesma pessoa no mesmo dia. O atraso efetivo inclui pacientes ainda pendentes até o último dia simulado.
-
-Para rodar a geração de dados e a simulação em lote:
+Para reproduzir o estudo de 250 pacientes, execute na raiz do repositório, com o OSRM de caminhada ativo:
 
 ```bash
-# Na raiz do repositório
-npm run experiments
-
-# Ou dentro da pasta experimentos
-cd experimentos
-npm run generate
-npm run simulate
-node analise/generate_html_charts.js
+OSRM_BASE_URL=http://127.0.0.1:5000 node experimentos/scripts/probe-long-capacity.mjs
+OSRM_BASE_URL=http://127.0.0.1:5000 npm run long-horizon --prefix experimentos
 ```
+
+O primeiro comando calcula ou reutiliza as matrizes a pé e verifica os planos iniciais em quatro e 12 meses. O segundo simula as 27 execuções e grava os resultados em `resultados/longo-250-caminhada/`. A simulação refaz o plano após uma falta e termina quando a última visita inicial é concluída. A jornada de 300 minutos permite que os trajetos mais longos caibam em um dia. Com 240 minutos, alguns pacientes não cabem em nenhuma jornada, independentemente do prazo total.
+
+Nos **9 pares** entre heurística e vizinho mais próximo (3 sementes × 3 probabilidades de ausência), a heurística terminou **5,56 dias úteis antes** em média: 88,11 contra 93,67 dias úteis. A caminhada média foi **13,03% menor**: 1.134,87 km contra 1.304,91 km por execução. As 27 execuções concluíram as 250 visitas. Esses números pertencem ao estudo longo; a grade fatorial tem outra carga e outro resultado de caminhada.
+
+Pacientes, prioridades e faltas são simulados com PRNG Mulberry32 e sementes fixas. A cobertura efetiva usa a demanda inicial completa no denominador. Uma visita sem sucesso permanece pendente com seu prazo original; o replanejamento ocorre a cada dia útil. Os quilômetros e minutos representam trajetos previstos na rede de caminhada, não deslocamentos observados em campo. O mapa base do GeoSaúde descreve o território, mas os endereços dos pacientes são sintéticos.

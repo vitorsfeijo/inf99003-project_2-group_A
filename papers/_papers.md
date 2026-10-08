@@ -579,6 +579,6 @@ Além disso, a aplicação ainda não havia sido integrada ao fluxo de trabalho 
 
 #### Relação com o projeto
 
-O artigo oferece uma base técnica diretamente relacionada ao sistema de planejamento de visitas dos ACS. Ele sustenta o uso combinado de dados territoriais, matriz de tempos, restrições de jornada, prioridade das visitas e algoritmos de roteirização para produzir agendas viáveis, em vez de ordenar domicílios apenas pela distância em linha reta.
+O artigo oferece uma base técnica diretamente relacionada ao sistema de planejamento de visitas dos ACS. Ele sustenta o uso combinado de dados territoriais, matriz de tempos, restrições de jornada, prioridade das visitas e algoritmos de roteirização para produzir agendas viáveis, com custos sobre a rede de deslocamento.
 
 Ao mesmo tempo, suas limitações reforçam que a rota deve ser um apoio à decisão, e não uma substituição do conhecimento dos ACS e da equipe. O projeto deve permitir atualizar domicílios e caminhos, considerar prioridades clínicas e retornos, registrar visitas realizadas, adaptar a agenda a imprevistos e operar com conectividade limitada. Assim, a otimização geográfica contribui para reduzir deslocamentos e distribuir o trabalho, mas permanece articulada à territorialização, à continuidade do cuidado e às necessidades reais das famílias.

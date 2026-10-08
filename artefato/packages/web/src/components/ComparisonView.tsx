@@ -5,7 +5,6 @@ import './comparison.css';
 interface Props {
   scenario: Scenario;
   plans: Plan[];
-  localEstimate: boolean;
   onOpenPlan: (strategyId: string, date?: string) => void;
 }
 
@@ -25,7 +24,7 @@ const metrics: { label: string; value: (plan: Plan) => number; unit: string; dig
   { label: 'Cobertura no prazo', value: plan => plan.metrics.onTimeCoveragePercentage, unit: '%' },
   { label: 'Cobertura ponderada pela prioridade', value: plan => plan.metrics.priorityWeightedCoveragePercentage, unit: '%' },
   { label: 'Prioridade atendida no prazo', value: plan => plan.metrics.priorityWeightedOnTimeCoveragePercentage, unit: '%' },
-  { label: 'Prioridade atendida em tempo acionável', value: plan => plan.metrics.priorityWeightedPromptCoveragePercentage, unit: '%', explanation: 'Visitas já vencidas no primeiro dia útil; demais até o prazo.' },
+  { label: 'Prioridade atendida a tempo', value: plan => plan.metrics.priorityWeightedPromptCoveragePercentage, unit: '%', explanation: 'Soma dos pesos das visitas feitas a tempo dividida pela soma dos pesos de toda a demanda. Visitas já vencidas contam se ocorrerem no primeiro dia.' },
   { label: 'Distância total a pé', value: plan => plan.metrics.totalTravelDistanceKm, unit: ' km' },
   { label: 'Tempo total em deslocamento', value: plan => plan.metrics.totalTravelTimeMinutes / 60, unit: ' h' },
   { label: 'Tempo total em atendimentos', value: plan => plan.routes.reduce((sum, route) => sum + route.totalVisitTimeMinutes, 0) / 60, unit: ' h' },
@@ -61,7 +60,7 @@ function BarComparison({ title, plans, value, format, lowerBetter = false }: {
   </section>;
 }
 
-export const ComparisonView: React.FC<Props> = ({ scenario, plans, localEstimate, onOpenPlan }) => {
+export const ComparisonView: React.FC<Props> = ({ scenario, plans, onOpenPlan }) => {
   const dates = [...new Set(plans.flatMap(plan => plan.routes.map(route => route.date)))].sort();
   const dateFormat = (date: string) => new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', timeZone: 'UTC' }).format(new Date(`${date}T12:00:00Z`));
   return <main className="comparison-page">
@@ -69,22 +68,21 @@ export const ComparisonView: React.FC<Props> = ({ scenario, plans, localEstimate
       <div><p className="comparison-eyebrow">Análise comparativa · 1 mês de trabalho</p><h2>Três planos, a mesma demanda</h2>
         <p>{scenario.polygons[0]?.name ?? scenario.healthCenter.name} · {scenario.patients.length} pacientes simulados · {scenario.teams.length} equipe(s) · {scenario.planningHorizonDays} dias úteis</p>
       </div>
-      <span className={`comparison-source ${localEstimate ? 'estimate' : ''}`}>{localEstimate ? 'Estimativa em linha reta' : 'Deslocamento a pé · OSRM'}</span>
+      <span className="comparison-source">Deslocamento a pé · OSRM</span>
     </div>
-    {localEstimate && <p className="comparison-warning" role="status">Estimativa local: os tempos e distâncias não seguem as ruas. Use OSRM para avaliar o deslocamento realista.</p>}
-    <p className="comparison-note">Os três métodos usam o mesmo cenário, versão {scenario.version}, pacientes, equipes e matriz de custos. A busca mensal parte do vizinho mais próximo e troca visitas entre dias para reduzir caminhada e atraso clínico, preservando cobertura e prioridade atendida em tempo acionável. ★ indica o melhor valor em cada indicador visualizado; não representa uma escolha clínica automática.</p>
+    <p className="comparison-note">Os três métodos usam o mesmo cenário, versão {scenario.version}, pacientes, equipes e matriz de custos. A busca mensal parte do vizinho mais próximo e troca visitas entre dias para reduzir caminhada e atraso, preservando cobertura e prioridade atendida a tempo. ★ indica o melhor valor em cada indicador visualizado; não representa uma escolha clínica automática.</p>
 
     <div className="comparison-plan-grid">{plans.map(plan => <section className="comparison-card comparison-plan" key={plan.strategyId} style={{ borderTopColor: strategies[plan.strategyId]?.color }}>
       <h3>{strategies[plan.strategyId]?.name ?? plan.strategyId}</h3>
       <div className="comparison-plan-stats"><span><strong>{countVisits(plan)}</strong> visitas</span><span><strong>{hours(plan.metrics.totalTravelTimeMinutes)}</strong> caminhando</span><span><strong>{num(plan.metrics.totalTravelDistanceKm)}</strong> km</span></div>
-      <p>{plan.unallocatedVisits.length} pendências · {num(plan.metrics.priorityWeightedPromptCoveragePercentage)}% de prioridade em tempo acionável</p>
+      <p>{plan.unallocatedVisits.length} pendências · {num(plan.metrics.priorityWeightedPromptCoveragePercentage)}% da prioridade atendida a tempo</p>
       <button type="button" onClick={() => onOpenPlan(plan.strategyId)}>Ver rotas no mapa →</button>
     </section>)}</div>
 
     <div className="comparison-charts">
       <BarComparison title="Horas gastas em deslocamento" plans={plans} value={plan => plan.metrics.totalTravelTimeMinutes / 60} format={value => `${num(value)} h`} lowerBetter />
       <BarComparison title="Distância percorrida" plans={plans} value={plan => plan.metrics.totalTravelDistanceKm} format={value => `${num(value)} km`} lowerBetter />
-      <BarComparison title="Prioridade atendida em tempo acionável" plans={plans} value={plan => plan.metrics.priorityWeightedPromptCoveragePercentage} format={value => `${num(value)}%`} />
+      <BarComparison title="Prioridade atendida a tempo" plans={plans} value={plan => plan.metrics.priorityWeightedPromptCoveragePercentage} format={value => `${num(value)}%`} />
       <BarComparison title="Atraso acionável ponderado" plans={plans} value={plan => plan.metrics.priorityWeightedActionableDelayDays} format={value => `${num(value)} dias`} lowerBetter />
     </div>
 

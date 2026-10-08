@@ -192,7 +192,7 @@ export async function registerApiRoutes(fastify: FastifyInstance) {
   });
 
   // 4. Gerar Plano de Rotas para um Cenário
-  fastify.post<{ Params: { id: string }; Body: PlanOptions & { scenarioVersion?: number } }>('/api/scenarios/:id/plan', async (request: FastifyRequest<{ Params: { id: string }; Body: PlanOptions & { scenarioVersion?: number } }>, reply: FastifyReply) => {
+  fastify.post<{ Params: { id: string }; Body: Omit<PlanOptions, 'costMatrix'> & { scenarioVersion?: number } }>('/api/scenarios/:id/plan', async (request: FastifyRequest<{ Params: { id: string }; Body: Omit<PlanOptions, 'costMatrix'> & { scenarioVersion?: number } }>, reply: FastifyReply) => {
     const { id } = request.params;
     const options = request.body || { strategyId: 'main-heuristic' };
 
@@ -273,9 +273,9 @@ export async function registerApiRoutes(fastify: FastifyInstance) {
   });
 
   // 7. Registrar Resultados Reais e Replanejar
-  fastify.post<{ Params: { id: string }; Body: { results: VisitResult[]; currentDate: string; scenarioVersion?: number; options?: PlanOptions } }>(
+  fastify.post<{ Params: { id: string }; Body: { results: VisitResult[]; currentDate: string; scenarioVersion?: number; options?: Omit<PlanOptions, 'costMatrix'> } }>(
     '/api/scenarios/:id/results',
-    async (request: FastifyRequest<{ Params: { id: string }; Body: { results: VisitResult[]; currentDate: string; scenarioVersion?: number; options?: PlanOptions } }>, reply: FastifyReply) => {
+    async (request: FastifyRequest<{ Params: { id: string }; Body: { results: VisitResult[]; currentDate: string; scenarioVersion?: number; options?: Omit<PlanOptions, 'costMatrix'> } }>, reply: FastifyReply) => {
       const { id } = request.params;
       const { results, currentDate, scenarioVersion, options } = request.body;
 

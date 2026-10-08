@@ -1,0 +1,204 @@
+{
+  "criterion": "Cada estratégia e semente aloca todas as 250 visitas no plano inicial.",
+  "sufficientMonths": 12,
+  "rows": [
+    {
+      "months": 4,
+      "endDate": "2027-01-31",
+      "workingDays": 87,
+      "dailyWorkMinutes": 300,
+      "seed": 20261008,
+      "strategyId": "main-heuristic",
+      "allocated": 249,
+      "total": 250,
+      "coveragePercentage": 99.6
+    },
+    {
+      "months": 4,
+      "endDate": "2027-01-31",
+      "workingDays": 87,
+      "dailyWorkMinutes": 300,
+      "seed": 20261008,
+      "strategyId": "nearest-baseline",
+      "allocated": 241,
+      "total": 250,
+      "coveragePercentage": 96.4
+    },
+    {
+      "months": 4,
+      "endDate": "2027-01-31",
+      "workingDays": 87,
+      "dailyWorkMinutes": 300,
+      "seed": 20261008,
+      "strategyId": "urgency-baseline",
+      "allocated": 246,
+      "total": 250,
+      "coveragePercentage": 98.4
+    },
+    {
+      "months": 4,
+      "endDate": "2027-01-31",
+      "workingDays": 87,
+      "dailyWorkMinutes": 300,
+      "seed": 20261009,
+      "strategyId": "main-heuristic",
+      "allocated": 249,
+      "total": 250,
+      "coveragePercentage": 99.6
+    },
+    {
+      "months": 4,
+      "endDate": "2027-01-31",
+      "workingDays": 87,
+      "dailyWorkMinutes": 300,
+      "seed": 20261009,
+      "strategyId": "nearest-baseline",
+      "allocated": 241,
+      "total": 250,
+      "coveragePercentage": 96.4
+    },
+    {
+      "months": 4,
+      "endDate": "2027-01-31",
+      "workingDays": 87,
+      "dailyWorkMinutes": 300,
+      "seed": 20261009,
+      "strategyId": "urgency-baseline",
+      "allocated": 248,
+      "total": 250,
+      "coveragePercentage": 99.2
+    },
+    {
+      "months": 4,
+      "endDate": "2027-01-31",
+      "workingDays": 87,
+      "dailyWorkMinutes": 300,
+      "seed": 20261010,
+      "strategyId": "main-heuristic",
+      "allocated": 250,
+      "total": 250,
+      "coveragePercentage": 100
+    },
+    {
+      "months": 4,
+      "endDate": "2027-01-31",
+      "workingDays": 87,
+      "dailyWorkMinutes": 300,
+      "seed": 20261010,
+      "strategyId": "nearest-baseline",
+      "allocated": 243,
+      "total": 250,
+      "coveragePercentage": 97.2
+    },
+    {
+      "months": 4,
+      "endDate": "2027-01-31",
+      "workingDays": 87,
+      "dailyWorkMinutes": 300,
+      "seed": 20261010,
+      "strategyId": "urgency-baseline",
+      "allocated": 248,
+      "total": 250,
+      "coveragePercentage": 99.2
+    },
+    {
+      "months": 12,
+      "endDate": "2027-09-30",
+      "workingDays": 261,
+      "dailyWorkMinutes": 300,
+      "seed": 20261008,
+      "strategyId": "main-heuristic",
+      "allocated": 250,
+      "total": 250,
+      "coveragePercentage": 100
+    },
+    {
+      "months": 12,
+      "endDate": "2027-09-30",
+      "workingDays": 261,
+      "dailyWorkMinutes": 300,
+      "seed": 20261008,
+      "strategyId": "nearest-baseline",
+      "allocated": 250,
+      "total": 250,
+      "coveragePercentage": 100
+    },
+    {
+      "months": 12,
+      "endDate": "2027-09-30",
+      "workingDays": 261,
+      "dailyWorkMinutes": 300,
+      "seed": 20261008,
+      "strategyId": "urgency-baseline",
+      "allocated": 250,
+      "total": 250,
+      "coveragePercentage": 100
+    },
+    {
+      "months": 12,
+      "endDate": "2027-09-30",
+      "workingDays": 261,
+      "dailyWorkMinutes": 300,
+      "seed": 20261009,
+      "strategyId": "main-heuristic",
+      "allocated": 250,
+      "total": 250,
+      "coveragePercentage": 100
+    },
+    {
+      "months": 12,
+      "endDate": "2027-09-30",
+      "workingDays": 261,
+      "dailyWorkMinutes": 300,
+      "seed": 20261009,
+      "strategyId": "nearest-baseline",
+      "allocated": 250,
+      "total": 250,
+      "coveragePercentage": 100
+    },
+    {
+      "months": 12,
+      "endDate": "2027-09-30",
+      "workingDays": 261,
+      "dailyWorkMinutes": 300,
+      "seed": 20261009,
+      "strategyId": "urgency-baseline",
+      "allocated": 250,
+      "total": 250,
+      "coveragePercentage": 100
+    },
+    {
+      "months": 12,
+      "endDate": "2027-09-30",
+      "workingDays": 261,
+      "dailyWorkMinutes": 300,
+      "seed": 20261010,
+      "strategyId": "main-heuristic",
+      "allocated": 250,
+      "total": 250,
+      "coveragePercentage": 100
+    },
+    {
+      "months": 12,
+      "endDate": "2027-09-30",
+      "workingDays": 261,
+      "dailyWorkMinutes": 300,
+      "seed": 20261010,
+      "strategyId": "nearest-baseline",
+      "allocated": 250,
+      "total": 250,
+      "coveragePercentage": 100
+    },
+    {
+      "months": 12,
+      "endDate": "2027-09-30",
+      "workingDays": 261,
+      "dailyWorkMinutes": 300,
+      "seed": 20261010,
+      "strategyId": "urgency-baseline",
+      "allocated": 250,
+      "total": 250,
+      "coveragePercentage": 100
+    }
+  ]
+}

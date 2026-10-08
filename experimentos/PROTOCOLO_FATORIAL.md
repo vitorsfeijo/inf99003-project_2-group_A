@@ -1,48 +1,47 @@
-# Protocolo da varredura fatorial
+# Protocolo fatorial com caminhada
 
-## Pergunta e desenho
+## Desenho
 
-Medir a sensibilidade da heurística principal frente ao vizinho mais próximo e à prioridade por urgência quando variam, separadamente e em todas as combinações, cinco atributos da operação. A unidade de comparação é a mesma instância de pacientes, polígono, equipe, calendário e chance de falha aplicada aos três métodos.
+A mesma instância de pacientes, território, equipe, calendário e matriz OSRM de caminhada é submetida a três métodos: heurística principal, prioridade clínica e vizinho mais próximo. Os trajetos vêm da rede OpenStreetMap preparada com `foot.lua`.
 
-| Fator | Níveis | Como é alterado |
+| Fator | Níveis | Construção |
 |---|---|---|
-| Pacientes | 15, 30, 45 | Subconjuntos aninhados da mesma amostra de 45 pessoas por semente |
-| Área | 0,5×, 1×, 2× | Coordenadas do polígono GeoSaúde US Restinga e dos pacientes são escaladas por `sqrt(fator)` em torno da UBS; 1× é o contorno original |
-| Horizonte | 5, 10, 22 dias úteis | `planningHorizonDays` do mesmo cenário, com início em 2026-10-01 |
-| Já vencidas no início | 0%, 25%, 50% | Mesmo sorteio por pessoa em cada semente, com limiares aninhados; proporção realizada pode diferir da nominal |
-| Falha da tentativa | **0%, 5%, 10%** | Sorteio determinístico por paciente e dia durante a execução; falha preserva a pendência para replanejamento |
+| Pacientes | 15, 30, 45, 90 | Subconjuntos aninhados da mesma amostra por semente |
+| Área | 0,5×, 1×, 2× | Escala sintética em torno da UBS; 1× preserva o território base |
+| Horizonte | 5, 10, 22 dias úteis | Mesma data inicial |
+| Visitas já vencidas | 0%, 25%, 50% | Limiares de sorteio aninhados |
+| Falha por tentativa | 0%, 5%, 10% | Sorteio estável por cenário, paciente e dia |
 
-São `3⁵ = 243` combinações de fatores por semente e **três sementes** (`20261008`, `20261009`, `20261010`): 729 condições de execução. Como a falha ocorre na simulação após a geração do cenário, isso corresponde a 243 instâncias distintas, 729 planos iniciais (`243 × 3 métodos`) e 2.187 execuções dinâmicas (`243 × 3 taxas × 3 métodos`). Cada execução dinâmica acompanha todo o horizonte de 5, 10 ou 22 dias úteis e replaneja a cada dia. Não se usam testes estatísticos de independência entre observações: casos com a mesma semente compartilham pacientes e sorteios para reduzir ruído nas diferenças pareadas.
+As três sementes são `20261008`, `20261009` e `20261010`. Cada semente reproduz o sorteio de pacientes, prazos e prioridades.
 
-## Controles e construção
+- **324 cenários distintos:** 1 território base × 3 sementes × 4 quantidades de pacientes × 3 versões de área do mesmo território × 3 horizontes × 3 proporções de visitas vencidas.
+- **972 planos iniciais:** 324 cenários × 3 estratégias. O plano inicial é feito antes de simular ausências.
+- **2.916 execuções dinâmicas:** 972 combinações de cenário e estratégia × 3 probabilidades de ausência. Cada execução percorre todos os dias úteis do seu horizonte e refaz a agenda a cada dia.
 
-- Fonte geográfica: `cenarios/geosaude_us_restinga_20261106_30.json`, gerada do KMZ GeoSaúde versionado em `dados/`. A forma original do território é real; os pacientes são sintéticos. As geometrias 0,5× e 2× são apenas perturbações experimentais, não regiões oficiais.
-- Uma equipe, 240 minutos de trabalho por dia, início em 2026-10-01, antecipação máxima de dois dias corridos. Nenhuma equipe adicional é introduzida quando cresce a demanda.
-- Cada pessoa tem uma visita candidata. As visitas ainda não vencidas têm prazo de zero a quatro dias corridos após o início; as já vencidas têm prazo de um a dez dias antes. Intervalo de repetição de 60 dias, para evitar segunda visita dentro da janela mais longa.
-- A prioridade clínica é o peso sintético de 1 a 5 da amostra base. Esse peso não corresponde a estratificação clínica observada. A capacidade diária e a duração dos atendimentos são iguais entre métodos.
-- A distância do benchmark é Haversine e o tempo usa 4,5 km/h como velocidade de caminhada. **Não representa o caminho pelas ruas.** O cálculo OSRM da interface é uma avaliação diferente.
-- O PRNG Mulberry32 tem semente fixa. Pacientes, perfis e prazos compartilham os mesmos sorteios entre níveis quando aplicável; a falha de uma pessoa no mesmo dia compartilha o mesmo sorteio entre métodos e entre probabilidades. O nível de 10% contém os eventos sorteados no nível de 5% para a mesma tentativa.
+A geometria base é a US Restinga do GeoSaúde. Os tamanhos de área 0,5× e 2× são transformações sintéticas do território. Não são regiões adicionais nem territórios oficiais.
 
-## Desfechos e leitura dos gráficos
+Uma equipe dispõe de 240 minutos por dia. Cada pessoa tem uma visita candidata, peso clínico sintético de 1 a 5, e prazo sorteado. O limite de antecipação é dois dias corridos. A capacidade, as durações, os sorteios e a matriz são iguais entre métodos. Ausências registram `missed` e preservam a pendência e o prazo.
 
-O plano inicial mede cobertura, resposta pronta ponderada pela prioridade, atraso controlável, distância e tempo de cálculo previstos. A simulação dinâmica mede visitas **efetivamente concluídas**, cobertura efetiva e ponderada, atraso adicional acionável, distância percorrida inclusive quando o paciente estava ausente, e tempo acumulado de replanejamento. Pendências permanecem no denominador e acumulam atraso até o último dia simulado.
+## Métricas
 
-O relatório usa **ganhos pareados**: `principal − baseline` para coberturas e `baseline − principal` para atraso, distância e tempo. Portanto, ganho positivo favorece a heurística principal. Cada média marginal de um nível de fator agrega todas as combinações dos demais fatores com a mesma quantidade de repetições. O CSV inclui média, mediana, quartis e número de vitórias, empates e derrotas; a mediana e os quartis mostram dispersão sem supor distribuição normal. As taxas de falha representam chances por tentativa, não porcentagens garantidas de visitas perdidas.
+O plano inicial mede cobertura, prioridade atendida a tempo, atraso controlável, distância e tempo de cálculo. “Prioridade atendida a tempo” é a soma dos pesos das visitas feitas a tempo dividida pela soma dos pesos de todas as visitas da demanda inicial. Visitas já vencidas contam como feitas a tempo se forem concluídas no primeiro dia. A simulação dinâmica mede visitas concluídas, cobertura efetiva, atraso adicional controlável, distância percorrida inclusive após visita frustrada e tempo acumulado de planejamento. Pendências permanecem no denominador e acumulam atraso até o fim da janela. Ganhos pareados são `principal − baseline` para cobertura e `baseline − principal` para atraso, distância e tempo.
 
-A heurística principal atual usa duas etapas: primeiro melhora a solução do vizinho mais próximo com limite de caminhada; depois tenta inserir pendências e elevar a resposta pronta das prioridades sem perder a capacidade diária. Ao atender pessoas adicionais, pode aumentar a distância total. Uma [validação separada](analise/fatorial/validacao-versoes.md) compara essa implementação com o commit anterior em duas regiões e sementes não usadas nesta grade.
+Os casos da mesma semente compartilham pacientes e sorteios; as médias entre níveis não são observações independentes. A taxa de ausência é probabilidade por tentativa. Pacientes e prioridades não representam registros clínicos reais.
 
-## Saídas e reprodução
+## Reprodução
+
+Com `OSRM_BASE_URL` apontando para o servidor de caminhada:
 
 ```bash
 npm run build --prefix artefato/packages/core
+npm run build --prefix artefato/packages/server
 npm run build --prefix experimentos
-npm run factorial --prefix experimentos
+OSRM_BASE_URL=http://127.0.0.1:5000 npm run factorial --prefix experimentos
 npm run factorial:report --prefix experimentos
-npm run factorial:validate --prefix experimentos
 ```
 
-`resultados/fatorial/manifest.json` registra fatores, fonte, contagens e modelos de custo e área. `static.json/.csv` e `dynamic.json/.csv` guardam cada execução; são saídas regeneráveis e não entram no Git. `analise/fatorial/relatorio.html`, `resumo.md` e `resumo-fatores.csv` são materiais de apresentação versionados, gerados diretamente dos resultados brutos. Se código ou parâmetros mudarem, regenere todos os arquivos e registre a revisão no trabalho acadêmico.
+O manifesto e os CSV/JSON ficam em `resultados/fatorial-caminhada/`; [resumo](analise/fatorial-caminhada/resumo.md), [CSV de fatores](analise/fatorial-caminhada/resumo-fatores.csv) e [relatório interativo](analise/fatorial-caminhada/relatorio.html) ficam em `analise/fatorial-caminhada/`. Use `-- --refresh-matrices` quando mudar o grafo. A lista de exclusões informa instâncias sem caminho completo.
 
-## Limitações de validade
+## Limitações
 
-Os resultados descrevem desempenho em **um território de Porto Alegre com pacientes sintéticos** e áreas artificialmente escaladas. Não estimam benefício clínico real, cobertura populacional nem qualidade de endereços observados. As três sementes são repetições computacionais, não amostra aleatória de unidades de saúde; os intervalos entre quartis não são intervalos de confiança. Para extrapolar a outras unidades, é preciso repetir a grade em outros polígonos e incorporar demanda clínica, população, endereços e jornadas observadas. Tempos de execução dependem do equipamento e devem ser comparados somente dentro da mesma rodada.
+A grade usa um território de Porto Alegre, pacientes e demanda sintéticos, e uma equipe fixa. As três sementes são repetições computacionais, não amostra de unidades de saúde. Os resultados não estimam benefício clínico real nem cobertura populacional. Tempos computacionais dependem do equipamento.

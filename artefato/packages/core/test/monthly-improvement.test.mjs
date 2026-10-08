@@ -19,8 +19,7 @@ test('troca mensal atende maior prioridade antes e reduz caminhada sem perder co
         conditions: [{ conditionId: 'c', initialDueDate: '2026-10-08', maxIntervalDays: 30, priorityWeight: 5 }] }
     ],
     teams: [{ id: 'equipe', name: 'Equipe', dailyWorkMinutes: 50, availableDays: [] }],
-    startDate: '2026-10-08', planningHorizonDays: 2, maxAnticipationDays: 0,
-    costParameters: { travelSpeedKmh: 5 }
+    startDate: '2026-10-08', planningHorizonDays: 2, maxAnticipationDays: 0
   };
   const positions = [0, 1, 2, 4];
   const matrix = positions.map(from => positions.map(to => Math.abs(from - to)));
@@ -55,8 +54,7 @@ test('antecipa visita pendente para um dia livre e aumenta cobertura', () => {
         maxIntervalDays: 60, priorityWeight: 3 }]
     })),
     teams: [{ id: 'equipe', name: 'Equipe', dailyWorkMinutes: 35, availableDays: [] }],
-    startDate: '2026-10-08', planningHorizonDays: 3, maxAnticipationDays: 4,
-    costParameters: { travelSpeedKmh: 5 }
+    startDate: '2026-10-08', planningHorizonDays: 3, maxAnticipationDays: 4
   };
   const matrix = [[0, 1, 2], [1, 0, 1], [2, 1, 0]];
   const costMatrix = { nodeIds: ['posto', 'a', 'b'], distanceMatrix: matrix, timeMatrix: matrix };
@@ -84,8 +82,7 @@ test('substitui visita menos prioritária quando a jornada está cheia sem aumen
         conditions: [{ conditionId: 'c', initialDueDate: '2026-10-08', maxIntervalDays: 60, priorityWeight: 5 }] }
     ],
     teams: [{ id: 'equipe', name: 'Equipe', dailyWorkMinutes: 35, availableDays: [] }],
-    startDate: '2026-10-08', planningHorizonDays: 1, maxAnticipationDays: 0,
-    costParameters: { travelSpeedKmh: 5 }
+    startDate: '2026-10-08', planningHorizonDays: 1, maxAnticipationDays: 0
   };
   const matrix = [[0, 1, 2], [4, 0, 1], [2, 1, 0]];
   const costMatrix = { nodeIds: ['posto', 'baixa', 'alta'], distanceMatrix: matrix, timeMatrix: matrix };

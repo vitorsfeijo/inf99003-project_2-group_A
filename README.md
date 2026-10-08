@@ -68,13 +68,13 @@ Acesse no navegador: **`http://localhost:3000`**
 
 ### 2. Rodar a Bancada de Experimentos em Lote
 
-Para gerar os cenários sintéticos com semente, executar a simulação em lote comparando os métodos e gerar o relatório com gráficos:
+Para comparar os métodos com rotas a pé do OpenStreetMap, inicie o OSRM com `foot.lua` e execute:
 
 ```bash
-npm run experiments
+OSRM_BASE_URL=http://127.0.0.1:5000 npm run experiments:all
 ```
 
-O relatório interativo ficará disponível em: [experimentos/analise/relatorio_experimentos.html](file:///c:/Users/vitor/Documents/uni/pci/inf99003-project_2-group_A/experimentos/analise/relatorio_experimentos.html).
+O [relatório fatorial interativo](experimentos/analise/fatorial-caminhada/relatorio.html) e o [resumo dos territórios](experimentos/analise/porto-alegre-caminhada/resumo-slides.md) são gerados pela bancada. O estudo com **250 pacientes** testa primeiro a capacidade de **quatro meses**. Depois usa uma janela ampla de **12 meses** para que todas as visitas caibam no plano inicial de cada método. Nas **27 execuções** (3 sementes × 3 estratégias × 3 probabilidades de ausência), todos os métodos concluíram as 250 visitas. Nos **9 pares** entre heurística e vizinho mais próximo, a heurística terminou **5,56 dias úteis antes** em média e caminhou **13,03% menos**. Veja o [relatório do estudo longo](experimentos/analise/longo-250-caminhada/resumo.md) e os [comandos de reprodução](experimentos/README.md).
 
 ---
 

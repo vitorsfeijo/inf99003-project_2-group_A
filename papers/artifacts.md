@@ -101,7 +101,7 @@ Os trabalhos mostram que o território deve ser analisado como espaço social, p
 
 ### Aplicação ao projeto
 
-O SIG deve fornecer a rede sobre a qual as rotas serão calculadas. A rota deve respeitar caminhos reais, áreas de responsabilidade, pontos de partida e retorno, e não apenas a distância em linha reta. O mapa também deve mostrar por que uma família foi incluída na agenda e quais restrições influenciaram o percurso.
+O SIG deve fornecer a rede sobre a qual as rotas serão calculadas. A rota deve respeitar caminhos reais, áreas de responsabilidade, pontos de partida e retorno, e a matriz de deslocamento pela rede. O mapa também deve mostrar por que uma família foi incluída na agenda e quais restrições influenciaram o percurso.
 
 ### Cuidados
 
@@ -233,7 +233,7 @@ O artigo apresenta a solução tecnológica mais diretamente relacionada ao prob
 
 - **Importação de dados geográficos:** carregar edificações, caminhos, estradas, unidades e limites territoriais.
 - **Matriz de deslocamento:** calcular tempo e distância entre cada domicílio e os demais pontos da rota.
-- **Roteamento em rede real:** usar caminhos disponíveis em vez de distância euclidiana.
+- **Roteamento em rede real:** usar caminhos disponíveis na rede de caminhada.
 - **VRPTW:** distribuir visitas entre agentes considerando janela de trabalho, tempo de atendimento, partida e retorno.
 - **Rota a pé:** modelar velocidade e caminhos adequados ao deslocamento dos ACS.
 - **Prioridade de visita:** incluir urgência, atraso, condição clínica e frequência necessária.

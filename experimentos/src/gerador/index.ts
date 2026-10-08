@@ -142,10 +142,7 @@ export function generateSyntheticScenario(config: GeneratorConfig): Scenario {
     teams,
     startDate: baseDateStr,
     planningHorizonDays: config.planningHorizonDays,
-    maxAnticipationDays: config.maxAnticipationDays,
-    costParameters: {
-      travelSpeedKmh: 20
-    }
+    maxAnticipationDays: config.maxAnticipationDays
   };
 }
 

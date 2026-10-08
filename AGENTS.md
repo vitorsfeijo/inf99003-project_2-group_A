@@ -37,7 +37,7 @@ Este documento serve como a especificação de engenharia primária para guiar a
        | Persistência SQLite       |   | Núcleo Computacional            |
        | (data/routing.db)         |   | (@routing/core)                 |
        | - Scenarios & Versões     |   | - Validação & Território        |
-       | - Planos & Métricas       |   | - Matriz Haversine & Demanda    |
+       | - Planos & Métricas       |   | - Matriz de caminhada & Demanda    |
        | - Histórico de Atendimento|   | - Heurística Custo Inc + 1.5-opt|
        +---------------------------+   | - Verificador Formal           |
                                        +---------------------------------+
@@ -81,7 +81,7 @@ inf99003-project_2-group_A/
 
 ### Convenções de Nomenclatura
 * **Arquivos e Pastas:** Use `kebab-case` para módulos e utilitários (ex: `one-half-opt.ts`, `baseline-urgency.ts`). Use `PascalCase` apenas para componentes React (ex: `MapView.tsx`, `Header.tsx`).
-* **Funções e Variáveis:** Use `camelCase` (ex: `planScenario`, `calculateHaversineDistanceKm`).
+* **Funções e Variáveis:** Use `camelCase` (ex: `planScenario`, `buildWalkingCostMatrix`).
 * **Interfaces e Types:** Use `PascalCase` (ex: `Scenario`, `VisitCandidate`, `PlanMetrics`).
 
 ### Gerenciamento de Estado e Erros

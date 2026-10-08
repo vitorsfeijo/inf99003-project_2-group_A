@@ -7,7 +7,6 @@ interface SidebarProps {
   plan: Plan | null;
   selectedDate: string;
   onRegisterResults: (results: VisitResult[]) => Promise<boolean>;
-  localEstimate: boolean;
 }
 
 const TEAM_COLORS = ['#2563eb', '#059669', '#d97706', '#dc2626', '#7c3aed'];
@@ -16,8 +15,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   scenario,
   plan,
   selectedDate,
-  onRegisterResults,
-  localEstimate
+  onRegisterResults
 }) => {
   const [activeTab, setActiveTab] = useState<'routes' | 'metrics' | 'execution'>('routes');
   const [executionState, setExecutionState] = useState<Record<string, { status: 'completed' | 'missed'; reason?: string }>>({});
@@ -181,7 +179,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* ABA 2: MÉTRICAS */}
         {activeTab === 'metrics' && (
           <div>
-            {localEstimate && <p style={{ color: '#92400e', background: '#fffbeb', padding: 10, borderRadius: 8, fontSize: 12, marginBottom: 12 }}>Métricas de deslocamento estimadas em linha reta; o serviço de rotas a pé ficou indisponível.</p>}
             {!plan ? (
               <p style={{ color: '#64748b', textAlign: 'center', marginTop: '2rem' }}>Gere um plano para visualizar as métricas.</p>
             ) : (
@@ -199,7 +196,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#2563eb' }}>{plan.metrics.priorityWeightedOnTimeCoveragePercentage}%</div>
                 </div>
                 <div style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
-                  <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Resposta pronta · prioridade</span>
+                  <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Prioridade atendida a tempo</span>
                   <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#2563eb' }}>{plan.metrics.priorityWeightedPromptCoveragePercentage}%</div>
                 </div>
                 <div style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>

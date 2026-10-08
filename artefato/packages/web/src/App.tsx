@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Scenario, Plan, VisitResult, planScenario, sampleTerritoryPatients, countWorkingDaysInNextMonth } from '@routing/core';
+import { Scenario, Plan, VisitResult, sampleTerritoryPatients, countWorkingDaysInNextMonth } from '@routing/core';
 import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
 import { MapView } from './components/MapView';
@@ -21,7 +21,6 @@ export const App: React.FC = () => {
   const [isLoadingRegions, setIsLoadingRegions] = useState(true);
   const [isLoadingRegion, setIsLoadingRegion] = useState(false);
   const [walkingNetworkConfigured, setWalkingNetworkConfigured] = useState(false);
-  const [localEstimate, setLocalEstimate] = useState(false);
   const [planningError, setPlanningError] = useState('');
   const selectionRequest = useRef(0);
 
@@ -60,7 +59,6 @@ export const App: React.FC = () => {
     setPlan(null);
     setComparisonPlans([]);
     setActiveView('routes');
-    setLocalEstimate(false);
     setPlanningError('');
     setSelectedDate('');
     setRegionsError('');
@@ -87,7 +85,6 @@ export const App: React.FC = () => {
       setPlan(null);
       setComparisonPlans([]);
       setActiveView('routes');
-      setLocalEstimate(false);
       setPlanningError('');
       setSelectedDate(sampled.startDate);
     } catch (error) {
@@ -105,7 +102,6 @@ export const App: React.FC = () => {
       const plans = await generateComparison(scenario.id, scenario.version);
       const newPlan = plans.find(item => item.strategyId === selectedStrategy) ?? plans[0];
       if (!newPlan) throw new Error('Nenhum plano foi retornado.');
-      setLocalEstimate(false);
       setComparisonPlans(plans);
       setPlan(newPlan);
       setActiveView('routes');
@@ -122,21 +118,6 @@ export const App: React.FC = () => {
     }
   };
 
-  const handleGenerateLocalEstimate = () => {
-    if (!scenario) return;
-    try {
-      const plans = ['main-heuristic', 'urgency-baseline', 'nearest-baseline']
-        .map(strategyId => planScenario(scenario, { strategyId, enable1_5Opt: true }));
-      setComparisonPlans(plans);
-      setPlan(plans.find(item => item.strategyId === selectedStrategy) ?? plans[0]);
-      setLocalEstimate(true);
-      setActiveView('routes');
-      setPlanningError('Estimativa local em linha reta. As distâncias não representam o percurso a pé.');
-    } catch (error) {
-      setPlanningError(`Erro no planejamento local: ${error instanceof Error ? error.message : String(error)}`);
-    }
-  };
-
   const handleRegisterResults = async (results: VisitResult[]) => {
     if (!scenario) return false;
     try {
@@ -148,7 +129,6 @@ export const App: React.FC = () => {
       setPlan(newPlan);
       setComparisonPlans([]);
       setActiveView('routes');
-      setLocalEstimate(false);
       alert('Resultados registrados e replanejamento gerado com sucesso!');
       return true;
     } catch (error) {
@@ -173,13 +153,13 @@ export const App: React.FC = () => {
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
       <Header scenario={scenario ?? baseScenario} plan={plan} selectedDate={selectedDate} setSelectedDate={setSelectedDate}
-        showRouteControls={activeView === 'routes'} canExport={!localEstimate} />
+        showRouteControls={activeView === 'routes'} canExport />
       <nav className="view-tabs" aria-label="Telas do planejamento"><button type="button" aria-current={activeView === 'routes' ? 'page' : undefined} onClick={() => setActiveView('routes')}>Mapa e rotas</button><button type="button" disabled={!comparisonPlans.length} aria-current={activeView === 'comparison' ? 'page' : undefined} onClick={() => setActiveView('comparison')}>Comparar planos {comparisonPlans.length ? `(${comparisonPlans.length})` : ''}</button></nav>
       {activeView === 'comparison' && scenario && comparisonPlans.length ?
-        <ComparisonView scenario={scenario} plans={comparisonPlans} localEstimate={localEstimate} onOpenPlan={handleOpenPlan} /> :
+        <ComparisonView scenario={scenario} plans={comparisonPlans} onOpenPlan={handleOpenPlan} /> :
       <div className="app-main" style={{ flex: 1, minHeight: 0, display: 'flex', overflow: 'hidden' }}>
         <div className="app-map" style={{ flex: 1, minWidth: 0, height: '100%' }}>
-          <MapView scenario={mapScenario} plan={plan} selectedDate={selectedDate} walkingNetworkConfigured={walkingNetworkConfigured} localEstimate={localEstimate} />
+          <MapView scenario={mapScenario} plan={plan} selectedDate={selectedDate} walkingNetworkConfigured={walkingNetworkConfigured} />
         </div>
         <aside className="workflow-aside" style={{ width: 400, background: 'white', boxShadow: '-8px 0 24px rgba(15,23,42,.06)', display: 'flex', flexDirection: 'column', height: '100%', zIndex: 1 }}>
           <div style={{ overflowY: 'auto', flexShrink: 0, maxHeight: '55%' }}>
@@ -189,13 +169,13 @@ export const App: React.FC = () => {
               selectedStrategy={selectedStrategy} setSelectedStrategy={handleSelectStrategy}
               onSelectRegion={handleSelectRegion} onSample={handleSample}
               onGeneratePlan={handleGeneratePlan} isGenerating={isGenerating}
-              onGenerateLocalEstimate={handleGenerateLocalEstimate} planningError={planningError}
+              planningError={planningError}
               walkingNetworkConfigured={walkingNetworkConfigured}
               onRefreshRoutingStatus={refreshRoutingStatus}
               onRefreshRegions={refreshRegions}
             />
           </div>
-          <Sidebar scenario={scenario} plan={plan} selectedDate={selectedDate} onRegisterResults={handleRegisterResults} localEstimate={localEstimate} />
+          <Sidebar scenario={scenario} plan={plan} selectedDate={selectedDate} onRegisterResults={handleRegisterResults} />
         </aside>
       </div>
       }

@@ -255,7 +255,7 @@ function improveFromSeed(context: PlanningContext, seed: RouteSolution,
     }
 
     // Quando a jornada está cheia, uma pendência mais prioritária pode substituir
-    // uma visita de menor peso, mantendo o número de atendimentos e a resposta pronta.
+    // uma visita de menor peso, mantendo o número de atendimentos e a prioridade atendida a tempo.
     if (recoverPending && pending.length) {
       const lastDay = context.workingDays[context.workingDays.length - 1];
       const ordered = [...pending].sort((a, b) =>

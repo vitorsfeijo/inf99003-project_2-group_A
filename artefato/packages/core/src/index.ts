@@ -14,7 +14,6 @@ import {
 } from './types/index.js';
 
 import { validateScenario } from './validation/scenario.js';
-import { buildCostMatrix } from './costs/haversine.js';
 import { generateDemandCandidates } from './demand/index.js';
 import { calculatePlanMetrics } from './metrics/index.js';
 import { verifyPlan as verifyPlanInternal } from './verification/index.js';
@@ -45,7 +44,8 @@ export function planScenario(scenario: Scenario, options: PlanOptions): Plan {
 
   // 3. Montar a Matriz de Custos (Posto + Pacientes elegíveis)
   const expectedNodeIds = [scenario.healthCenter.id, ...validation.eligiblePatients.map(patient => patient.id)];
-  const costMatrix = options?.costMatrix ?? buildCostMatrix(scenario.healthCenter, validation.eligiblePatients, scenario.costParameters);
+  if (!options?.costMatrix) throw new Error('Informe uma matriz de distâncias e tempos de caminhada para planejar.');
+  const costMatrix = options.costMatrix;
   if (costMatrix.nodeIds.length !== expectedNodeIds.length ||
       costMatrix.nodeIds.some((id, index) => id !== expectedNodeIds[index]) ||
       [costMatrix.distanceMatrix, costMatrix.timeMatrix].some(matrix => matrix.length !== expectedNodeIds.length ||

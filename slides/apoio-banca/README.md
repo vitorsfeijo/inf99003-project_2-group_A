@@ -1,0 +1,3 @@
+# Apoio à montagem dos slides
+
+Comece por [blocos-para-slides.md](blocos-para-slides.md): ele traz a sequência narrativa, títulos, números com suas contas, pseudocódigo curto e sugestões de gráficos prontos para copiar. Use [metricas.md](metricas.md), [pseudocodigo.md](pseudocodigo.md) e [desenho-experimental.md](desenho-experimental.md) para conferir definições. Os resultados estão no [resumo fatorial com rotas a pé](../../experimentos/analise/fatorial-caminhada/resumo.md) e no [estudo de 250 pacientes](../../experimentos/analise/longo-250-caminhada/resumo.md). No estudo longo, **quatro meses medem a capacidade**. A comparação usa um limite amplo de **12 meses** e mede os dias úteis até as 250 visitas serem concluídas.

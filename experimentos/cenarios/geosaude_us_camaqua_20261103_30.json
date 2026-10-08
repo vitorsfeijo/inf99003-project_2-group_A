@@ -1551,8 +1551,5 @@
   ],
   "startDate": "2026-10-01",
   "planningHorizonDays": 22,
-  "maxAnticipationDays": 2,
-  "costParameters": {
-    "travelSpeedKmh": 20
-  }
+  "maxAnticipationDays": 2
 }

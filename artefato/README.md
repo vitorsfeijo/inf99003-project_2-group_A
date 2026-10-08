@@ -16,7 +16,6 @@ artefato/
     │   ├── types/             # Contratos de entrada, contexto e saída
     │   ├── validation/        # Validação básica e filtro territorial
     │   ├── demand/            # Calendário, prazos e candidatos
-    │   ├── costs/             # Matrizes Haversine de distância e tempo
     │   ├── strategies/        # Main-heuristic e dois baselines
     │   ├── improvement/       # Melhoria intra-rota 1.5-opt
     │   ├── metrics/           # Indicadores do plano previsto
@@ -31,7 +30,6 @@ Interface React/Leaflet (:3000) → API Fastify (:3001) → @routing/core
                                        ↓
                               SQLite: cenários e planos
 
-Interface em fallback local ──────────────────────→ @routing/core
 Bancada experimental ─────────────────────────────→ @routing/core
 ```
 
@@ -61,7 +59,7 @@ npm run dev --prefix artefato/packages/web
 
 O mapa usa blocos do OpenStreetMap com atribuição visível. A interface segue três etapas: escolher um dos 132 territórios GeoSaúde, amostrar pacientes sintéticos dentro dos polígonos reais e gerar três cronogramas comparáveis. A amostragem aceita 1 a 1000 pacientes e uma semente reproduzível. O cronograma cobre um mês corrido a partir da data inicial: 22 dias úteis nos cenários que começam em 1º de outubro de 2026. Os arquivos GeoSaúde preservam também os recortes internos dos polígonos.
 
-Após gerar os cronogramas, o mapa exibe as rotas da estratégia selecionada. A aba **Comparar planos** mostra horas e quilômetros de caminhada, cobertura, atendimento da prioridade clínica, atraso acionável, distribuição dos atrasos, pendências, todos os indicadores do mês e uma tabela por dia. O botão **Ver rotas no mapa** abre o plano escolhido; cada célula diária abre a data correspondente. O backend calcula a matriz OSRM uma vez para as três estratégias e salva os planos da mesma versão do cenário em uma transação. A comparação do mês representa trabalho planejado, não tempo ou custo efetivamente observado em campo. Se o OSRM estiver indisponível, a estimativa local compara as estratégias em linha reta e sinaliza essa limitação.
+Após gerar os cronogramas, o mapa exibe as rotas da estratégia selecionada. A aba **Comparar planos** mostra horas e quilômetros de caminhada, cobertura, atendimento da prioridade clínica, atraso acionável, distribuição dos atrasos, pendências, todos os indicadores do mês e uma tabela por dia. O botão **Ver rotas no mapa** abre o plano escolhido; cada célula diária abre a data correspondente. O backend calcula a matriz OSRM uma vez para as três estratégias e salva os planos da mesma versão do cenário em uma transação. A comparação do mês representa trabalho planejado, não tempo ou custo efetivamente observado em campo.
 
 Para calcular **distâncias e tempos a pé pelas ruas**, o planejamento da interface precisa de uma instância OSRM local preparada com `foot.lua`. Obtenha um arquivo `.osm.pbf` que cubra Porto Alegre e execute em outro terminal:
 
@@ -75,7 +73,7 @@ Esse script requer Docker e prepara o arquivo com o perfil de caminhada; mantenh
 OSRM_BASE_URL=http://127.0.0.1:5000 npm start
 ```
 
-O backend consulta a API Table do OSRM para montar a matriz de custo do cronograma e a API Route para desenhar cada trajeto. Sem OSRM configurado, a etapa de gerar cronograma fica indisponível na interface. O núcleo continua aceitando cenários independentes com matriz Haversine para experimentos e uso local; nesses casos as distâncias são estimativas em linha reta. O servidor OSRM deve ser operado pelo usuário, pois recebe as coordenadas amostradas.
+O backend consulta a API Table do OSRM para montar a matriz de custo do cronograma e a API Route para desenhar cada trajeto. Sem OSRM configurado, a etapa de gerar cronograma fica indisponível na interface. O núcleo exige uma matriz de custos de caminhada para planejar. O servidor OSRM deve ser operado pelo usuário, pois recebe as coordenadas amostradas.
 
 Para conferir cada pacote e executar o exemplo do núcleo:
 
@@ -110,7 +108,6 @@ verifyPlan(scenario: Scenario, plan: Plan): VerificationResult
 | `startDate` | Data inicial em formato `YYYY-MM-DD`. |
 | `planningHorizonDays` | N: quantidade de dias úteis gerados para o plano. |
 | `maxAnticipationDays` | A: máximo de dias corridos antes do vencimento em que se pode atender. |
-| `costParameters.travelSpeedKmh` | Velocidade média usada para converter distância em tempo. |
 
 Cada condição registra `conditionId`, `maxIntervalDays`, `priorityWeight` e, quando disponível, `lastVisitDate` ou `initialDueDate`. A duração vem de `defaultVisitDurationMinutes` do paciente; o código usa 30 minutos quando o valor é ausente ou zero. `availableDays: []` significa disponibilidade em todos os dias úteis da janela.
 
@@ -122,7 +119,7 @@ A melhoria 1.5-opt está habilitada por padrão. `enable1_5Opt: false` a desliga
 
 O `Plan` contém os identificadores do cenário e da versão, estratégia, timestamp, `routes`, `unallocatedVisits` e `metrics`. Cada rota corresponde a um par data/equipe e registra visitas ordenadas e totais de distância, deslocamento, atendimento e jornada. Cada pendência registra o candidato, paciente, condição e motivo de não alocação.
 
-As métricas incluem cobertura total e ponderada pelo peso clínico, resposta pronta (visitas vencidas no primeiro dia e as demais até o prazo), atraso controlável após o início da janela, P90 do atraso das visitas alocadas, contagem por faixas de atraso e pendências separadas, km/minutos por visita alocada e pontos de prioridade alocados por km. O P90 não inclui pendências; o atraso delas entra na soma acumulada e nas médias ponderadas até o último dia útil da janela. Essas medidas descrevem o plano previsto, não resultados efetivamente concluídos em campo.
+As métricas incluem cobertura total e ponderada pelo peso clínico, prioridade atendida a tempo (visitas vencidas no primeiro dia e as demais até o prazo), atraso controlável após o início da janela, P90 do atraso das visitas alocadas, contagem por faixas de atraso e pendências separadas, km/minutos por visita alocada e pontos de prioridade alocados por km. O P90 não inclui pendências; o atraso delas entra na soma acumulada e nas médias ponderadas até o último dia útil da janela. Essas medidas descrevem o plano previsto, não resultados efetivamente concluídos em campo.
 
 ## Pipeline completo de `planScenario`
 
@@ -175,15 +172,7 @@ A visita entra na demanda se já estiver vencida ou se seu prazo for até `últi
 
 ### 3. Matrizes de custos
 
-[`costs/haversine.ts`](packages/core/src/costs/haversine.ts) constrói matrizes densas entre o posto e **todos os pacientes territorialmente elegíveis**, mesmo os que não geraram candidatos. O posto ocupa o índice 0; `nodeIds` permite localizar os índices de cada paciente.
-
-A distância usa Haversine, com raio terrestre de 6.371,0088 km. O tempo é:
-
-```text
-tempoMinutos(i, j) = distânciaKm(i, j) / velocidadeKmh × 60
-```
-
-Essa matriz Haversine é usada quando `PlanOptions.costMatrix` não é fornecida. No fluxo da interface, o backend consulta a matriz de caminhada no OSRM e passa seus valores ao núcleo; assim, a escolha, a duração, a distância e as métricas do cronograma usam a rede a pé. A matriz viária pode ser assimétrica. O núcleo verifica que a ordem dos nós e as dimensões correspondem ao posto e aos pacientes elegíveis. Com velocidade não positiva, a função Haversine atual retorna tempo zero; uma entrada operacional deve fornecer velocidade positiva.
+A API Table do OSRM fornece uma matriz de distâncias e tempos sobre a rede de caminhada do OpenStreetMap. O posto ocupa o índice 0; `nodeIds` identifica os pacientes. `PlanOptions.costMatrix` é obrigatório. O núcleo confere IDs, dimensões e valores finitos não negativos antes de planejar. A matriz pode ser assimétrica.
 
 ### 4. Contexto e escolha da estratégia
 
@@ -230,13 +219,13 @@ A métrica `teamWorkloadImbalance` mede o desequilíbrio após o planejamento, m
 
 ## Como funciona a `main-heuristic`
 
-A implementação está em [`strategies/main-heuristic.ts`](packages/core/src/strategies/main-heuristic.ts). Ela começa com o cronograma viável do vizinho mais próximo, aplica 1.5-opt às rotas e faz duas buscas mensais por **reinserções e trocas de visitas entre dias ou equipes**. A primeira reduz custo de caminhada e atraso. A segunda tenta encaixar visitas pendentes, valoriza a resposta pronta e, quando a jornada já está cheia, pode substituir uma visita de menor prioridade por uma pendente de maior peso clínico.
+A implementação está em [`strategies/main-heuristic.ts`](packages/core/src/strategies/main-heuristic.ts). Ela começa com o cronograma viável do vizinho mais próximo, aplica 1.5-opt às rotas e faz duas buscas mensais por **reinserções e trocas de visitas entre dias ou equipes**. A primeira reduz custo de caminhada e atraso. A segunda tenta encaixar visitas pendentes, valoriza a prioridade atendida a tempo e, quando a jornada já está cheia, pode substituir uma visita de menor prioridade por uma pendente de maior peso clínico.
 
 Para cada movimento, a busca calcula com a matriz de custos a variação exata de tempo de caminhada e de atraso acionável ponderado pelo peso clínico. O objetivo local, em minutos equivalentes, é:
 
 ```text
 Primeira busca: Δobjetivo = Δminutos de caminhada + 12 × Δ(dias de atraso acionável × peso clínico)
-Segunda busca:  Δobjetivo da primeira - 24 × Δ(pontos de prioridade com resposta pronta)
+Segunda busca:  Δobjetivo da primeira - 24 × Δ(pontos de prioridade com prioridade atendida a tempo)
 ```
 
 Os coeficientes 12 e 24 são preferências de planejamento explícitas; não representam custo financeiro ou evidência clínica de equivalência. Uma mudança só é aceita quando reduz o objetivo da respectiva busca. Cada busca aceita no máximo 80 mudanças. O método é local e não garante ótimo global.
@@ -246,10 +235,10 @@ Além do objetivo, cada movimento deve preservar:
 - Jornada diária, incluindo atendimento, caminhada e retorno ao posto.
 - Disponibilidade da equipe e limite de antecipação `A`. Visitas já vencidas podem ser atendidas depois do prazo, com atraso contabilizado.
 - Unicidade do paciente na rota e alocação única de cada candidato.
-- Cobertura e pontuação de prioridade atendida em tempo acionável durante as buscas de reinserção e troca.
+- Cobertura e prioridade atendida a tempo durante as buscas de reinserção e troca.
 - Tetos de tempo **e** distância totais definidos pelo plano de entrada de cada busca. A inserção de uma visita adicional pode elevar o total de caminhada, pois aumenta a cobertura. Um controle final considera o arredondamento dos totais exibidos.
 
-As trocas ajudam quando duas jornadas já estão cheias: o algoritmo pode trocar uma visita de baixa prioridade de hoje por uma de alta prioridade de amanhã e, ao mesmo tempo, agrupar pacientes próximos. A reinserção pode antecipar uma visita dentro de `A`. Após cada alteração, as duas rotas afetadas são reconstruídas e recebem novamente o 1.5-opt. O reparo tenta inserir cada pendência em uma jornada com capacidade e, depois da busca, tenta novamente caso algum movimento tenha liberado espaço. Se ainda não houver capacidade, uma pendência de maior prioridade pode substituir uma visita menos prioritária sem reduzir a pontuação de resposta pronta, piorar o atraso ponderado ou exceder o orçamento de caminhada da etapa.
+As trocas ajudam quando duas jornadas já estão cheias: o algoritmo pode trocar uma visita de baixa prioridade de hoje por uma de alta prioridade de amanhã e, ao mesmo tempo, agrupar pacientes próximos. A reinserção pode antecipar uma visita dentro de `A`. Após cada alteração, as duas rotas afetadas são reconstruídas e recebem novamente o 1.5-opt. O reparo tenta inserir cada pendência em uma jornada com capacidade e, depois da busca, tenta novamente caso algum movimento tenha liberado espaço. Se ainda não houver capacidade, uma pendência de maior prioridade pode substituir uma visita menos prioritária sem reduzir a pontuação de prioridade atendida a tempo, piorar o atraso ponderado ou exceder o orçamento de caminhada da etapa.
 
 Como a heurística usa o baseline geográfico como ponto inicial, ela pode **empatar** com esse baseline quando não encontra uma melhoria viável. Quando aumenta cobertura, é possível percorrer mais quilômetros totais; compare também a cobertura ponderada e a distância por visita. A comparação na interface continua exibindo as métricas originais dos três métodos, inclusive empates. O verificador formal é executado pelo núcleo antes de qualquer plano ser retornado.
 
@@ -304,7 +293,7 @@ O verificador atual não recalcula a matriz ou os totais e não verifica antecip
 
 | Estratégia | Elegibilidade diária | Escolha e posição de inserção |
 | --- | --- | --- |
-| `main-heuristic` | Construção inicial apenas com vencidas/devidas; reparo e movimentos posteriores podem antecipar até A dias. | Usa o baseline geográfico, busca economia de caminhada e atraso, depois repara pendências e prioriza resposta pronta dentro da capacidade. |
+| `main-heuristic` | Construção inicial apenas com vencidas/devidas; reparo e movimentos posteriores podem antecipar até A dias. | Usa o baseline geográfico, busca economia de caminhada e atraso, depois repara pendências e prioriza prioridade atendida a tempo dentro da capacidade. |
 | `urgency-baseline` | Apenas vencidas ou devidas hoje. | Ordena por `priorityScore` decrescente e acrescenta ao fim as visitas que cabem. |
 | `nearest-baseline` | Apenas vencidas ou devidas hoje. | Escolhe o candidato viável com menor tempo desde o último nó e acrescenta ao fim. |
 
@@ -323,10 +312,10 @@ A função retorna um estado com os pacientes atualizados, versão do cenário i
 
 ```typescript
 import { applyVisitResults, planScenario } from '@routing/core';
-import type { Scenario, ScenarioState, VisitResult } from '@routing/core';
+import type { Scenario, ScenarioState, VisitResult, CostMatrix } from '@routing/core';
 
-// cenário, resultados e próxima data fornecidos pela aplicação
-function replan(scenario: Scenario, results: VisitResult[], nextStartDate: string) {
+// A matriz de caminhada vem do OSRM e usa o posto e os pacientes elegíveis.
+function replan(scenario: Scenario, results: VisitResult[], nextStartDate: string, costMatrix: CostMatrix) {
   const state: ScenarioState = {
     scenario,
     history: [],
@@ -340,7 +329,8 @@ function replan(scenario: Scenario, results: VisitResult[], nextStartDate: strin
   };
   const plan = planScenario(nextState.scenario, {
     strategyId: 'main-heuristic',
-    enable1_5Opt: true
+    enable1_5Opt: true,
+    costMatrix
   });
   return { state: nextState, plan };
 }
@@ -368,7 +358,7 @@ O schema inclui `visit_results`, mas o handler atual de resultados não grava ne
 
 O CSV reúne ordem, posto/paciente, horários, deslocamentos e coordenadas. O GPX contém waypoints e um track ordenado do posto aos pacientes e de volta, sem cálculo de trajeto pelas ruas.
 
-A interface React/Vite/Leaflet permite escolher uma região GeoSaúde, amostrar pacientes, gerar e comparar os três métodos, abrir suas rotas no mapa e registrar resultados reais. Quando o servidor de rotas não estiver disponível, o usuário pode optar pela estimativa local em linha reta. Registro de resultados e exportação persistida dependem do servidor.
+A interface React/Vite/Leaflet permite escolher uma região GeoSaúde, amostrar pacientes, gerar e comparar os três métodos, abrir suas rotas no mapa e registrar resultados reais. Sem servidor de caminhada, a geração do plano fica indisponível. Registro de resultados e exportação persistida dependem do servidor.
 
 ## Bancada experimental e manutenção
 
@@ -378,10 +368,14 @@ Na raiz do repositório:
 # Instalar dependências da bancada
 npm install --prefix experimentos
 
-# Compilar core e bancada, gerar cenários, simular e gerar relatório
-npm run experiments:all
+# Compilar e executar a comparação territorial e a análise fatorial
+OSRM_BASE_URL=http://127.0.0.1:5000 npm run experiments:all
+
+# Testar 250 pacientes: capacidade em quatro meses e tempo para concluir todas as visitas
+OSRM_BASE_URL=http://127.0.0.1:5000 node experimentos/scripts/probe-long-capacity.mjs
+OSRM_BASE_URL=http://127.0.0.1:5000 npm run long-horizon --prefix experimentos
 ```
 
-`npm run experiments` executa apenas o benchmark estático já compilado; `npm run experiments-dynamic` executa a simulação dinâmica. Consulte o [README dos experimentos](../experimentos/README.md) para o protocolo e o [guia consolidado do artefato](AGENTS.md) para regras de manutenção.
+O estudo de 250 pacientes mantém os mesmos endereços e prazos nos dois testes. Quatro meses servem para medir capacidade. A comparação dinâmica usa 12 meses como limite amplo e registra o dia em que a última visita é concluída. A equipe dispõe de 300 minutos por dia: com 240 minutos, algumas visitas são inviáveis mesmo com mais meses. Consulte o [README dos experimentos](../experimentos/README.md) e o [guia consolidado do artefato](AGENTS.md).
 
 Ao adicionar uma estratégia, implemente `RoutingStrategy`, registre-a no mapa de `src/index.ts` e atualize os consumidores que oferecem a seleção de métodos. Preserve a separação entre construção, melhoria local, métricas e verificação, e documente alterações no comportamento observado pelo backend, frontend e experimentos.

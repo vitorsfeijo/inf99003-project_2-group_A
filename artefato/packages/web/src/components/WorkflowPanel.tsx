@@ -15,7 +15,6 @@ interface WorkflowPanelProps {
   onSelectRegion: (id: string) => void;
   onSample: (count: number, seed: number) => void;
   onGeneratePlan: () => void;
-  onGenerateLocalEstimate: () => void;
   planningError: string;
   isGenerating: boolean;
   walkingNetworkConfigured: boolean;
@@ -80,7 +79,6 @@ export const WorkflowPanel: React.FC<WorkflowPanelProps> = props => {
           {props.isGenerating ? 'Calculando três planos a pé…' : 'Gerar e comparar planos'}
         </button>
         {props.planningError && <p role="alert" style={{ color: '#991b1b', background: '#fef2f2', borderRadius: 8, padding: 10, fontSize: 12, lineHeight: 1.4, marginTop: 8 }}>{props.planningError}</p>}
-        {props.planningError && props.scenario && !props.walkingNetworkConfigured && <button type="button" onClick={props.onGenerateLocalEstimate} style={{ ...input, marginTop: 8, border: '1px solid #f59e0b', color: '#92400e', fontWeight: 700, cursor: 'pointer' }}>Gerar estimativa local em linha reta</button>}
         {!props.walkingNetworkConfigured && <div role="status" style={{ color: '#92400e', fontSize: 12, lineHeight: 1.4, marginTop: 8 }}>
           {props.regionsError ? 'A API está indisponível; verifique o backend na porta 3001.' : 'Configure OSRM_BASE_URL com um servidor OSRM preparado com o perfil foot.lua para calcular distâncias pelas ruas.'}
           <button type="button" onClick={props.onRefreshRoutingStatus} style={{ display: 'block', minHeight: 40, marginTop: 5, padding: '0 8px', background: 'transparent', color: '#1d4ed8', border: 'none', fontWeight: 700, cursor: 'pointer' }}>Verificar novamente</button>

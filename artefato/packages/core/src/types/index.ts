@@ -61,13 +61,6 @@ export interface Team {
 }
 
 /**
-  Parâmetros de cálculo de custo e velocidade
- */
-export interface CostParameters {
-  travelSpeedKmh: number;      // Velocidade média para conversão de distância em tempo (ex: 20 km/h)
-}
-
-/**
   Cenário completo de planejamento (Entrada)
  */
 export interface Scenario {
@@ -80,7 +73,6 @@ export interface Scenario {
   startDate: string;              // YYYY-MM-DD inicial da janela de planejamento
   planningHorizonDays: number;   // N dias de trabalho na janela
   maxAnticipationDays: number;    // A dias de antecipação máxima permitida
-  costParameters: CostParameters;
 }
 
 /**
@@ -199,7 +191,7 @@ export interface PlanOptions {
   strategyId: string;                   // 'urgency-baseline' | 'nearest-baseline' | 'main-heuristic'
   enable1_5Opt?: boolean;               // Padrão: true (Otimização local 1.5-opt)
   enable2Opt?: boolean;                 // Suporte legado
-  costMatrix?: CostMatrix;              // Matriz viária pré-calculada, na ordem posto + pacientes elegíveis
+  costMatrix: CostMatrix;               // Matriz viária pré-calculada, na ordem posto + pacientes elegíveis
 }
 
 /**

@@ -1,0 +1,10 @@
+seed,strategyId,allocatedVisits,unallocatedVisits,coveragePercentage,priorityWeightedPromptCoveragePercentage,totalTravelDistanceKm
+"20261008","main-heuristic","250","0","100","57.74","1079.74"
+"20261008","nearest-baseline","250","0","100","35.76","1252.47"
+"20261008","urgency-baseline","250","0","100","37.93","1348.45"
+"20261009","main-heuristic","250","0","100","53.61","1076.93"
+"20261009","nearest-baseline","250","0","100","35.45","1268.88"
+"20261009","urgency-baseline","250","0","100","29.21","1375.56"
+"20261010","main-heuristic","250","0","100","53.47","1150.97"
+"20261010","nearest-baseline","250","0","100","33.69","1296.19"
+"20261010","urgency-baseline","250","0","100","27.68","1302.23"

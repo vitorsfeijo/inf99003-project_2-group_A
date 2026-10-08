@@ -1,0 +1,83 @@
+[
+  {
+    "seed": 20261008,
+    "strategyId": "main-heuristic",
+    "allocatedVisits": 250,
+    "unallocatedVisits": 0,
+    "coveragePercentage": 100,
+    "priorityWeightedPromptCoveragePercentage": 57.74,
+    "totalTravelDistanceKm": 1079.74
+  },
+  {
+    "seed": 20261008,
+    "strategyId": "nearest-baseline",
+    "allocatedVisits": 250,
+    "unallocatedVisits": 0,
+    "coveragePercentage": 100,
+    "priorityWeightedPromptCoveragePercentage": 35.76,
+    "totalTravelDistanceKm": 1252.47
+  },
+  {
+    "seed": 20261008,
+    "strategyId": "urgency-baseline",
+    "allocatedVisits": 250,
+    "unallocatedVisits": 0,
+    "coveragePercentage": 100,
+    "priorityWeightedPromptCoveragePercentage": 37.93,
+    "totalTravelDistanceKm": 1348.45
+  },
+  {
+    "seed": 20261009,
+    "strategyId": "main-heuristic",
+    "allocatedVisits": 250,
+    "unallocatedVisits": 0,
+    "coveragePercentage": 100,
+    "priorityWeightedPromptCoveragePercentage": 53.61,
+    "totalTravelDistanceKm": 1076.93
+  },
+  {
+    "seed": 20261009,
+    "strategyId": "nearest-baseline",
+    "allocatedVisits": 250,
+    "unallocatedVisits": 0,
+    "coveragePercentage": 100,
+    "priorityWeightedPromptCoveragePercentage": 35.45,
+    "totalTravelDistanceKm": 1268.88
+  },
+  {
+    "seed": 20261009,
+    "strategyId": "urgency-baseline",
+    "allocatedVisits": 250,
+    "unallocatedVisits": 0,
+    "coveragePercentage": 100,
+    "priorityWeightedPromptCoveragePercentage": 29.21,
+    "totalTravelDistanceKm": 1375.56
+  },
+  {
+    "seed": 20261010,
+    "strategyId": "main-heuristic",
+    "allocatedVisits": 250,
+    "unallocatedVisits": 0,
+    "coveragePercentage": 100,
+    "priorityWeightedPromptCoveragePercentage": 53.47,
+    "totalTravelDistanceKm": 1150.97
+  },
+  {
+    "seed": 20261010,
+    "strategyId": "nearest-baseline",
+    "allocatedVisits": 250,
+    "unallocatedVisits": 0,
+    "coveragePercentage": 100,
+    "priorityWeightedPromptCoveragePercentage": 33.69,
+    "totalTravelDistanceKm": 1296.19
+  },
+  {
+    "seed": 20261010,
+    "strategyId": "urgency-baseline",
+    "allocatedVisits": 250,
+    "unallocatedVisits": 0,
+    "coveragePercentage": 100,
+    "priorityWeightedPromptCoveragePercentage": 27.68,
+    "totalTravelDistanceKm": 1302.23
+  }
+]

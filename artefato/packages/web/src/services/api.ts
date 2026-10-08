@@ -92,7 +92,7 @@ export async function saveScenario(scenario: Scenario): Promise<any> {
   return res.json();
 }
 
-export async function generatePlan(scenarioId: string, options: PlanOptions & { scenarioVersion?: number }): Promise<Plan> {
+export async function generatePlan(scenarioId: string, options: Omit<PlanOptions, 'costMatrix'> & { scenarioVersion?: number }): Promise<Plan> {
   const res = await fetch(`${API_BASE_URL}/scenarios/${scenarioId}/plan`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -125,7 +125,7 @@ export async function registerVisitResults(
   scenarioId: string,
   results: VisitResult[],
   currentDate: string,
-  options?: PlanOptions,
+  options?: Omit<PlanOptions, 'costMatrix'>,
   scenarioVersion?: number
 ): Promise<{ scenarioVersion: number; plan: Plan }> {
   const res = await fetch(`${API_BASE_URL}/scenarios/${scenarioId}/results`, {

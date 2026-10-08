@@ -17,14 +17,17 @@ function scenario(dailyWorkMinutes) {
         conditions: [{ conditionId: 'c', initialDueDate: '2026-10-01', maxIntervalDays: 14, priorityWeight: 1 }] }
     ],
     teams: [{ id: 'team', name: 'Equipe', dailyWorkMinutes, availableDays: [] }],
-    startDate: '2026-10-08', planningHorizonDays: 5, maxAnticipationDays: 2,
-    costParameters: { travelSpeedKmh: 20 }
+    startDate: '2026-10-08', planningHorizonDays: 5, maxAnticipationDays: 2
   };
 }
 
-test('a demanda já vencida atendida no primeiro dia conta como resposta pronta', () => {
+const costMatrix = { nodeIds: ['ub', 'urgent', 'routine'],
+  distanceMatrix: [[0, 0, 0], [0, 0, 0], [0, 0, 0]],
+  timeMatrix: [[0, 0, 0], [0, 0, 0], [0, 0, 0]] };
+
+test('a demanda já vencida atendida no primeiro dia conta como prioridade atendida a tempo', () => {
   const input = scenario(60);
-  const plan = planScenario(input, { strategyId: 'main-heuristic' });
+  const plan = planScenario(input, { strategyId: 'main-heuristic', costMatrix });
   assert.equal(verifyPlan(input, plan).isValid, true);
   assert.equal(plan.metrics.coveragePercentage, 100);
   assert.equal(plan.metrics.priorityWeightedOnTimeCoveragePercentage, 0);
@@ -36,7 +39,7 @@ test('a demanda já vencida atendida no primeiro dia conta como resposta pronta'
 test('pendência entra no denominador e acumula atraso até o fim da janela', () => {
   const input = scenario(30);
   input.teams[0].availableDays = ['2026-10-08'];
-  const plan = planScenario(input, { strategyId: 'main-heuristic' });
+  const plan = planScenario(input, { strategyId: 'main-heuristic', costMatrix });
   assert.equal(verifyPlan(input, plan).isValid, true);
   assert.equal(plan.metrics.coveragePercentage, 50);
   assert.equal(plan.metrics.priorityWeightedCoveragePercentage, 83.33);

@@ -1,0 +1,42 @@
+{
+  "design": {
+    "territory": "US Restinga",
+    "sourceScenario": "geosaude_us_restinga_20261106_30",
+    "startDate": "2026-10-01",
+    "endDate": "2027-09-30",
+    "workingDays": 261,
+    "patients": 250,
+    "teamCount": 1,
+    "dailyWorkMinutes": 300,
+    "seeds": [
+      20261008,
+      20261009,
+      20261010
+    ],
+    "overdueProbability": 0.25,
+    "missRates": [
+      0,
+      0.05,
+      0.1
+    ],
+    "strategies": [
+      "main-heuristic",
+      "nearest-baseline",
+      "urgency-baseline"
+    ],
+    "maxAnticipationDays": 2,
+    "revisitIntervalDays": 1000,
+    "horizonMode": "fixed"
+  },
+  "capacityCriterion": "Cada plano inicial aloca todas as 250 visitas.",
+  "attemptedSeeds": 3,
+  "includedSeeds": [
+    20261008,
+    20261009,
+    20261010
+  ],
+  "excludedSeeds": 0,
+  "initialPlanCount": 9,
+  "executionCount": 27,
+  "costModel": "OSRM foot / OpenStreetMap: distância e duração da API Table"
+}

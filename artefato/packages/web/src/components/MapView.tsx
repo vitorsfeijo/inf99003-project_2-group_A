@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polygon, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
-import { Scenario, Plan, DailyTeamRoute, Patient } from '@routing/core';
+import { Scenario, Plan, Patient } from '@routing/core';
 import { fetchRoadRoute, RoadRoute } from '../services/api';
 
 interface MapViewProps {
@@ -9,7 +9,6 @@ interface MapViewProps {
   plan: Plan | null;
   selectedDate: string;
   walkingNetworkConfigured: boolean;
-  localEstimate: boolean;
 }
 
 const FitTerritory: React.FC<{ scenario: Scenario | null }> = ({ scenario }) => {
@@ -30,7 +29,7 @@ const TEAM_COLORS = [
   '#db2777'  // Rosa
 ];
 
-export const MapView: React.FC<MapViewProps> = ({ scenario, plan, selectedDate, walkingNetworkConfigured, localEstimate }) => {
+export const MapView: React.FC<MapViewProps> = ({ scenario, plan, selectedDate, walkingNetworkConfigured }) => {
   const centerLat = scenario?.healthCenter.location.lat ?? -30.0346;
   const centerLng = scenario?.healthCenter.location.lng ?? -51.2177;
   const [roadRoutes, setRoadRoutes] = useState<Record<string, RoadRoute>>({});
@@ -45,7 +44,7 @@ export const MapView: React.FC<MapViewProps> = ({ scenario, plan, selectedDate, 
     setRoadRoutes({});
     setRoadError(null);
     setRoadLoaded(false);
-    if (!plan || localEstimate) return;
+    if (!plan) return;
     const controller = new AbortController();
     const routes = plan.routes.filter(route => route.date === selectedDate && route.visits.length > 0);
     Promise.allSettled(routes.map(async route => {
@@ -61,7 +60,7 @@ export const MapView: React.FC<MapViewProps> = ({ scenario, plan, selectedDate, 
       }
     });
     return () => controller.abort();
-  }, [plan, selectedDate, localEstimate]);
+  }, [plan, selectedDate]);
 
   // Ícone personalizado para o Posto de Saúde
   const healthCenterIcon = L.divIcon({
@@ -125,7 +124,7 @@ export const MapView: React.FC<MapViewProps> = ({ scenario, plan, selectedDate, 
         })}
 
         {/* Renderizar Rotas Diárias das Equipes */}
-        {dailyRoutes.map((route, rIdx) => {
+        {dailyRoutes.map(route => {
           if (!scenario) return null;
           const color = TEAM_COLORS[Math.max(0, scenario.teams.findIndex(t => t.id === route.teamId)) % TEAM_COLORS.length];
           const team = scenario.teams.find(t => t.id === route.teamId);
@@ -133,25 +132,11 @@ export const MapView: React.FC<MapViewProps> = ({ scenario, plan, selectedDate, 
 
           if (route.visits.length === 0) return null;
 
-          // Sequência de Pontos: Posto -> Visita 1 -> Visita 2 -> ... -> Posto
-          const polylinePoints: [number, number][] = [
-            [scenario.healthCenter.location.lat, scenario.healthCenter.location.lng]
-          ];
-
-          route.visits.forEach(v => {
-            const p = patientMap.get(v.patientId);
-            if (p) {
-              polylinePoints.push([p.location.lat, p.location.lng]);
-            }
-          });
-
-          polylinePoints.push([scenario.healthCenter.location.lat, scenario.healthCenter.location.lng]);
-
           return (
             <React.Fragment key={`${route.teamId}_${route.date}`}>
-              {(roadRoutes[route.teamId] || localEstimate) && <Polyline
-                positions={roadRoutes[route.teamId]?.positions || polylinePoints}
-                pathOptions={{ color, weight: 4, opacity: 0.85, dashArray: localEstimate ? '8 6' : undefined }}
+              {roadRoutes[route.teamId] && <Polyline
+                positions={roadRoutes[route.teamId].positions}
+                pathOptions={{ color, weight: 4, opacity: 0.85 }}
               />}
 
               {/* Números de Ordem de Atendimento na Rota */}
@@ -186,7 +171,7 @@ export const MapView: React.FC<MapViewProps> = ({ scenario, plan, selectedDate, 
         })}
       </MapContainer>
       {plan && <div style={{ position: 'absolute', top: 12, right: 12, zIndex: 500, background: 'white', padding: '0.6rem 0.8rem', borderRadius: 8, boxShadow: '0 2px 12px rgba(0,0,0,.18)', maxWidth: 260, fontSize: 12 }}>
-        {localEstimate ? 'Estimativa local em linha reta; não representa trajeto a pé' : roadError ? `Trajeto viário indisponível: ${roadError}` : Object.keys(roadRoutes).length ? 'Trajeto e custo pela rede de caminhada OSRM' : roadLoaded ? 'Nenhuma visita com trajeto neste dia' : walkingNetworkConfigured ? 'Carregando trajeto pelas ruas…' : 'OSRM de caminhada indisponível'}
+        {roadError ? `Trajeto viário indisponível: ${roadError}` : Object.keys(roadRoutes).length ? 'Trajeto e custo pela rede de caminhada OSRM' : roadLoaded ? 'Nenhuma visita com trajeto neste dia' : walkingNetworkConfigured ? 'Carregando trajeto pelas ruas…' : 'OSRM de caminhada indisponível'}
         {Object.entries(roadRoutes).map(([teamId, road]) => <div key={teamId}>{teamId}: {road.distanceKm.toFixed(1)} km · {road.durationMinutes.toFixed(0)} min na rede viária</div>)}
       </div>}
     </div>

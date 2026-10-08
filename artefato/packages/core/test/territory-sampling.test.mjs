@@ -4,13 +4,18 @@ import fs from 'node:fs';
 import { sampleTerritoryPatients, planScenario, verifyPlan, countWorkingDaysInNextMonth } from '../dist/index.js';
 
 const base = JSON.parse(fs.readFileSync(new URL('../../../../experimentos/cenarios/geosaude_cf_santa_marta_20261042_30.json', import.meta.url)));
+const flatMatrix = scenario => {
+  const nodeIds = [scenario.healthCenter.id, ...scenario.patients.map(patient => patient.id)];
+  const matrix = nodeIds.map(() => nodeIds.map(() => 0));
+  return { nodeIds, distanceMatrix: matrix, timeMatrix: matrix };
+};
 
 test('amostra GeoSaúde é reproduzível, fica no território e gera plano válido', () => {
   const first = sampleTerritoryPatients(base, 30, 42);
   const again = sampleTerritoryPatients(base, 30, 42);
   assert.deepEqual(first, again);
   assert.equal(first.polygons[0].vertices.length, base.polygons[0].vertices.length);
-  const plan = planScenario(first, { strategyId: 'main-heuristic' });
+  const plan = planScenario(first, { strategyId: 'main-heuristic', costMatrix: flatMatrix(first) });
   assert.equal(verifyPlan(first, plan).isValid, true);
   assert.equal(first.patients.length, 30);
 });
@@ -46,7 +51,7 @@ test('um mês iniciado em outubro de 2026 tem 22 dias úteis e permite plano men
   assert.equal(countWorkingDaysInNextMonth('2026-10-01'), 22);
   const scenario = sampleTerritoryPatients(base, 40, 20261008);
   scenario.planningHorizonDays = countWorkingDaysInNextMonth(scenario.startDate);
-  const plan = planScenario(scenario, { strategyId: 'main-heuristic' });
+  const plan = planScenario(scenario, { strategyId: 'main-heuristic', costMatrix: flatMatrix(scenario) });
   assert.equal(plan.routes.length, 22);
   assert.equal(verifyPlan(scenario, plan).isValid, true);
 });

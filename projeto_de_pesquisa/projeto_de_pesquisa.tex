@@ -182,7 +182,7 @@ frequência de falhas no atendimento.
   deslocamento e tempo de execução.
 \item
   \textbf{Analisar} as ameaças à validade experimental, incluindo o uso
-  de distância em linha reta como aproximação do deslocamento real, e
+  da qualidade dos caminhos de caminhada disponíveis no OpenStreetMap, e
   discutir os limites de aplicação dos resultados ao contexto
   operacional do SUS.
 \end{enumerate}
@@ -226,9 +226,7 @@ em Madagáscar. Os autores mostram que distância euclidiana subestima
 consideravelmente os trajetos reais e que a escolha do número de agentes
 e da frequência das visitas tem impacto direto na cobertura. Em relação
 ao projeto proposto, as diferenças são: (a) este projeto adota distância
-em linha reta como aproximação experimental e deixa a rede viária como
-extensão futura, já que a arquitetura aceita uma matriz de custos
-externa; (b) este projeto incorpora explicitamente o replanejamento após
+na rede de caminhada do OpenStreetMap por meio do OSRM; (b) este projeto incorpora explicitamente o replanejamento após
 eventos reais e o controle de versões do plano; (c) este projeto compara
 múltiplos métodos em vez de avaliar um único algoritmo.
 
@@ -301,9 +299,8 @@ evitar assumir um peso universal entre objetivos.
 \textbf{Ferramentas e ambiente.} O núcleo de otimização é implementado
 em Python, executável sem a interface para permitir testes em lote. A
 interface usa Leaflet.js com tiles do OpenStreetMap como camada visual
-de fundo; os traçados das rotas são segmentos em linha reta sobrepostos
-a esse fundo. A matriz de deslocamento usa distância de Haversine com
-velocidade fixa documentada como aproximação experimental. A
+de fundo; os traçados das rotas são trajetos retornados pelo OSRM sobrepostos
+a esse fundo. A matriz de deslocamento usa a rede de caminhada do OpenStreetMap. A
 persistência salva cenário, histórico real e todas as versões do plano
 em formato documentado.
 

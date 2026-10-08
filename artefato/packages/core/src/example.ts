@@ -63,27 +63,35 @@ const sampleScenario: Scenario = {
   ],
   startDate: '2026-09-29',
   planningHorizonDays: 2,
-  maxAnticipationDays: 2,
-  costParameters: {
-    travelSpeedKmh: 20
-  }
+  maxAnticipationDays: 2
+};
+
+// Exemplo didático: o núcleo recebe a matriz pronta; a aplicação usa OSRM a pé.
+const distanceMatrix = [
+  [0, 1, 2, 0.8], [1, 0, 1.4, 0.7],
+  [2, 1.4, 0, 1.6], [0.8, 0.7, 1.6, 0]
+];
+const costMatrix = {
+  nodeIds: ['posto_central', 'pat_01', 'pat_02', 'pat_03'],
+  distanceMatrix,
+  timeMatrix: distanceMatrix.map(row => row.map(km => km * 12))
 };
 
 console.log('=== TESTANDO O PIPELINE DO CORE DO FRAMEWORK DE ROTEAMENTO ===\n');
 
 try {
   console.log('1. Gerando Plano com a Heurística Principal...');
-  const planHeuristic = planScenario(sampleScenario, { strategyId: 'main-heuristic' });
+  const planHeuristic = planScenario(sampleScenario, { strategyId: 'main-heuristic', costMatrix });
   console.log(`Plano gerado com sucesso! (ID: ${planHeuristic.id})`);
   console.log('Métricas:', planHeuristic.metrics);
   console.log('Rotas:', JSON.stringify(planHeuristic.routes, null, 2));
 
   console.log('\n2. Gerando Plano com a Baseline de Urgência...');
-  const planUrgency = planScenario(sampleScenario, { strategyId: 'urgency-baseline' });
+  const planUrgency = planScenario(sampleScenario, { strategyId: 'urgency-baseline', costMatrix });
   console.log('Métricas Urgência:', planUrgency.metrics);
 
   console.log('\n3. Gerando Plano com a Baseline de Vizinho Mais Próximo...');
-  const planNearest = planScenario(sampleScenario, { strategyId: 'nearest-baseline' });
+  const planNearest = planScenario(sampleScenario, { strategyId: 'nearest-baseline', costMatrix });
   console.log('Métricas Vizinho Próximo:', planNearest.metrics);
 
 } catch (err: any) {
