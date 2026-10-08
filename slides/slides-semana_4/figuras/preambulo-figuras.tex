@@ -1,0 +1,20 @@
+% Estilo das figuras: mesmas fontes, tamanhos e cores da apresentação.
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[brazilian]{babel}
+\usepackage{amsmath,tikz}
+\usetikzlibrary{arrows.meta,positioning,calc}
+\usepackage[active,tightpage]{preview}
+\PreviewEnvironment{tikzpicture}
+\setlength{\PreviewBorder}{0pt}
+\definecolor{ink}{HTML}{202124}
+\definecolor{muted}{HTML}{666666}
+\definecolor{blue}{RGB}{30,80,160}
+\definecolor{green}{RGB}{30,130,60}
+\definecolor{red}{RGB}{190,60,60}
+\definecolor{light}{HTML}{E8E8E8}
+\definecolor{amber}{HTML}{B68432}
+\setbeamercolor{normal text}{fg=ink,bg=white}
+\setbeamersize{text margin left=8mm,text margin right=8mm}
+\setbeamertemplate{navigation symbols}{}
+\tikzset{arr/.style={-{Stealth[length=2mm]},thick,muted},txt/.style={align=center,font=\normalsize},smalltxt/.style={align=center,font=\small,text=muted}}

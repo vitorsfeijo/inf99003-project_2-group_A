@@ -1,0 +1,17 @@
+% Figura do slide 11. Compilar a partir desta pasta.
+\documentclass[aspectratio=169,11pt]{beamer}
+\input{preambulo-figuras.tex}
+\begin{document}
+\begin{frame}
+\begin{tikzpicture}[x=.82cm]
+\node[anchor=west,font=\large] at (0,2) {Reinserir um nó};
+\node[anchor=west,font=\large] at (8,2) {Inverter um trecho};
+\foreach \i/\t in {0/U,1/A,2/B,3/C,4/D,5/U} \node[font=\large,text=muted] at (\i,1) {\t};
+\foreach \i/\t in {0/U,1/A,2/C,3/D,4/B,5/U} \node[font=\large,text=blue] at (\i,-.8) {\t};
+\draw[arr] (2,.55) to[out=-70,in=90] (4,-.35);
+\foreach \i/\t in {0/U,1/A,2/B,3/C,4/D,5/U} \node[font=\large,text=muted] at (8+\i,1) {\t};
+\foreach \i/\t in {0/U,1/A,2/D,3/C,4/B,5/U} \node[font=\large,text=blue] at (8+\i,-.8) {\t};
+\draw[arr] (11,.55)--(11,-.35);\draw[blue,thick] (9.7,-1.3)--(12.3,-1.3);
+\end{tikzpicture}
+\end{frame}
+\end{document}

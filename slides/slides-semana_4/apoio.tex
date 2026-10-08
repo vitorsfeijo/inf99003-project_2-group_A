@@ -1,0 +1,90 @@
+\documentclass[aspectratio=169,11pt]{beamer}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[brazilian]{babel}
+\usepackage{amsmath,booktabs,graphicx,array}
+% Figuras pré-compiladas em figuras/. Dados e falas documentados no roteiro.
+% Recompilar figuras: powershell -File figuras/compilar-figuras.ps1
+% Estética: Singapore, como semanas 1--3. Conteúdo conciso e visual: Mini-ARC.
+\usetheme{Singapore}
+\title[PHVD-APS -- Apresentação final]{Planejamento de Visitas Domiciliares na APS}
+\subtitle{Slides de apoio}
+\author{Fabio Cieslak, Tobias Marion e Vitor Feijo}
+\date{INF99003 -- Projeto 2 -- Grupo A\\Apresentação final -- 09/10/2026}
+\definecolor{ink}{HTML}{202124}
+\definecolor{muted}{HTML}{666666}
+\definecolor{blue}{RGB}{30,80,160}
+\definecolor{green}{RGB}{30,130,60}
+\definecolor{red}{RGB}{190,60,60}
+\definecolor{light}{HTML}{E8E8E8}
+\definecolor{amber}{HTML}{B68432}
+\setbeamercolor{normal text}{fg=ink,bg=white}
+\setbeamersize{text margin left=8mm,text margin right=8mm}
+\setbeamertemplate{navigation symbols}{}
+\setbeamercovered{transparent}
+\setbeamertemplate{footline}[frame number]
+\newcommand{\bigtext}[1]{{\fontsize{24.88}{30}\selectfont #1\par}}
+\newcommand{\smallnote}[1]{\par\vspace{2mm}{\fontsize{8}{10}\selectfont\color{muted}#1\par}}
+\newcommand{\labeltext}[1]{{\color{muted}\small #1}}
+\begin{document}
+\section{Apoio}
+% Apoio 1
+\begin{frame}{Apoio · avaliação piloto de 01/10}
+\relax
+{\large 11 cenários · 33 planos · 132 simulações dinâmicas\par}
+\vspace{6mm}\centering
+\begin{tabular}{lrrr}
+\toprule Método & Cobertura & Atraso total (dias) & Distância (km)\\\midrule
+Principal & 100,00\% & 116,91 & 90,59\\
+Urgência & 99,09\% & 120,64 & 103,68\\
+Vizinho & 100,00\% & 114,36 & 62,61\\\bottomrule
+\end{tabular}
+\vspace{7mm}\par\labeltext{O piloto não mostrou domínio da heurística em todos os critérios.}
+\smallnote{Médias estáticas do protocolo histórico. Versão anterior e métricas diferentes; não comparar numericamente com o estudo final.}
+\end{frame}
+% Apoio 2
+\begin{frame}{Apoio · validação da heurística revista}
+\relax
+{\large 36 instâncias · duas regiões · três sementes separadas\par}
+\vspace{6mm}\centering
+\begin{tabular}{lrr}
+\toprule Versão atual vs. anterior & Ganho médio & Vitórias / empates / derrotas\\\midrule
+Cobertura planejada & +0,346 p.p. & 5 / 31 / 0\\
+Resposta pronta & +0,724 p.p. & 5 / 31 / 0\\
+Atraso controlável & $-$0,014 dia & 7 / 27 / 2\\
+Distância & +0,392 km & 4 / 27 / 5\\\bottomrule
+\end{tabular}
+\smallnote{Planos iniciais da Restinga e CF Santa Marta; comparação com 423e6d4. Sementes 20261101--20261103. Haversine, sem falhas.}
+\end{frame}
+% Apoio 3
+\begin{frame}{Apoio · protocolo e função de busca}
+\begin{columns}[T]
+\column{.47\textwidth}\textbf{Fatorial}\par\vspace{3mm}
+\begin{tabular}{@{}ll@{}}
+Pacientes & 15 / 30 / 45\\[2mm]
+Área & 0,5 / 1 / 2$\times$\\[2mm]
+Dias úteis & 5 / 10 / 22\\[2mm]
+Já vencidas & 0 / 25 / 50\%\\[2mm]
+Falha & 0 / 5 / 10\%
+\end{tabular}
+\column{.5\textwidth}\textbf{Busca entre rotas}\par\vspace{3mm}
+{\small $J=T_{\mathrm{viagem}}+12D_w-24P_{\mathrm{pronta}}$}\par
+\vspace{4mm}\labeltext{$D_w$: atraso controlável ponderado\\$P_{\mathrm{pronta}}$: pontos de prioridade pronta}
+\par\vspace{4mm}\labeltext{Primeira busca: peso da resposta pronta = 0\\Segunda busca: peso = 24}
+\end{columns}
+\smallnote{Parâmetros em minutos equivalentes, não desfechos clínicos. Até 80 movimentos por busca; orçamento de caminhada e jornada.}
+\end{frame}
+% Apoio 4
+\begin{frame}{Apoio · referências e reprodução}
+\relax
+{\small
+Faria (2020). \emph{A territorialização da Atenção Básica à Saúde do SUS.}\par\vspace{2mm}
+Rodrigues et al. (2014). \emph{A APS na coordenação das redes de atenção.}\par\vspace{2mm}
+Bender et al. (2024). \emph{O uso de TIC em Saúde na APS no Brasil, de 2014 a 2018.}\par\vspace{2mm}
+CONASS (2021). \emph{A APS no SUS: avanços e ameaças.}\par\vspace{2mm}
+Randriamihaja et al. (2024). \emph{Combining OpenStreetMap mapping and route optimization algorithms.} PLOS Digital Health, e0000621.
+}
+\vspace{5mm}{\small\texttt{npm run citywide:report \mbox{-}\mbox{-}prefix experimentos}\par\texttt{npm run factorial:report \mbox{-}\mbox{-}prefix experimentos}}
+\smallnote{Fontes, bibliografia completa, definições e sequência de reprodução no roteiro. Relatórios CSV/JSON e HTML no repositório.}
+\end{frame}
+\end{document}

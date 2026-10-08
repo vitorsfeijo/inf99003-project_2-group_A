@@ -1,0 +1,21 @@
+% Figura do slide 05. Compilar a partir desta pasta.
+\documentclass[aspectratio=169,11pt]{beamer}
+\input{preambulo-figuras.tex}
+\begin{document}
+\begin{frame}
+\begin{tikzpicture}[x=.91cm]
+\draw[light,line width=2pt] (0,0)--(12.5,0);
+\foreach \x in {0,3.1,6.2,9.3,12.4} \fill[blue] (\x,0) circle (2pt);
+\node[smalltxt] at (0,1.2) {Revisão\\e formulação};
+\node[smalltxt] at (3.1,-1.2) {Núcleo TS\\+ aplicação web};
+\node[smalltxt] at (6.2,1.2) {11 cenários\\piloto};
+\node[smalltxt] at (9.3,-1.2) {GeoSaúde\\+ fatorial};
+\node[smalltxt] at (12.4,1.2) {Heurística revista\\+ validação};
+\node[font=\scriptsize,text=muted] at (0,-.4) {15--24/09};
+\node[font=\scriptsize,text=muted] at (3.1,.4) {29/09--01/10};
+\node[font=\scriptsize,text=muted] at (6.2,-.4) {01/10};
+\node[font=\scriptsize,text=muted] at (9.3,.4) {08/10};
+\node[font=\scriptsize,text=muted] at (12.4,-.4) {08/10};
+\end{tikzpicture}
+\end{frame}
+\end{document}
