@@ -1,11 +1,12 @@
 import { Scenario, Patient, Team, TerritoryPolygon, HealthCenter } from '../../../artefato/packages/core/dist/index.js';
 import fs from 'fs';
 import path from 'path';
+import { pathToFileURL } from 'node:url';
 
 /**
  * Gerador de Números Pseudo-Aleatórios (Mulberry32) com Semente
  */
-function mulberry32(seed: number) {
+export function mulberry32(seed: number) {
   return function() {
     let t = seed += 0x6D2B79F5;
     t = Math.imul(t ^ (t >>> 15), t | 1);
@@ -146,11 +147,6 @@ export function generateSyntheticScenario(config: GeneratorConfig): Scenario {
       travelSpeedKmh: 20
     }
   };
-}
-
-const targetDir = path.resolve(process.cwd(), 'cenarios');
-if (!fs.existsSync(targetDir)) {
-  fs.mkdirSync(targetDir, { recursive: true });
 }
 
 // Suíte Completa de Cenários de Pesquisa
@@ -298,14 +294,13 @@ const scenariosConfig: GeneratorConfig[] = [
   }
 ];
 
-console.log('🚀 Gerando a suíte expandida de cenários sintéticos da pesquisa...\n');
-
-for (const cfg of scenariosConfig) {
-  const scenario = generateSyntheticScenario(cfg);
-  const fileContent = JSON.stringify(scenario, null, 2);
-  const filePath = path.join(targetDir, `${scenario.id}.json`);
-  fs.writeFileSync(filePath, fileContent, 'utf-8');
-  console.log(`  └─ ✅ Cenário [${scenario.id}]: ${scenario.patients.length} pacientes, ${scenario.teams.length} equipes`);
+if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
+  const targetDir = path.resolve(process.cwd(), 'cenarios');
+  fs.mkdirSync(targetDir, { recursive: true });
+  console.log('Gerando cenários sintéticos...');
+  for (const cfg of scenariosConfig) {
+    const scenario = generateSyntheticScenario(cfg);
+    fs.writeFileSync(path.join(targetDir, `${scenario.id}.json`), JSON.stringify(scenario, null, 2));
+    console.log(`${scenario.id}: ${scenario.patients.length} pacientes, ${scenario.teams.length} equipes`);
+  }
 }
-
-console.log(`\n✨ Suíte completa de ${scenariosConfig.length} cenários sintéticos gerada em: ${targetDir}`);

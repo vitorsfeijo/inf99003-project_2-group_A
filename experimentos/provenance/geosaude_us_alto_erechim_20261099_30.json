@@ -1,0 +1,19 @@
+{
+  "source": "GEOSAUDE - Território Base (Jul25) (1).kmz",
+  "sha256": "728181eea8feb1465bcff7e356b563b69e704bf72d19aa04372572f8212fea91",
+  "territoryName": "US Alto Erechim",
+  "healthCenter": {
+    "id": "hc_geosaude_us_alto_erechim_20261099_30",
+    "name": "US Alto Erechim",
+    "location": {
+      "lat": -30.0899801,
+      "lng": -51.2123296
+    }
+  },
+  "teamCount": 1,
+  "healthCenterMatch": "nome exato",
+  "startDate": "2026-10-01",
+  "seed": 20261099,
+  "patientCount": 30,
+  "method": "Amostragem uniforme sintética dentro dos polígonos; demanda clínica simulada. Não são moradores reais nem prevalências observadas."
+}

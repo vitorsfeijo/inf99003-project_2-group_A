@@ -41,7 +41,7 @@ for (const [index, step] of steps.entries()) {
   const result = spawnSync(command, step.args, {
     cwd: process.cwd(),
     stdio: 'inherit',
-    shell: true
+    shell: process.platform === 'win32'
   });
 
   if (result.error) {

@@ -1,0 +1,19 @@
+{
+  "source": "GEOSAUDE - Território Base (Jul25) (1).kmz",
+  "sha256": "728181eea8feb1465bcff7e356b563b69e704bf72d19aa04372572f8212fea91",
+  "territoryName": "CF Moab Caldas",
+  "healthCenter": {
+    "id": "hc_geosaude_cf_moab_caldas_20261065_30",
+    "name": "CF Moab Caldas",
+    "location": {
+      "lat": -30.0692158,
+      "lng": -51.2164646
+    }
+  },
+  "teamCount": 1,
+  "healthCenterMatch": "nome exato",
+  "startDate": "2026-10-01",
+  "seed": 20261065,
+  "patientCount": 30,
+  "method": "Amostragem uniforme sintética dentro dos polígonos; demanda clínica simulada. Não são moradores reais nem prevalências observadas."
+}

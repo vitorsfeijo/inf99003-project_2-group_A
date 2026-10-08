@@ -45,6 +45,25 @@ experimentos/
 
 ## 🚀 Como Executar os Experimentos
 
+### Territórios GeoSaúde
+
+Exporte **GeoJSON WGS84 (EPSG:4326), KML ou KMZ completo** do GeoSaúde. O arquivo completo usado para os cenários versionados está em `dados/GEOSAUDE - Território Base (Jul25) (1).kmz`; o SHA-256 aparece em cada arquivo de `provenance/`. As outras exportações locais em `dados/` são auxiliares e não são versionadas. Arquivos KMZ que contêm somente `NetworkLink` não incluem as áreas e são rejeitados. O gerador percorre a camada **Territórios da Atenção Primária**, cria um cenário separado por território e associa a unidade de saúde por nome exato. No arquivo de julho de 2025, 131 das 132 áreas têm associação exata; a área `US Ramos` usa a unidade mais próxima do centro geométrico e essa aproximação fica registrada na proveniência. Cada cenário usa **uma equipe**, um mês corrido a partir da data inicial (22 dias úteis em outubro de 2026) e 30 atendimentos sintéticos por padrão: 3.960 pessoas no conjunto, distribuídas entre as 132 áreas. A distribuição é uniforme dentro dos polígonos e não representa endereços reais, densidade populacional, prevalência clínica ou efetivo observado das equipes. Para estimar demanda proporcional à população, ainda são necessários setores censitários, contagens populacionais e parâmetros clínicos observados.
+
+```bash
+npm run build --prefix artefato/packages/core
+npm run build --prefix experimentos
+cd experimentos
+npm run generate:geosaude -- 'dados/GEOSAUDE - Território Base (Jul25) (1).kmz' --all 30 20261008
+```
+
+Para uma única área, defina `GEOSAUDE_TERRITORY_NAME='Nome exato da área'` e use `npm run generate:geosaude -- '/caminho/territorio.kmz' 30 20261008`. Para GeoJSON sem ponto de UBS, informe `GEOSAUDE_HC_LAT` e `GEOSAUDE_HC_LNG`. O planejamento mantém o limite de jornada da equipe; visitas excedentes permanecem como não alocadas. O GeoSaúde fornece territórios e unidades, não uma lista de pacientes.
+
+O relatório mostra distribuição das visitas alocadas em faixas de atraso e as pendências em faixa separada. A cobertura ponderada é `soma dos pesos clínicos alocados / soma dos pesos clínicos de todas as visitas candidatas`; a versão pontual conta apenas as visitas até o prazo. **Resposta pronta** conta visitas já vencidas quando atendidas no primeiro dia e visitas futuras até seu prazo, sempre ponderadas pelo peso clínico. O **atraso controlável** multiplica pelo peso clínico somente os dias após `max(início da janela, prazo)`; pendências são censuradas no último dia. Assim a comparação não atribui ao planejador o atraso herdado antes da janela. A eficiência clínica por quilômetro é `soma dos pesos clínicos alocados / distância total estimada`; compare esta razão **junto** à cobertura e ao tempo por visita para não premiar um método que abandona parte da demanda. Distâncias e tempos de viagem do benchmark continuam estimativas Haversine, iguais para as três estratégias.
+
+O relatório HTML incorpora uma cópia local do Chart.js 4.5.1 e abre sem conexão; a licença MIT está em `analise/vendor/LICENSE.chartjs.md`.
+
+Na simulação dinâmica, a cobertura efetiva usa como denominador a demanda inicial completa, inclusive quem nunca recebeu tentativa de atendimento. Falhas são determinadas por `(cenário, taxa de falha, paciente, dia)`, gerando a mesma ausência quando estratégias diferentes visitam a mesma pessoa no mesmo dia. O atraso efetivo inclui pacientes ainda pendentes até o último dia simulado.
+
 Para rodar a geração de dados e a simulação em lote:
 
 ```bash

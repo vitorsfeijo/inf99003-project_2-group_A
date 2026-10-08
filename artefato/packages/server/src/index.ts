@@ -4,7 +4,8 @@ import { initDatabase } from './db/database.js';
 import { registerApiRoutes } from './routes/api.js';
 
 const fastify = Fastify({
-  logger: true
+  logger: true,
+  maxParamLength: 512
 });
 
 await fastify.register(cors, {

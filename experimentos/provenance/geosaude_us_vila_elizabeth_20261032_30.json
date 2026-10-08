@@ -1,0 +1,19 @@
+{
+  "source": "GEOSAUDE - Território Base (Jul25) (1).kmz",
+  "sha256": "728181eea8feb1465bcff7e356b563b69e704bf72d19aa04372572f8212fea91",
+  "territoryName": "US Vila Elizabeth",
+  "healthCenter": {
+    "id": "hc_geosaude_us_vila_elizabeth_20261032_30",
+    "name": "US Vila Elizabeth",
+    "location": {
+      "lat": -29.9800721,
+      "lng": -51.1266702
+    }
+  },
+  "teamCount": 1,
+  "healthCenterMatch": "nome exato",
+  "startDate": "2026-10-01",
+  "seed": 20261032,
+  "patientCount": 30,
+  "method": "Amostragem uniforme sintética dentro dos polígonos; demanda clínica simulada. Não são moradores reais nem prevalências observadas."
+}

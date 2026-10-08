@@ -22,6 +22,7 @@ export interface TerritoryPolygon {
   id: string;
   name: string;
   vertices: Coordinates[];
+  holes?: Coordinates[][];       // Recortes internos do território GeoSaúde
 }
 
 /**
@@ -147,6 +148,18 @@ export interface UnallocatedVisit {
  */
 export interface PlanMetrics {
   coveragePercentage: number;           // % de visitas necessárias atendidas na janela
+  onTimeCoveragePercentage: number;       // % da demanda atendida até o prazo
+  priorityWeightedCoveragePercentage: number; // Cobertura ponderada pelo peso clínico, independente de prazo
+  priorityWeightedOnTimeCoveragePercentage: number; // Cobertura pontual ponderada pelo peso clínico (1-5)
+  priorityWeightedPromptCoveragePercentage: number; // Vencidas no primeiro dia ou demais até o prazo, ponderadas
+  priorityWeightedAverageDelayDays: number; // Atraso médio ponderado pelo peso clínico; pendências censuradas no último dia
+  priorityWeightedActionableDelayDays: number; // Atraso adicional após início da janela, ponderado
+  p90AllocatedDelayDays: number;          // Percentil 90 do atraso das visitas alocadas
+  delayBuckets: { onTime: number; oneToTwoDays: number; threeToSevenDays: number; overSevenDays: number; unallocated: number };
+  distancePerAllocatedVisitKm: number;    // Inclui o retorno ao posto
+  travelTimePerAllocatedVisitMinutes: number;
+  timelyPriorityPointsPerKm: number;      // Soma de pesos clínicos atendidos no prazo / km
+  priorityPointsPerKm: number;            // Soma de pesos clínicos alocados / km
   totalOverdueDays: number;             // Soma dos dias de atraso acumulados
   totalTravelDistanceKm: number;        // Distância total percorrida por todas as equipes (km)
   totalTravelTimeMinutes: number;       // Tempo total de deslocamento (min)
@@ -186,6 +199,7 @@ export interface PlanOptions {
   strategyId: string;                   // 'urgency-baseline' | 'nearest-baseline' | 'main-heuristic'
   enable1_5Opt?: boolean;               // Padrão: true (Otimização local 1.5-opt)
   enable2Opt?: boolean;                 // Suporte legado
+  costMatrix?: CostMatrix;              // Matriz viária pré-calculada, na ordem posto + pacientes elegíveis
 }
 
 /**

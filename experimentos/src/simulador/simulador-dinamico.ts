@@ -35,8 +35,12 @@ export interface DynamicSimulationRecord {
   // Métricas reais (baseadas no que foi efetivamente executado no campo)
   completedVisits: number;
   missedVisits: number;
+  unservedVisits: number;
   realCoveragePercentage: number;
   realAccumulatedOverdueDays: number;
+  realPriorityWeightedCoveragePercentage: number;
+  realPriorityWeightedPromptCoveragePercentage: number;
+  realPriorityWeightedActionableDelayDays: number;
   realTravelDistanceKm: number;
   // Desempenho computacional
   totalPlanningTimeMs: number;
@@ -95,9 +99,9 @@ function mulberry32(seed: number) {
   };
 }
 
-function seedForRun(strategyId: string, scenarioId: string, missRate: number): number {
-  // Hash determinístico simples
-  const str = `${strategyId}|${scenarioId}|${missRate}`;
+function seedForVisit(scenarioId: string, missRate: number, date: string, patientId: string): number {
+  // O mesmo paciente no mesmo dia tem o mesmo resultado em todas as estratégias.
+  const str = `${scenarioId}|${missRate}|${date}|${patientId}`;
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
     hash = (Math.imul(31, hash) + str.charCodeAt(i)) | 0;
@@ -115,8 +119,6 @@ function runDynamicSimulation(
   missRate: number,
   totalSimulationDays: number
 ): DynamicSimulationRecord {
-  const random = mulberry32(seedForRun(strategyId, baseScenario.id, missRate));
-
   // Estado inicial: avança a janela de planejamento para cada dia simulado
   let state: ScenarioState = {
     scenario: JSON.parse(JSON.stringify(baseScenario)), // deep clone
@@ -127,9 +129,11 @@ function runDynamicSimulation(
   let completedVisits = 0;
   let missedVisits = 0;
   let realTravelDistanceKm = 0;
-  let realAccumulatedOverdueDays = 0;
   let totalPlanningTimeMs = 0;
   let replanningCount = 0;
+  let initialDemand: { patientId: string; conditionId: string }[] | undefined;
+  const completedDates = new Map<string, string>();
+  let lastSimulationDate = baseScenario.startDate;
 
   let simulationDay = 0;
   let currentDate = baseScenario.startDate;
@@ -142,6 +146,7 @@ function runDynamicSimulation(
     }
 
     simulationDay++;
+    lastSimulationDate = currentDate;
 
     // Atualiza o startDate do cenário para refletir o dia atual da simulação
     const scenarioForDay: Scenario = {
@@ -158,14 +163,19 @@ function runDynamicSimulation(
       const t1 = performance.now();
       totalPlanningTimeMs += t1 - t0;
       replanningCount++;
+      if (!initialDemand) {
+        const unique = new Map<string, { patientId: string; conditionId: string }>();
+        for (const visit of [...plan.routes.flatMap(route => route.visits), ...plan.unallocatedVisits]) {
+          const key = JSON.stringify([visit.patientId, visit.conditionId]);
+          unique.set(key, { patientId: visit.patientId, conditionId: visit.conditionId });
+        }
+        initialDemand = [...unique.values()];
+      }
 
       // 2. Filtrar apenas as rotas planejadas para o dia atual
       routesForToday = plan.routes.filter(r => r.date === currentDate);
     } catch (err: any) {
-      // Plano inválido ou sem demanda — registra falha e avança
-      console.warn(`  ⚠️  Falha ao planejar (${strategyId}, ${baseScenario.id}, dia ${simulationDay}): ${err.message}`);
-      currentDate = nextWorkingDay(currentDate);
-      continue;
+      throw new Error(`Falha ao planejar ${baseScenario.id}/${strategyId} no dia ${simulationDay}: ${err.message}`);
     }
 
     // 3. Simular campo: cada visita planejada hoje tem chance de ser 'missed'
@@ -177,11 +187,13 @@ function runDynamicSimulation(
       realTravelDistanceKm += route.totalDistanceKm;
 
       for (const visit of route.visits) {
-        const failed = random() < missRate;
+        const failed = mulberry32(seedForVisit(baseScenario.id, missRate, currentDate, visit.patientId))() < missRate;
         const status: 'completed' | 'missed' = failed ? 'missed' : 'completed';
 
         if (status === 'completed') {
           completedVisits++;
+          const key = JSON.stringify([visit.patientId, visit.conditionId]);
+          if (!completedDates.has(key)) completedDates.set(key, currentDate);
         } else {
           missedVisits++;
         }
@@ -196,37 +208,7 @@ function runDynamicSimulation(
       }
     }
 
-    // 4. Calcular atraso real acumulado para visitas MISSED neste dia
-    //    (cada visita missed que estava em atraso incrementa o contador)
-    const missedToday = dayResults.filter(r => r.status === 'missed');
-    for (const missed of missedToday) {
-      const patient = state.scenario.patients.find(p => p.id === missed.patientId);
-      if (!patient) continue;
-      const condition = patient.conditions.find(c => c.conditionId === missed.conditionId);
-      if (!condition) continue;
-
-      // Prazo da condição: lastVisitDate + maxIntervalDays ou initialDueDate
-      let dueDate: string;
-      if (condition.lastVisitDate) {
-        dueDate = addCalendarDays(condition.lastVisitDate, condition.maxIntervalDays);
-      } else if (condition.initialDueDate) {
-        dueDate = condition.initialDueDate;
-      } else {
-        continue;
-      }
-
-      // Dias de atraso se já passou do prazo
-      const overdueDays = Math.max(
-        0,
-        Math.round(
-          (parseLocalDate(currentDate).getTime() - parseLocalDate(dueDate).getTime()) /
-            (1000 * 3600 * 24)
-        )
-      );
-      realAccumulatedOverdueDays += overdueDays;
-    }
-
-    // 5. Aplicar resultados → atualiza estado do cenário para replanejamento
+    // 4. Aplicar resultados → atualiza estado do cenário para replanejamento
     if (dayResults.length > 0) {
       state = applyVisitResults(
         { ...state, scenario: scenarioForDay },
@@ -240,11 +222,36 @@ function runDynamicSimulation(
     currentDate = nextWorkingDay(currentDate);
   }
 
-  const totalVisits = completedVisits + missedVisits;
-  const realCoveragePercentage =
-    totalVisits > 0
-      ? Number(((completedVisits / totalVisits) * 100).toFixed(2))
-      : 0;
+  const baseline = initialDemand ?? [];
+  let baselineCompleted = 0;
+  let realAccumulatedOverdueDays = 0;
+  let totalPriority = 0;
+  let completedPriority = 0;
+  let promptPriority = 0;
+  let actionableWeightedDelay = 0;
+  const daysBetween = (end: string, start: string) => Math.round((parseLocalDate(end).getTime() - parseLocalDate(start).getTime()) / 86400000);
+  for (const visit of baseline) {
+    const condition = baseScenario.patients.find(patient => patient.id === visit.patientId)
+      ?.conditions.find(item => item.conditionId === visit.conditionId);
+    if (!condition) throw new Error(`Condição não encontrada: ${visit.patientId}/${visit.conditionId}`);
+    const dueDate = condition.lastVisitDate
+      ? addCalendarDays(condition.lastVisitDate, condition.maxIntervalDays)
+      : condition.initialDueDate ?? baseScenario.startDate;
+    const priority = Math.max(1, condition.priorityWeight);
+    totalPriority += priority;
+    const completedDate = completedDates.get(JSON.stringify([visit.patientId, visit.conditionId]));
+    if (completedDate) { baselineCompleted++; completedPriority += priority; }
+    const outcomeDate = completedDate ?? lastSimulationDate;
+    realAccumulatedOverdueDays += Math.max(0, daysBetween(outcomeDate, dueDate));
+    const actionableDelay = Math.max(0, daysBetween(outcomeDate,
+      dueDate < baseScenario.startDate ? baseScenario.startDate : dueDate));
+    actionableWeightedDelay += priority * actionableDelay;
+    if (completedDate && actionableDelay === 0) promptPriority += priority;
+  }
+  const realCoveragePercentage = baseline.length ? Number((baselineCompleted / baseline.length * 100).toFixed(2)) : 100;
+  const realPriorityWeightedCoveragePercentage = totalPriority ? Number((completedPriority / totalPriority * 100).toFixed(2)) : 100;
+  const realPriorityWeightedPromptCoveragePercentage = totalPriority ? Number((promptPriority / totalPriority * 100).toFixed(2)) : 100;
+  const realPriorityWeightedActionableDelayDays = totalPriority ? Number((actionableWeightedDelay / totalPriority).toFixed(2)) : 0;
 
   return {
     scenarioId: baseScenario.id,
@@ -255,8 +262,12 @@ function runDynamicSimulation(
     totalSimulationDays,
     completedVisits,
     missedVisits,
+    unservedVisits: baseline.length - baselineCompleted,
     realCoveragePercentage,
     realAccumulatedOverdueDays,
+    realPriorityWeightedCoveragePercentage,
+    realPriorityWeightedPromptCoveragePercentage,
+    realPriorityWeightedActionableDelayDays,
     realTravelDistanceKm: Number(realTravelDistanceKm.toFixed(3)),
     totalPlanningTimeMs: Number(totalPlanningTimeMs.toFixed(3)),
     avgReplanningTimeMs:
@@ -313,7 +324,7 @@ for (const file of scenarioFiles) {
           `AvgReplanning: ${record.avgReplanningTimeMs.toFixed(1)} ms`
         );
       } catch (err: any) {
-        console.error(`  ❌ Erro: ${strategyId} / ${scenario.id} / missRate=${missRate}: ${err.message}`);
+        throw new Error(`Falha em ${strategyId} / ${scenario.id} / missRate=${missRate}: ${err.message}`);
       }
     }
   }
@@ -327,8 +338,9 @@ console.log(`\n💾 JSON salvo: ${jsonOut}`);
 // Salvar CSV
 const csvHeader = [
   'scenarioId', 'patientCount', 'teamCount', 'strategyId', 'missRate',
-  'totalSimulationDays', 'completedVisits', 'missedVisits',
-  'realCoveragePercentage', 'realAccumulatedOverdueDays', 'realTravelDistanceKm',
+  'totalSimulationDays', 'completedVisits', 'missedVisits', 'unservedVisits',
+  'realCoveragePercentage', 'realAccumulatedOverdueDays', 'realPriorityWeightedCoveragePercentage',
+  'realPriorityWeightedPromptCoveragePercentage', 'realPriorityWeightedActionableDelayDays', 'realTravelDistanceKm',
   'totalPlanningTimeMs', 'avgReplanningTimeMs', 'replanningCount'
 ].join(',');
 
@@ -341,8 +353,12 @@ const csvRows = allRecords.map(r => [
   r.totalSimulationDays,
   r.completedVisits,
   r.missedVisits,
+  r.unservedVisits,
   r.realCoveragePercentage,
   r.realAccumulatedOverdueDays,
+  r.realPriorityWeightedCoveragePercentage,
+  r.realPriorityWeightedPromptCoveragePercentage,
+  r.realPriorityWeightedActionableDelayDays,
   r.realTravelDistanceKm,
   r.totalPlanningTimeMs,
   r.avgReplanningTimeMs,

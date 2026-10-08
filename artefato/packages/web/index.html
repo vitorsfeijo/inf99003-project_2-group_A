@@ -9,6 +9,11 @@
       * { box-sizing: border-box; margin: 0; padding: 0; }
       body { font-family: system-ui, -apple-system, sans-serif; background: #f8fafc; color: #1e293b; height: 100vh; overflow: hidden; }
       #root { height: 100vh; display: flex; flex-direction: column; }
+      @media (max-width: 800px) {
+        .app-main { flex-direction: column; }
+        .app-map { height: 45% !important; flex: none !important; }
+        .workflow-aside { width: 100% !important; height: 55% !important; }
+      }
     </style>
   </head>
   <body>

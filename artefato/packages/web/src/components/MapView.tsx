@@ -1,13 +1,25 @@
-import React from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polygon, Polyline } from 'react-leaflet';
+import React, { useEffect, useState } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, Polygon, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { Scenario, Plan, DailyTeamRoute, Patient } from '@routing/core';
+import { fetchRoadRoute, RoadRoute } from '../services/api';
 
 interface MapViewProps {
-  scenario: Scenario;
+  scenario: Scenario | null;
   plan: Plan | null;
   selectedDate: string;
+  walkingNetworkConfigured: boolean;
+  localEstimate: boolean;
 }
+
+const FitTerritory: React.FC<{ scenario: Scenario | null }> = ({ scenario }) => {
+  const map = useMap();
+  useEffect(() => {
+    const vertices = scenario?.polygons.flatMap(polygon => polygon.vertices) ?? [];
+    if (vertices.length) map.fitBounds(L.latLngBounds(vertices.map(vertex => [vertex.lat, vertex.lng])), { padding: [28, 28], maxZoom: 15 });
+  }, [map, scenario]);
+  return null;
+};
 
 const TEAM_COLORS = [
   '#2563eb', // Azul
@@ -18,13 +30,38 @@ const TEAM_COLORS = [
   '#db2777'  // Rosa
 ];
 
-export const MapView: React.FC<MapViewProps> = ({ scenario, plan, selectedDate }) => {
-  const centerLat = scenario.healthCenter?.location.lat || -30.0346;
-  const centerLng = scenario.healthCenter?.location.lng || -51.2177;
+export const MapView: React.FC<MapViewProps> = ({ scenario, plan, selectedDate, walkingNetworkConfigured, localEstimate }) => {
+  const centerLat = scenario?.healthCenter.location.lat ?? -30.0346;
+  const centerLng = scenario?.healthCenter.location.lng ?? -51.2177;
+  const [roadRoutes, setRoadRoutes] = useState<Record<string, RoadRoute>>({});
+  const [roadError, setRoadError] = useState<string | null>(null);
+  const [roadLoaded, setRoadLoaded] = useState(false);
 
   // Filtrar rotas do dia selecionado
   const dailyRoutes = plan ? plan.routes.filter(r => r.date === selectedDate) : [];
-  const patientMap = new Map<string, Patient>(scenario.patients.map(p => [p.id, p]));
+  const patientMap = new Map<string, Patient>((scenario?.patients ?? []).map(p => [p.id, p]));
+
+  useEffect(() => {
+    setRoadRoutes({});
+    setRoadError(null);
+    setRoadLoaded(false);
+    if (!plan || localEstimate) return;
+    const controller = new AbortController();
+    const routes = plan.routes.filter(route => route.date === selectedDate && route.visits.length > 0);
+    Promise.allSettled(routes.map(async route => {
+      const road = await fetchRoadRoute(plan.id, selectedDate, route.teamId, controller.signal);
+      return [route.teamId, road] as const;
+    })).then(results => {
+      if (!controller.signal.aborted) {
+        setRoadRoutes(Object.fromEntries(results.filter(result => result.status === 'fulfilled')
+          .map(result => (result as PromiseFulfilledResult<readonly [string, RoadRoute]>).value)));
+        const failures = results.filter(result => result.status === 'rejected') as PromiseRejectedResult[];
+        if (failures.length) setRoadError(failures.map(result => result.reason instanceof Error ? result.reason.message : String(result.reason)).join(' · '));
+        setRoadLoaded(true);
+      }
+    });
+    return () => controller.abort();
+  }, [plan, selectedDate, localEstimate]);
 
   // Ícone personalizado para o Posto de Saúde
   const healthCenterIcon = L.divIcon({
@@ -35,22 +72,24 @@ export const MapView: React.FC<MapViewProps> = ({ scenario, plan, selectedDate }
   });
 
   return (
-    <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+    <div style={{ width: '100%', height: '100%', position: 'relative', isolation: 'isolate' }}>
       <MapContainer
+        key={`${scenario?.id ?? 'porto_alegre'}_${centerLat}_${centerLng}`}
         center={[centerLat, centerLng]}
         zoom={14}
         style={{ width: '100%', height: '100%' }}
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
+        <FitTerritory scenario={scenario} />
 
         {/* Renderizar Polígonos do Território */}
-        {scenario.polygons.map(poly => (
+        {(scenario?.polygons ?? []).map(poly => (
           <Polygon
             key={poly.id}
-            positions={poly.vertices.map(v => [v.lat, v.lng])}
+            positions={[poly.vertices, ...(poly.holes ?? [])].map(ring => ring.map(v => [v.lat, v.lng] as [number, number]))}
             pathOptions={{ color: '#2563eb', fillColor: '#3b82f6', fillOpacity: 0.15, weight: 2, dashArray: '4' }}
           >
             <Popup><strong>{poly.name}</strong> (Território da APS)</Popup>
@@ -58,18 +97,18 @@ export const MapView: React.FC<MapViewProps> = ({ scenario, plan, selectedDate }
         ))}
 
         {/* Marker do Posto de Saúde */}
-        <Marker position={[scenario.healthCenter.location.lat, scenario.healthCenter.location.lng]} icon={healthCenterIcon}>
+        {scenario && <Marker position={[scenario.healthCenter.location.lat, scenario.healthCenter.location.lng]} icon={healthCenterIcon}>
           <Popup>
             <strong>🏥 {scenario.healthCenter.name}</strong><br />
             Origem e Retorno de todas as equipes.
           </Popup>
-        </Marker>
+        </Marker>}
 
         {/* Renderizar Pacientes */}
-        {scenario.patients.map((patient, pIdx) => {
+        {(scenario?.patients ?? []).map((patient, pIdx) => {
           const patientIcon = L.divIcon({
             className: 'custom-patient-icon',
-            html: `<div style="background-color: #475569; color: white; border: 2px solid white; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; box-shadow: 0 1px 3px rgba(0,0,0,0.3);">${patient.code || pIdx + 1}</div>`,
+            html: `<div style="background-color: #475569; color: white; border: 2px solid white; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; box-shadow: 0 1px 3px rgba(0,0,0,0.3);">${pIdx + 1}</div>`,
             iconSize: [22, 22],
             iconAnchor: [11, 11]
           });
@@ -87,7 +126,8 @@ export const MapView: React.FC<MapViewProps> = ({ scenario, plan, selectedDate }
 
         {/* Renderizar Rotas Diárias das Equipes */}
         {dailyRoutes.map((route, rIdx) => {
-          const color = TEAM_COLORS[rIdx % TEAM_COLORS.length];
+          if (!scenario) return null;
+          const color = TEAM_COLORS[Math.max(0, scenario.teams.findIndex(t => t.id === route.teamId)) % TEAM_COLORS.length];
           const team = scenario.teams.find(t => t.id === route.teamId);
           const teamName = team ? team.name : route.teamId;
 
@@ -109,10 +149,10 @@ export const MapView: React.FC<MapViewProps> = ({ scenario, plan, selectedDate }
 
           return (
             <React.Fragment key={`${route.teamId}_${route.date}`}>
-              <Polyline
-                positions={polylinePoints}
-                pathOptions={{ color, weight: 4, opacity: 0.85 }}
-              />
+              {(roadRoutes[route.teamId] || localEstimate) && <Polyline
+                positions={roadRoutes[route.teamId]?.positions || polylinePoints}
+                pathOptions={{ color, weight: 4, opacity: 0.85, dashArray: localEstimate ? '8 6' : undefined }}
+              />}
 
               {/* Números de Ordem de Atendimento na Rota */}
               {route.visits.map((visit, vIdx) => {
@@ -145,6 +185,10 @@ export const MapView: React.FC<MapViewProps> = ({ scenario, plan, selectedDate }
           );
         })}
       </MapContainer>
+      {plan && <div style={{ position: 'absolute', top: 12, right: 12, zIndex: 500, background: 'white', padding: '0.6rem 0.8rem', borderRadius: 8, boxShadow: '0 2px 12px rgba(0,0,0,.18)', maxWidth: 260, fontSize: 12 }}>
+        {localEstimate ? 'Estimativa local em linha reta; não representa trajeto a pé' : roadError ? `Trajeto viário indisponível: ${roadError}` : Object.keys(roadRoutes).length ? 'Trajeto e custo pela rede de caminhada OSRM' : roadLoaded ? 'Nenhuma visita com trajeto neste dia' : walkingNetworkConfigured ? 'Carregando trajeto pelas ruas…' : 'OSRM de caminhada indisponível'}
+        {Object.entries(roadRoutes).map(([teamId, road]) => <div key={teamId}>{teamId}: {road.distanceKm.toFixed(1)} km · {road.durationMinutes.toFixed(0)} min na rede viária</div>)}
+      </div>}
     </div>
   );
 };

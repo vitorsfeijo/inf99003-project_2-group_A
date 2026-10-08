@@ -1,0 +1,19 @@
+{
+  "source": "GEOSAUDE - Território Base (Jul25) (1).kmz",
+  "sha256": "728181eea8feb1465bcff7e356b563b69e704bf72d19aa04372572f8212fea91",
+  "territoryName": "US Beco dos Coqueiros",
+  "healthCenter": {
+    "id": "hc_geosaude_us_beco_dos_coqueiros_20261031_30",
+    "name": "US Beco dos Coqueiros",
+    "location": {
+      "lat": -30.0283553,
+      "lng": -51.1294433
+    }
+  },
+  "teamCount": 1,
+  "healthCenterMatch": "nome exato",
+  "startDate": "2026-10-01",
+  "seed": 20261031,
+  "patientCount": 30,
+  "method": "Amostragem uniforme sintética dentro dos polígonos; demanda clínica simulada. Não são moradores reais nem prevalências observadas."
+}

@@ -7,6 +7,7 @@
   "scripts": {
     "build": "tsc",
     "generate": "node dist/gerador/index.js",
+    "generate:geosaude": "node dist/gerador/geosaude.js",
     "simulate": "node dist/simulador/index.js",
     "simulate-dynamic": "node dist/simulador/simulador-dinamico.js",
     "analyse": "node analise/generate_html_charts.js"
