@@ -1,184 +1,204 @@
-import React, { useState, useEffect } from 'react';
-import { Scenario, Plan, VisitResult, planScenario } from '@routing/core';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Scenario, Plan, VisitResult, planScenario, sampleTerritoryPatients, countWorkingDaysInNextMonth } from '@routing/core';
 import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
 import { MapView } from './components/MapView';
-import { fetchExperimentalScenario, fetchExperimentalScenarios, generatePlan, registerVisitResults, saveScenario, ExperimentalScenarioSummary } from './services/api';
-
-const defaultScenario: Scenario = {
-  id: 'cenario_demo',
-  version: 1,
-  healthCenter: {
-    id: 'hc_central',
-    name: 'Posto de Saúde Central',
-    location: { lat: -30.0346, lng: -51.2177 }
-  },
-  polygons: [
-    {
-      id: 'poly_centro',
-      name: 'Região de Atuação APS',
-      vertices: [
-        { lat: -30.0200, lng: -51.2300 },
-        { lat: -30.0200, lng: -51.2000 },
-        { lat: -30.0500, lng: -51.2000 },
-        { lat: -30.0500, lng: -51.2300 }
-      ]
-    }
-  ],
-  patients: [
-    {
-      id: 'pat_01',
-      code: 'P001 - Maria',
-      location: { lat: -30.0300, lng: -51.2200 },
-      defaultVisitDurationMinutes: 40,
-      conditions: [{ conditionId: 'hipertensao', lastVisitDate: '2026-09-01', maxIntervalDays: 14, priorityWeight: 4 }]
-    },
-    {
-      id: 'pat_02',
-      code: 'P002 - João',
-      location: { lat: -30.0400, lng: -51.2100 },
-      defaultVisitDurationMinutes: 30,
-      conditions: [{ conditionId: 'diabetes', lastVisitDate: '2026-09-05', maxIntervalDays: 10, priorityWeight: 5 }]
-    },
-    {
-      id: 'pat_03',
-      code: 'P003 - Ana',
-      location: { lat: -30.0250, lng: -51.2150 },
-      defaultVisitDurationMinutes: 45,
-      conditions: [{ conditionId: 'curativo', initialDueDate: '2026-09-28', maxIntervalDays: 7, priorityWeight: 3 }]
-    }
-  ],
-  teams: [
-    {
-      id: 'eq_alpha',
-      name: 'Equipe Alpha',
-      doctorName: 'Dr. Carlos',
-      nurseName: 'Enf. Juliana',
-      socialWorkerName: 'AS Roberto',
-      dailyWorkMinutes: 240,
-      availableDays: ['2026-09-29', '2026-09-30']
-    }
-  ],
-  startDate: '2026-09-29',
-  planningHorizonDays: 2,
-  maxAnticipationDays: 2,
-  costParameters: {
-    travelSpeedKmh: 20
-  }
-};
+import { WorkflowPanel } from './components/WorkflowPanel';
+import { ComparisonView } from './components/ComparisonView';
+import { BaseRegionSummary, fetchBaseRegion, fetchBaseRegions, fetchRoutingStatus, generateComparison, registerVisitResults, saveScenario } from './services/api';
 
 export const App: React.FC = () => {
-  const [scenario, setScenario] = useState<Scenario>(defaultScenario);
+  const [baseScenario, setBaseScenario] = useState<Scenario | null>(null);
+  const [scenario, setScenario] = useState<Scenario | null>(null);
   const [plan, setPlan] = useState<Plan | null>(null);
-  const [selectedDate, setSelectedDate] = useState<string>('2026-09-29');
-  const [selectedStrategy, setSelectedStrategy] = useState<string>('main-heuristic');
-  const [isGenerating, setIsGenerating] = useState<boolean>(false);
-  const [experimentalScenarios, setExperimentalScenarios] = useState<ExperimentalScenarioSummary[]>([]);
-  const [isLoadingExperimentalScenarios, setIsLoadingExperimentalScenarios] = useState<boolean>(true);
+  const [comparisonPlans, setComparisonPlans] = useState<Plan[]>([]);
+  const [activeView, setActiveView] = useState<'routes' | 'comparison'>('routes');
+  const [selectedDate, setSelectedDate] = useState('');
+  const [selectedStrategy, setSelectedStrategy] = useState('main-heuristic');
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [regions, setRegions] = useState<BaseRegionSummary[]>([]);
+  const [regionsError, setRegionsError] = useState('');
+  const [isLoadingRegions, setIsLoadingRegions] = useState(true);
+  const [isLoadingRegion, setIsLoadingRegion] = useState(false);
+  const [walkingNetworkConfigured, setWalkingNetworkConfigured] = useState(false);
+  const [localEstimate, setLocalEstimate] = useState(false);
+  const [planningError, setPlanningError] = useState('');
+  const selectionRequest = useRef(0);
 
-  // Inicializar o banco de dados via API ou calcular offline se backend indisponível
   useEffect(() => {
-    saveScenario(defaultScenario).catch(() => {
-      console.log('Servidor backend offline; utilizando modo de cálculo local em memória.');
-    });
-    fetchExperimentalScenarios()
-      .then(setExperimentalScenarios)
-      .catch(() => setExperimentalScenarios([]))
-      .finally(() => setIsLoadingExperimentalScenarios(false));
+    void refreshRegions();
+    void refreshRoutingStatus();
   }, []);
 
-  const handleImportScenario = (newScenario: Scenario) => {
-    setScenario(newScenario);
-    setPlan(null);
-    setSelectedDate(newScenario.startDate);
-    saveScenario(newScenario).catch(() => {
-      console.log('Cenário carregado localmente; servidor backend indisponível.');
-    });
+  const refreshRegions = async () => {
+    setIsLoadingRegions(true);
+    setRegionsError('');
+    try {
+      setRegions(await fetchBaseRegions());
+    } catch (error) {
+      setRegionsError(error instanceof TypeError
+        ? 'API indisponível na porta 3001. Inicie o backend com OSRM_BASE_URL configurada e tente novamente.'
+        : error instanceof Error ? error.message : String(error));
+    } finally {
+      setIsLoadingRegions(false);
+    }
   };
 
-  const handleLoadExperimentalScenario = async (scenarioId: string) => {
+  const refreshRoutingStatus = async () => {
     try {
-      const newScenario = await fetchExperimentalScenario(scenarioId);
-      handleImportScenario(newScenario);
-    } catch (err: any) {
-      alert(err.message);
+      const status = await fetchRoutingStatus();
+      setWalkingNetworkConfigured(status.walkingNetworkConfigured);
+    } catch {
+      setWalkingNetworkConfigured(false);
+    }
+  };
+
+  const handleSelectRegion = async (id: string) => {
+    const requestId = ++selectionRequest.current;
+    setBaseScenario(null);
+    setScenario(null);
+    setPlan(null);
+    setComparisonPlans([]);
+    setActiveView('routes');
+    setLocalEstimate(false);
+    setPlanningError('');
+    setSelectedDate('');
+    setRegionsError('');
+    setIsLoadingRegion(Boolean(id));
+    if (!id) return;
+    try {
+      const loaded = await fetchBaseRegion(id);
+      if (selectionRequest.current !== requestId) return;
+      setBaseScenario(loaded);
+      setSelectedDate(loaded.startDate);
+    } catch (error) {
+      if (selectionRequest.current === requestId) setRegionsError(error instanceof Error ? error.message : String(error));
+    } finally {
+      if (selectionRequest.current === requestId) setIsLoadingRegion(false);
+    }
+  };
+
+  const handleSample = (count: number, seed: number) => {
+    if (!baseScenario) return;
+    try {
+      const monthlyBase = { ...baseScenario, planningHorizonDays: countWorkingDaysInNextMonth(baseScenario.startDate) };
+      const sampled = sampleTerritoryPatients(monthlyBase, count, seed);
+      setScenario(sampled);
+      setPlan(null);
+      setComparisonPlans([]);
+      setActiveView('routes');
+      setLocalEstimate(false);
+      setPlanningError('');
+      setSelectedDate(sampled.startDate);
+    } catch (error) {
+      alert(`Erro na amostragem: ${error instanceof Error ? error.message : String(error)}`);
     }
   };
 
   const handleGeneratePlan = async () => {
+    if (!scenario || isGenerating || !walkingNetworkConfigured) return;
     setIsGenerating(true);
+    setPlan(null);
+    setPlanningError('');
     try {
-      // Tentar via servidor backend
-      const newPlan = await generatePlan(scenario.id, {
-        strategyId: selectedStrategy,
-        enable1_5Opt: true
-      });
+      await saveScenario(scenario);
+      const plans = await generateComparison(scenario.id, scenario.version);
+      const newPlan = plans.find(item => item.strategyId === selectedStrategy) ?? plans[0];
+      if (!newPlan) throw new Error('Nenhum plano foi retornado.');
+      setLocalEstimate(false);
+      setComparisonPlans(plans);
       setPlan(newPlan);
-      if (newPlan.routes.length > 0) {
-        setSelectedDate(newPlan.routes[0].date);
-      }
-    } catch (err) {
-      // Fallback para cálculo direto em memória via @routing/core
-      try {
-        const fallbackPlan = planScenario(scenario, {
-          strategyId: selectedStrategy,
-          enable1_5Opt: true
-        });
-        setPlan(fallbackPlan);
-        if (fallbackPlan.routes.length > 0) {
-          setSelectedDate(fallbackPlan.routes[0].date);
-        }
-      } catch (localErr: any) {
-        alert(`Erro ao gerar plano: ${localErr.message}`);
+      setActiveView('routes');
+      if (newPlan.routes.length > 0) setSelectedDate(newPlan.routes[0].date);
+    } catch (error) {
+      if (error instanceof TypeError) {
+        setPlanningError('A API parou de responder durante o cálculo. Verifique o backend na porta 3001 e tente novamente.');
+        setWalkingNetworkConfigured(false);
+      } else {
+        setPlanningError(`Erro ao gerar cronograma: ${error instanceof Error ? error.message : String(error)}`);
       }
     } finally {
       setIsGenerating(false);
     }
   };
 
+  const handleGenerateLocalEstimate = () => {
+    if (!scenario) return;
+    try {
+      const plans = ['main-heuristic', 'urgency-baseline', 'nearest-baseline']
+        .map(strategyId => planScenario(scenario, { strategyId, enable1_5Opt: true }));
+      setComparisonPlans(plans);
+      setPlan(plans.find(item => item.strategyId === selectedStrategy) ?? plans[0]);
+      setLocalEstimate(true);
+      setActiveView('routes');
+      setPlanningError('Estimativa local em linha reta. As distâncias não representam o percurso a pé.');
+    } catch (error) {
+      setPlanningError(`Erro no planejamento local: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  };
+
   const handleRegisterResults = async (results: VisitResult[]) => {
+    if (!scenario) return false;
     try {
       const { scenarioVersion, plan: newPlan } = await registerVisitResults(
-        scenario.id,
-        results,
-        selectedDate,
-        { strategyId: selectedStrategy, enable1_5Opt: true }
+        scenario.id, results, selectedDate,
+        { strategyId: selectedStrategy, enable1_5Opt: true }, scenario.version
       );
-      setScenario(prev => ({ ...prev, version: scenarioVersion }));
+      setScenario(previous => previous ? { ...previous, version: scenarioVersion } : null);
       setPlan(newPlan);
+      setComparisonPlans([]);
+      setActiveView('routes');
+      setLocalEstimate(false);
       alert('Resultados registrados e replanejamento gerado com sucesso!');
-    } catch (err) {
-      alert('Erro ao registrar resultados via servidor.');
+      return true;
+    } catch (error) {
+      alert(`Erro ao registrar resultados via servidor: ${error instanceof Error ? error.message : String(error)}`);
+      return false;
     }
+  };
+
+  const mapScenario = useMemo(() => scenario ?? (baseScenario ? { ...baseScenario, patients: [] } : null), [scenario, baseScenario]);
+  const handleSelectStrategy = (strategy: string) => {
+    setSelectedStrategy(strategy);
+    setPlan(comparisonPlans.find(item => item.strategyId === strategy) ?? null);
+    setPlanningError('');
+  };
+  const handleOpenPlan = (strategyId: string, date?: string) => {
+    handleSelectStrategy(strategyId);
+    const selectedPlan = comparisonPlans.find(item => item.strategyId === strategyId);
+    setSelectedDate(date ?? selectedPlan?.routes[0]?.date ?? scenario?.startDate ?? '');
+    setActiveView('routes');
   };
 
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <Header
-        scenario={scenario}
-        plan={plan}
-        selectedDate={selectedDate}
-        setSelectedDate={setSelectedDate}
-        selectedStrategy={selectedStrategy}
-        setSelectedStrategy={setSelectedStrategy}
-        onGeneratePlan={handleGeneratePlan}
-        isGenerating={isGenerating}
-      />
-      <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-        <div style={{ flex: 1, height: '100%' }}>
-          <MapView scenario={scenario} plan={plan} selectedDate={selectedDate} />
+      <Header scenario={scenario ?? baseScenario} plan={plan} selectedDate={selectedDate} setSelectedDate={setSelectedDate}
+        showRouteControls={activeView === 'routes'} canExport={!localEstimate} />
+      <nav className="view-tabs" aria-label="Telas do planejamento"><button type="button" aria-current={activeView === 'routes' ? 'page' : undefined} onClick={() => setActiveView('routes')}>Mapa e rotas</button><button type="button" disabled={!comparisonPlans.length} aria-current={activeView === 'comparison' ? 'page' : undefined} onClick={() => setActiveView('comparison')}>Comparar planos {comparisonPlans.length ? `(${comparisonPlans.length})` : ''}</button></nav>
+      {activeView === 'comparison' && scenario && comparisonPlans.length ?
+        <ComparisonView scenario={scenario} plans={comparisonPlans} localEstimate={localEstimate} onOpenPlan={handleOpenPlan} /> :
+      <div className="app-main" style={{ flex: 1, minHeight: 0, display: 'flex', overflow: 'hidden' }}>
+        <div className="app-map" style={{ flex: 1, minWidth: 0, height: '100%' }}>
+          <MapView scenario={mapScenario} plan={plan} selectedDate={selectedDate} walkingNetworkConfigured={walkingNetworkConfigured} localEstimate={localEstimate} />
         </div>
-        <Sidebar
-          scenario={scenario}
-          plan={plan}
-          selectedDate={selectedDate}
-          experimentalScenarios={experimentalScenarios}
-          isLoadingExperimentalScenarios={isLoadingExperimentalScenarios}
-          onLoadExperimentalScenario={handleLoadExperimentalScenario}
-          onImportScenario={handleImportScenario}
-          onRegisterResults={handleRegisterResults}
-        />
+        <aside className="workflow-aside" style={{ width: 400, background: 'white', boxShadow: '-8px 0 24px rgba(15,23,42,.06)', display: 'flex', flexDirection: 'column', height: '100%', zIndex: 1 }}>
+          <div style={{ overflowY: 'auto', flexShrink: 0, maxHeight: '55%' }}>
+            <WorkflowPanel
+              regions={regions} regionsError={regionsError} isLoadingRegions={isLoadingRegions}
+              isLoadingRegion={isLoadingRegion} baseScenario={baseScenario} scenario={scenario} plan={plan}
+              selectedStrategy={selectedStrategy} setSelectedStrategy={handleSelectStrategy}
+              onSelectRegion={handleSelectRegion} onSample={handleSample}
+              onGeneratePlan={handleGeneratePlan} isGenerating={isGenerating}
+              onGenerateLocalEstimate={handleGenerateLocalEstimate} planningError={planningError}
+              walkingNetworkConfigured={walkingNetworkConfigured}
+              onRefreshRoutingStatus={refreshRoutingStatus}
+              onRefreshRegions={refreshRegions}
+            />
+          </div>
+          <Sidebar scenario={scenario} plan={plan} selectedDate={selectedDate} onRegisterResults={handleRegisterResults} localEstimate={localEstimate} />
+        </aside>
       </div>
+      }
     </div>
   );
 };

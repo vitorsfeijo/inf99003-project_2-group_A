@@ -1,17 +1,13 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Plan, Scenario, VisitResult, DailyTeamRoute, PlannedVisit, Patient } from '@routing/core';
 import { CheckCircle, XCircle, AlertTriangle, Users, Clock, Navigation } from 'lucide-react';
-import { ExperimentalScenarioSummary } from '../services/api';
 
 interface SidebarProps {
   scenario: Scenario | null;
   plan: Plan | null;
   selectedDate: string;
-  experimentalScenarios: ExperimentalScenarioSummary[];
-  isLoadingExperimentalScenarios: boolean;
-  onLoadExperimentalScenario: (scenarioId: string) => void;
-  onImportScenario: (scenario: Scenario) => void;
-  onRegisterResults: (results: VisitResult[]) => void;
+  onRegisterResults: (results: VisitResult[]) => Promise<boolean>;
+  localEstimate: boolean;
 }
 
 const TEAM_COLORS = ['#2563eb', '#059669', '#d97706', '#dc2626', '#7c3aed'];
@@ -20,36 +16,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
   scenario,
   plan,
   selectedDate,
-  experimentalScenarios,
-  isLoadingExperimentalScenarios,
-  onLoadExperimentalScenario,
-  onImportScenario,
-  onRegisterResults
+  onRegisterResults,
+  localEstimate
 }) => {
   const [activeTab, setActiveTab] = useState<'routes' | 'metrics' | 'execution'>('routes');
   const [executionState, setExecutionState] = useState<Record<string, { status: 'completed' | 'missed'; reason?: string }>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const dailyRoutes = plan ? plan.routes.filter(r => r.date === selectedDate) : [];
 
-  // Tratar upload de JSON de cenário
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        const parsed = JSON.parse(event.target?.result as string);
-        onImportScenario(parsed);
-      } catch (err) {
-        alert('Erro ao ler o arquivo JSON do cenário.');
-      }
-    };
-    reader.readAsText(file);
-  };
+  useEffect(() => setExecutionState({}), [scenario?.id, scenario?.version, plan?.id, selectedDate]);
 
   const handleStatusChange = (patientId: string, conditionId: string, status: 'completed' | 'missed') => {
-    const key = `${patientId}_${conditionId}`;
+    const key = JSON.stringify([patientId, conditionId]);
     setExecutionState(prev => ({
       ...prev,
       [key]: { status, reason: prev[key]?.reason }
@@ -57,17 +36,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
   };
 
   const handleReasonChange = (patientId: string, conditionId: string, reason: string) => {
-    const key = `${patientId}_${conditionId}`;
+    const key = JSON.stringify([patientId, conditionId]);
     setExecutionState(prev => ({
       ...prev,
       [key]: { status: prev[key]?.status || 'missed', reason }
     }));
   };
 
-  const handleSubmitExecution = () => {
+  const handleSubmitExecution = async () => {
+    if (isSubmitting) return;
     const results: VisitResult[] = [];
-    Object.entries(executionState).forEach(([key, value]) => {
-      const [patientId, conditionId] = key.split('_');
+    const visits = dailyRoutes.flatMap(route => route.visits);
+    if (visits.some(visit => !executionState[JSON.stringify([visit.patientId, visit.conditionId])])) {
+      alert('Marque cada visita planejada como concluída ou não realizada.');
+      return;
+    }
+    visits.forEach(visit => {
+      const patientId = visit.patientId;
+      const conditionId = visit.conditionId;
+      const value = executionState[JSON.stringify([patientId, conditionId])];
       results.push({
         patientId,
         conditionId,
@@ -82,18 +69,26 @@ export const Sidebar: React.FC<SidebarProps> = ({
       return;
     }
 
-    onRegisterResults(results);
-    setExecutionState({});
+    setIsSubmitting(true);
+    try {
+      if (await onRegisterResults(results)) setExecutionState({});
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
-    <aside style={{
-      width: '380px',
+    <div style={{
+      width: '100%',
       background: 'white',
       borderLeft: '1px solid #e2e8f0',
       display: 'flex',
       flexDirection: 'column',
-      height: 'calc(100vh - 64px)'
+      minHeight: 0,
+      flex: 1,
+      position: 'relative',
+      zIndex: 1,
+      flexShrink: 0
     }}>
       {/* Abas */}
       <div style={{ display: 'flex', borderBottom: '1px solid #e2e8f0', background: '#f8fafc' }}>
@@ -120,47 +115,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Conteúdo da Aba */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '1rem' }}>
         
-        {/* Importar Cenário JSON no topo */}
-        <div style={{ background: '#f1f5f9', padding: '0.75rem', borderRadius: '0.5rem', marginBottom: '1rem' }}>
-          <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569' }}>CENÁRIO ATUAL</span>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.25rem' }}>
-            <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>{scenario ? scenario.healthCenter.name : 'Nenhum'}</span>
-            <label style={{ background: '#2563eb', color: 'white', padding: '0.25rem 0.5rem', borderRadius: '0.25rem', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600 }}>
-              Importar JSON
-              <input type="file" accept=".json" onChange={handleFileUpload} style={{ display: 'none' }} />
-            </label>
-          </div>
-          <select
-            aria-label="Cenários experimentais"
-            defaultValue=""
-            disabled={isLoadingExperimentalScenarios || experimentalScenarios.length === 0}
-            onChange={(event) => {
-              if (event.target.value) onLoadExperimentalScenario(event.target.value);
-              event.target.value = '';
-            }}
-            style={{ width: '100%', marginTop: '0.65rem', padding: '0.45rem', border: '1px solid #cbd5e1', borderRadius: '0.25rem', background: 'white', color: '#334155' }}
-          >
-            <option value="">
-              {isLoadingExperimentalScenarios ? 'Carregando cenários...' : 'Carregar cenário experimental'}
-            </option>
-            {experimentalScenarios.map(item => (
-              <option key={item.id} value={item.id}>
-                {item.id} - {item.patientCount} pacientes / {item.teamCount} equipes
-              </option>
-            ))}
-          </select>
-        </div>
-
         {/* ABA 1: ROTAS DO DIA */}
         {activeTab === 'routes' && (
           <div>
             {!plan ? (
-              <p style={{ color: '#64748b', textAlign: 'center', marginTop: '2rem' }}>Clique em <strong>"Gerar Rotas"</strong> para calcular a programação.</p>
+              <p style={{ color: '#64748b', textAlign: 'center', marginTop: '2rem' }}>Conclua as três etapas acima para ver o cronograma.</p>
             ) : dailyRoutes.length === 0 ? (
               <p style={{ color: '#64748b', textAlign: 'center', marginTop: '2rem' }}>Nenhuma rota agendada para o dia {selectedDate}.</p>
             ) : (
               dailyRoutes.map((route, rIdx) => {
-                const color = TEAM_COLORS[rIdx % TEAM_COLORS.length];
+                const color = TEAM_COLORS[Math.max(0, scenario?.teams.findIndex(t => t.id === route.teamId) ?? 0) % TEAM_COLORS.length];
                 const team = scenario?.teams.find(t => t.id === route.teamId);
 
                 return (
@@ -217,6 +181,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* ABA 2: MÉTRICAS */}
         {activeTab === 'metrics' && (
           <div>
+            {localEstimate && <p style={{ color: '#92400e', background: '#fffbeb', padding: 10, borderRadius: 8, fontSize: 12, marginBottom: 12 }}>Métricas de deslocamento estimadas em linha reta; o serviço de rotas a pé ficou indisponível.</p>}
             {!plan ? (
               <p style={{ color: '#64748b', textAlign: 'center', marginTop: '2rem' }}>Gere um plano para visualizar as métricas.</p>
             ) : (
@@ -226,12 +191,36 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#2563eb' }}>{plan.metrics.coveragePercentage}%</div>
                 </div>
                 <div style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
+                  <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Cobertura da prioridade clínica</span>
+                  <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#2563eb' }}>{plan.metrics.priorityWeightedCoveragePercentage}%</div>
+                </div>
+                <div style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
+                  <span style={{ fontSize: '0.75rem', color: '#64748b' }}>No prazo · prioridade ponderada</span>
+                  <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#2563eb' }}>{plan.metrics.priorityWeightedOnTimeCoveragePercentage}%</div>
+                </div>
+                <div style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
+                  <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Resposta pronta · prioridade</span>
+                  <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#2563eb' }}>{plan.metrics.priorityWeightedPromptCoveragePercentage}%</div>
+                </div>
+                <div style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
+                  <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Atraso controlável ponderado</span>
+                  <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#dc2626' }}>{plan.metrics.priorityWeightedActionableDelayDays} dias</div>
+                </div>
+                <div style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
                   <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Atraso Acumulado</span>
                   <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#dc2626' }}>{plan.metrics.totalOverdueDays} dias</div>
                 </div>
                 <div style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
                   <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Deslocamento Total</span>
                   <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#059669' }}>{plan.metrics.totalTravelDistanceKm} km</div>
+                </div>
+                <div style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
+                  <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Custo por visita alocada</span>
+                  <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#059669' }}>{plan.metrics.distancePerAllocatedVisitKm} km · {plan.metrics.travelTimePerAllocatedVisitMinutes} min</div>
+                </div>
+                <div style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
+                  <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Atraso P90 das alocadas</span>
+                  <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#dc2626' }}>{plan.metrics.p90AllocatedDelayDays} dias</div>
                 </div>
                 <div style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
                   <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Utilização Média</span>
@@ -254,7 +243,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <p style={{ fontSize: '0.85rem', color: '#94a3b8' }}>Não há visitas planejadas para este dia.</p>
             ) : (
               dailyRoutes.flatMap((r: DailyTeamRoute) => r.visits).map((visit: PlannedVisit) => {
-                const key = `${visit.patientId}_${visit.conditionId}`;
+                const key = JSON.stringify([visit.patientId, visit.conditionId]);
                 const patient = scenario?.patients.find((p: Patient) => p.id === visit.patientId);
                 const currentStatus = executionState[key]?.status;
 
@@ -268,7 +257,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         onClick={() => handleStatusChange(visit.patientId, visit.conditionId, 'completed')}
                         style={{
                           flex: 1,
-                          padding: '0.4rem',
+                          padding: '0.4rem', minHeight: 40,
                           border: '1px solid #059669',
                           background: currentStatus === 'completed' ? '#059669' : 'white',
                           color: currentStatus === 'completed' ? 'white' : '#059669',
@@ -284,7 +273,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         onClick={() => handleStatusChange(visit.patientId, visit.conditionId, 'missed')}
                         style={{
                           flex: 1,
-                          padding: '0.4rem',
+                          padding: '0.4rem', minHeight: 40,
                           border: '1px solid #dc2626',
                           background: currentStatus === 'missed' ? '#dc2626' : 'white',
                           color: currentStatus === 'missed' ? 'white' : '#dc2626',
@@ -315,6 +304,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             {dailyRoutes.flatMap((r: DailyTeamRoute) => r.visits).length > 0 && (
               <button
                 onClick={handleSubmitExecution}
+                disabled={isSubmitting}
                 style={{
                   width: '100%',
                   padding: '0.65rem',
@@ -324,16 +314,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   borderRadius: '0.375rem',
                   fontWeight: 600,
                   fontSize: '0.9rem',
-                  cursor: 'pointer',
+                  cursor: isSubmitting ? 'wait' : 'pointer',
                   marginTop: '0.5rem'
                 }}
               >
-                Encerrar Dia e Replanejar
+                {isSubmitting ? 'Registrando...' : 'Encerrar Dia e Replanejar'}
               </button>
             )}
           </div>
         )}
       </div>
-    </aside>
+    </div>
   );
 };

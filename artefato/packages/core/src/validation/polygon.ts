@@ -26,8 +26,7 @@ function isPointOnSegment(point: Coordinates, p1: Coordinates, p2: Coordinates, 
  * Verifica se um ponto de coordenada (lat, lng) está contido ou na borda de um polígono de território.
  * Usa o algoritmo Ray-Casting com verificação explícita de limite/borda.
  */
-export function isPointInPolygon(point: Coordinates, polygon: TerritoryPolygon): boolean {
-  const vertices = polygon.vertices;
+function isPointInRing(point: Coordinates, vertices: Coordinates[]): boolean {
   if (!vertices || vertices.length < 3) {
     return false;
   }
@@ -59,6 +58,11 @@ export function isPointInPolygon(point: Coordinates, polygon: TerritoryPolygon):
   }
 
   return inside;
+}
+
+export function isPointInPolygon(point: Coordinates, polygon: TerritoryPolygon): boolean {
+  return isPointInRing(point, polygon.vertices) &&
+    !(polygon.holes ?? []).some(hole => isPointInRing(point, hole));
 }
 
 /**

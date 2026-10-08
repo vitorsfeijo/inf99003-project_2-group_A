@@ -1,4 +1,6 @@
 export * from './types/index.js';
+export { sampleTerritoryPatients } from './sampling/territory.js';
+export { countWorkingDaysInNextMonth } from './demand/dates.js';
 
 import {
   Scenario,
@@ -42,7 +44,14 @@ export function planScenario(scenario: Scenario, options: PlanOptions): Plan {
   const { candidates, workingDays } = generateDemandCandidates(scenario, validation.eligiblePatients);
 
   // 3. Montar a Matriz de Custos (Posto + Pacientes elegíveis)
-  const costMatrix = buildCostMatrix(scenario.healthCenter, validation.eligiblePatients, scenario.costParameters);
+  const expectedNodeIds = [scenario.healthCenter.id, ...validation.eligiblePatients.map(patient => patient.id)];
+  const costMatrix = options?.costMatrix ?? buildCostMatrix(scenario.healthCenter, validation.eligiblePatients, scenario.costParameters);
+  if (costMatrix.nodeIds.length !== expectedNodeIds.length ||
+      costMatrix.nodeIds.some((id, index) => id !== expectedNodeIds[index]) ||
+      [costMatrix.distanceMatrix, costMatrix.timeMatrix].some(matrix => matrix.length !== expectedNodeIds.length ||
+        matrix.some(row => row.length !== expectedNodeIds.length || row.some(value => !Number.isFinite(value) || value < 0)))) {
+    throw new Error('Matriz viária incompatível com o posto e os pacientes elegíveis.');
+  }
 
   // 4. Selecionar a Estratégia de Roteamento
   const strategyId = options?.strategyId || MainHeuristicStrategy.id;
@@ -71,7 +80,7 @@ export function planScenario(scenario: Scenario, options: PlanOptions): Plan {
   const metrics = calculatePlanMetrics(scenario, routes, unallocatedVisits, candidates);
 
   const plan: Plan = {
-    id: `plan_${scenario.id}_v${scenario.version}_${Date.now()}`,
+    id: `plan_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`,
     scenarioId: scenario.id,
     scenarioVersion: scenario.version,
     strategyId: strategy.id,

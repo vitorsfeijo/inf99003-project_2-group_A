@@ -1,0 +1,19 @@
+{
+  "source": "GEOSAUDE - Território Base (Jul25) (1).kmz",
+  "sha256": "728181eea8feb1465bcff7e356b563b69e704bf72d19aa04372572f8212fea91",
+  "territoryName": "US Campos do Cristal",
+  "healthCenter": {
+    "id": "hc_geosaude_us_campos_do_cristal_20261096_30",
+    "name": "US Campos do Cristal",
+    "location": {
+      "lat": -30.11965251,
+      "lng": -51.20168711
+    }
+  },
+  "teamCount": 1,
+  "healthCenterMatch": "nome exato",
+  "startDate": "2026-10-01",
+  "seed": 20261096,
+  "patientCount": 30,
+  "method": "Amostragem uniforme sintética dentro dos polígonos; demanda clínica simulada. Não são moradores reais nem prevalências observadas."
+}

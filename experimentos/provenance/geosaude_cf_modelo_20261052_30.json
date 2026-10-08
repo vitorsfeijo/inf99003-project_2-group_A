@@ -1,0 +1,19 @@
+{
+  "source": "GEOSAUDE - Território Base (Jul25) (1).kmz",
+  "sha256": "728181eea8feb1465bcff7e356b563b69e704bf72d19aa04372572f8212fea91",
+  "territoryName": "CF Modelo",
+  "healthCenter": {
+    "id": "hc_geosaude_cf_modelo_20261052_30",
+    "name": "CF Modelo",
+    "location": {
+      "lat": -30.0432459,
+      "lng": -51.2138901
+    }
+  },
+  "teamCount": 1,
+  "healthCenterMatch": "nome exato",
+  "startDate": "2026-10-01",
+  "seed": 20261052,
+  "patientCount": 30,
+  "method": "Amostragem uniforme sintética dentro dos polígonos; demanda clínica simulada. Não são moradores reais nem prevalências observadas."
+}

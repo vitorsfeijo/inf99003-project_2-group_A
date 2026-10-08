@@ -39,7 +39,7 @@ O núcleo não depende de banco, servidor, navegador ou bibliotecas externas. Re
 
 ## Instalação, compilação e execução
 
-Requisitos: Node.js 20+ e npm. Os comandos desta seção partem da **raiz do repositório**, um nível acima de `artefato/`.
+Requisitos: Node.js 22+ e npm. O backend usa `better-sqlite3` 13, compatível com Node 22 e 24. Os comandos desta seção partem da **raiz do repositório**, um nível acima de `artefato/`.
 
 ```bash
 # Instalar as dependências dos workspaces
@@ -58,6 +58,24 @@ A interface fica em `http://localhost:3000` e a API em `http://localhost:3001/ap
 npm start --prefix artefato/packages/server
 npm run dev --prefix artefato/packages/web
 ```
+
+O mapa usa blocos do OpenStreetMap com atribuição visível. A interface segue três etapas: escolher um dos 132 territórios GeoSaúde, amostrar pacientes sintéticos dentro dos polígonos reais e gerar três cronogramas comparáveis. A amostragem aceita 1 a 1000 pacientes e uma semente reproduzível. O cronograma cobre um mês corrido a partir da data inicial: 22 dias úteis nos cenários que começam em 1º de outubro de 2026. Os arquivos GeoSaúde preservam também os recortes internos dos polígonos.
+
+Após gerar os cronogramas, o mapa exibe as rotas da estratégia selecionada. A aba **Comparar planos** mostra horas e quilômetros de caminhada, cobertura, atendimento da prioridade clínica, atraso acionável, distribuição dos atrasos, pendências, todos os indicadores do mês e uma tabela por dia. O botão **Ver rotas no mapa** abre o plano escolhido; cada célula diária abre a data correspondente. O backend calcula a matriz OSRM uma vez para as três estratégias e salva os planos da mesma versão do cenário em uma transação. A comparação do mês representa trabalho planejado, não tempo ou custo efetivamente observado em campo. Se o OSRM estiver indisponível, a estimativa local compara as estratégias em linha reta e sinaliza essa limitação.
+
+Para calcular **distâncias e tempos a pé pelas ruas**, o planejamento da interface precisa de uma instância OSRM local preparada com `foot.lua`. Obtenha um arquivo `.osm.pbf` que cubra Porto Alegre e execute em outro terminal:
+
+```bash
+bash artefato/scripts/start-walking-osrm.sh /caminho/porto-alegre.osm.pbf
+```
+
+Esse script requer Docker e prepara o arquivo com o perfil de caminhada; mantenha o processo em execução. Depois, na raiz do repositório:
+
+```bash
+OSRM_BASE_URL=http://127.0.0.1:5000 npm start
+```
+
+O backend consulta a API Table do OSRM para montar a matriz de custo do cronograma e a API Route para desenhar cada trajeto. Sem OSRM configurado, a etapa de gerar cronograma fica indisponível na interface. O núcleo continua aceitando cenários independentes com matriz Haversine para experimentos e uso local; nesses casos as distâncias são estimativas em linha reta. O servidor OSRM deve ser operado pelo usuário, pois recebe as coordenadas amostradas.
 
 Para conferir cada pacote e executar o exemplo do núcleo:
 
@@ -103,6 +121,8 @@ Cada condição registra `conditionId`, `maxIntervalDays`, `priorityWeight` e, q
 A melhoria 1.5-opt está habilitada por padrão. `enable1_5Opt: false` a desliga; a flag legada `enable2Opt: false` também a desliga. A regra efetiva exige que **nenhuma das duas flags seja `false`**.
 
 O `Plan` contém os identificadores do cenário e da versão, estratégia, timestamp, `routes`, `unallocatedVisits` e `metrics`. Cada rota corresponde a um par data/equipe e registra visitas ordenadas e totais de distância, deslocamento, atendimento e jornada. Cada pendência registra o candidato, paciente, condição e motivo de não alocação.
+
+As métricas incluem cobertura total e ponderada pelo peso clínico, resposta pronta (visitas vencidas no primeiro dia e as demais até o prazo), atraso controlável após o início da janela, P90 do atraso das visitas alocadas, contagem por faixas de atraso e pendências separadas, km/minutos por visita alocada e pontos de prioridade alocados por km. O P90 não inclui pendências; o atraso delas entra na soma acumulada e nas médias ponderadas até o último dia útil da janela. Essas medidas descrevem o plano previsto, não resultados efetivamente concluídos em campo.
 
 ## Pipeline completo de `planScenario`
 
@@ -151,7 +171,7 @@ priorityScore = 10 × atrasoInicial + 5 × priorityWeight
 
 As condições são ordenadas pelo prazo mais antigo e, em empate de prazo, pela maior pontuação. O motor gera **um único candidato por paciente**, identificado por `cand_<patientId>_<conditionId>`, usando a condição principal. Não soma os pesos das condições nem gera múltiplas visitas recorrentes dentro da mesma janela. O candidato atual tem `isConditional: false`; os campos de dependência do contrato não são utilizados nessa geração.
 
-A visita entra na demanda se já estiver vencida ou se seu prazo for até `últimoDiaÚtil + A`. Isso permite incluir candidatos que vencem após o fim da janela, desde que possam ser antecipados. A elegibilidade é novamente conferida para cada dia na estratégia principal. Candidatos são ordenados por `priorityScore` decrescente antes do roteamento.
+A visita entra na demanda se já estiver vencida ou se seu prazo for até `últimoDiaÚtil + A`. Isso permite incluir candidatos que vencem após o fim da janela, desde que possam ser antecipados. A elegibilidade temporal é conferida pela construção dos baselines e novamente para cada possível movimento da estratégia principal. Candidatos são ordenados por `priorityScore` decrescente antes do roteamento.
 
 ### 3. Matrizes de custos
 
@@ -163,7 +183,7 @@ A distância usa Haversine, com raio terrestre de 6.371,0088 km. O tempo é:
 tempoMinutos(i, j) = distânciaKm(i, j) / velocidadeKmh × 60
 ```
 
-As matrizes têm diagonal zero e custos simétricos. Representam distância geográfica e velocidade constante, sem malha viária, trânsito ou sentidos de circulação. Com velocidade não positiva, a função atual retorna tempo zero; uma entrada operacional deve fornecer velocidade positiva.
+Essa matriz Haversine é usada quando `PlanOptions.costMatrix` não é fornecida. No fluxo da interface, o backend consulta a matriz de caminhada no OSRM e passa seus valores ao núcleo; assim, a escolha, a duração, a distância e as métricas do cronograma usam a rede a pé. A matriz viária pode ser assimétrica. O núcleo verifica que a ordem dos nós e as dimensões correspondem ao posto e aos pacientes elegíveis. Com velocidade não positiva, a função Haversine atual retorna tempo zero; uma entrada operacional deve fornecer velocidade positiva.
 
 ### 4. Contexto e escolha da estratégia
 
@@ -171,23 +191,23 @@ O orquestrador monta `PlanningContext` com `scenario`, `costMatrix`, `candidates
 
 ### 5. Construção das rotas
 
-As três estratégias percorrem os dias cronologicamente e as equipes disponíveis na ordem em que aparecem em `scenario.teams`. Uma equipe com `availableDays` não vazio só recebe rotas nas datas listadas. Cada candidato alocado entra em um conjunto global de IDs, que impede sua reutilização em outras equipes ou dias dessa chamada.
+Os dois baselines percorrem os dias cronologicamente e as equipes disponíveis na ordem em que aparecem em `scenario.teams`. Uma equipe com `availableDays` não vazio só recebe rotas nas datas listadas. Cada candidato alocado entra em um conjunto global de IDs, que impede sua reutilização em outras equipes ou dias dessa chamada. A heurística principal usa a construção geográfica como ponto inicial e depois pode mover ou trocar visitas entre dias e equipes.
 
 A construção produz uma rota para cada par dia/equipe disponível, mesmo quando vazia. A próxima seção detalha a política da `main-heuristic`.
 
 ## Como o trabalho é dividido entre equipes
 
-A distribuição atual é **sequencial por dia e por equipe**, nas três estratégias. Para cada dia útil, o programa filtra as equipes disponíveis e mantém a ordem do array `scenario.teams`. Constrói a rota da primeira equipe antes de começar a segunda, e assim por diante; depois passa ao próximo dia.
+A distribuição inicial é **sequencial por dia e por equipe**. Para cada dia útil, o programa filtra as equipes disponíveis e mantém a ordem do array `scenario.teams`. Constrói a rota da primeira equipe antes de começar a segunda, e assim por diante; depois passa ao próximo dia. A heurística principal revisa essa distribuição com reinserções e trocas entre rotas.
 
 ### Disponibilidade, capacidade e fila compartilhada
 
 1. **Selecionar equipes do dia:** `availableDays: []` permite atuar em qualquer dia útil da janela; uma lista preenchida restringe a equipe às datas informadas. Equipes indisponíveis não recebem rota naquele dia.
 2. **Construir a rota da equipe atual:** cada estratégia escolhe visitas da mesma fila de candidatos ainda não alocados, respeitando a elegibilidade temporal e `dailyWorkMinutes` da equipe. Atendimento, deslocamento e retorno ao posto precisam caber na jornada.
 3. **Fixar as alocações:** cada candidato escolhido é marcado no conjunto global `allocatedCandidateIds`, compartilhado entre todas as equipes e dias dessa execução. As equipes seguintes recebem apenas os candidatos restantes.
-4. **Passar à próxima equipe:** na `main-heuristic` e no baseline geográfico, isso ocorre quando nenhuma nova inserção é viável para a rota atual. No baseline de urgência, ocorre após percorrer a lista elegível e acrescentar as visitas que cabem. A rota pode terminar com tempo livre se os candidatos restantes não couberem ou ainda não puderem ser atendidos.
+4. **Passar à próxima equipe:** no baseline geográfico, isso ocorre quando nenhuma nova inserção é viável para a rota atual. No baseline de urgência, ocorre após percorrer a lista elegível e acrescentar as visitas que cabem. A rota pode terminar com tempo livre se os candidatos restantes não couberem ou ainda não puderem ser atendidos.
 5. **Continuar nos próximos dias:** candidatos pendentes são reconsiderados conforme sua elegibilidade. Ao terminar a janela, os que permanecerem sem rota vão para `unallocatedVisits`.
 
-A `main-heuristic` compara candidatos e posições **dentro da rota da equipe atual**. Ela não compara o custo de atribuir uma visita à equipe atual com o custo de atribuí-la a outra equipe. Os baselines também processam uma equipe por vez; o que muda é o critério de escolha das visitas, descrito na seção de comparação das estratégias.
+A `main-heuristic` compara posições em rotas de **dias e equipes diferentes** depois da construção inicial. Os baselines encerram a alocação após sua passagem sequencial.
 
 ### Exemplo de distribuição
 
@@ -202,123 +222,36 @@ O programa não busca uma divisão de três visitas para cada equipe. Se houvess
 
 ### Equilíbrio de carga e atribuições territoriais
 
-A ordem em `scenario.teams` influencia quais equipes recebem primeiro as visitas elegíveis e pode alterar rotas, deslocamento e cobertura. Essa ordem permanece a mesma a cada dia; não há rodízio automático, cotas de visitas ou preferência pela equipe menos ocupada. Jornadas diferentes permitem capacidades diferentes, mas não produzem uma divisão proporcional deliberada.
+A ordem em `scenario.teams` influencia a construção inicial e pode alterar rotas, deslocamento e cobertura. Essa ordem permanece a mesma a cada dia; não há rodízio automático, cotas de visitas ou preferência pela equipe menos ocupada. A busca mensal pode transferir visitas entre equipes quando há ganho no objetivo e capacidade disponível, sem impor uma divisão proporcional.
 
 Todos os pacientes elegíveis podem ser atendidos por qualquer equipe disponível. Os polígonos delimitam o território global do cenário; não há divisão de pacientes por território de equipe, vínculo fixo paciente/equipe ou seleção por especialidade dos profissionais. Os nomes de médico, enfermeiro e assistente social não participam da decisão de alocação.
 
-A métrica `teamWorkloadImbalance` mede o desequilíbrio após o planejamento, mas não é usada para orientar as escolhas. O 1.5-opt melhora apenas a ordem das visitas dentro de cada rota: não transfere trabalho entre equipes ou dias. Em um replanejamento, as rotas são construídas novamente com o cenário atualizado, sem preservar obrigatoriamente a equipe de uma visita do plano anterior.
+A métrica `teamWorkloadImbalance` mede o desequilíbrio após o planejamento, mas não é usada para orientar as escolhas. O 1.5-opt melhora a ordem das visitas dentro de cada rota; a busca mensal da heurística principal pode transferir visitas entre equipes ou dias. Em um replanejamento, as rotas são construídas novamente com o cenário atualizado, sem preservar obrigatoriamente a equipe de uma visita do plano anterior.
 
 ## Como funciona a `main-heuristic`
 
-A implementação está em [`strategies/main-heuristic.ts`](packages/core/src/strategies/main-heuristic.ts). É uma heurística construtiva gulosa: escolhe a melhor inserção disponível para a rota atual, fixa essa escolha e repete até não haver outra inserção viável. Ela combina prioridade e custo de deslocamento em uma pontuação, sem resolver um problema de otimização global exato.
+A implementação está em [`strategies/main-heuristic.ts`](packages/core/src/strategies/main-heuristic.ts). Ela começa com o cronograma viável do vizinho mais próximo, aplica 1.5-opt às rotas e faz duas buscas mensais por **reinserções e trocas de visitas entre dias ou equipes**. A primeira reduz custo de caminhada e atraso. A segunda tenta encaixar visitas pendentes, valoriza a resposta pronta e, quando a jornada já está cheia, pode substituir uma visita de menor prioridade por uma pendente de maior peso clínico.
 
-### Elegibilidade diária e antecipação
-
-No dia `d`, para cada candidato ainda não alocado, calcula-se:
+Para cada movimento, a busca calcula com a matriz de custos a variação exata de tempo de caminhada e de atraso acionável ponderado pelo peso clínico. O objetivo local, em minutos equivalentes, é:
 
 ```text
-Δdias = dueDate − d
+Primeira busca: Δobjetivo = Δminutos de caminhada + 12 × Δ(dias de atraso acionável × peso clínico)
+Segunda busca:  Δobjetivo da primeira - 24 × Δ(pontos de prioridade com resposta pronta)
 ```
 
-O candidato é elegível se `Δdias ≤ A`:
+Os coeficientes 12 e 24 são preferências de planejamento explícitas; não representam custo financeiro ou evidência clínica de equivalência. Uma mudança só é aceita quando reduz o objetivo da respectiva busca. Cada busca aceita no máximo 80 mudanças. O método é local e não garante ótimo global.
 
-- `Δdias < 0`: visita atrasada.
-- `Δdias = 0`: visita vence hoje.
-- `0 < Δdias ≤ A`: visita futura que pode ser antecipada.
-- `Δdias > A`: visita ainda indisponível nesse dia.
+Além do objetivo, cada movimento deve preservar:
 
-Com A = 0, nenhuma visita futura é antecipada. Visitas vencidas continuam elegíveis, inclusive quando estão atrasadas antes do início da janela.
+- Jornada diária, incluindo atendimento, caminhada e retorno ao posto.
+- Disponibilidade da equipe e limite de antecipação `A`. Visitas já vencidas podem ser atendidas depois do prazo, com atraso contabilizado.
+- Unicidade do paciente na rota e alocação única de cada candidato.
+- Cobertura e pontuação de prioridade atendida em tempo acionável durante as buscas de reinserção e troca.
+- Tetos de tempo **e** distância totais definidos pelo plano de entrada de cada busca. A inserção de uma visita adicional pode elevar o total de caminhada, pois aumenta a cobertura. Um controle final considera o arredondamento dos totais exibidos.
 
-### Urgência recalculada para o dia
+As trocas ajudam quando duas jornadas já estão cheias: o algoritmo pode trocar uma visita de baixa prioridade de hoje por uma de alta prioridade de amanhã e, ao mesmo tempo, agrupar pacientes próximos. A reinserção pode antecipar uma visita dentro de `A`. Após cada alteração, as duas rotas afetadas são reconstruídas e recebem novamente o 1.5-opt. O reparo tenta inserir cada pendência em uma jornada com capacidade e, depois da busca, tenta novamente caso algum movimento tenha liberado espaço. Se ainda não houver capacidade, uma pendência de maior prioridade pode substituir uma visita menos prioritária sem reduzir a pontuação de resposta pronta, piorar o atraso ponderado ou exceder o orçamento de caminhada da etapa.
 
-A pontuação inicial `priorityScore` permanece a gerada na etapa de demanda. A estratégia acrescenta uma urgência dependente do dia:
-
-```text
-Se Δdias ≤ 0:
-  urgência = 1000 + 100 × max(0, −Δdias) + priorityScore
-
-Se Δdias > 0:
-  urgência = priorityScore − 10 × Δdias
-```
-
-O bônus de 1.000 vale também para visitas que vencem hoje; cada dia de atraso acrescenta 100 pontos. Visitas futuras recebem uma penalidade de 10 pontos por dia até o prazo. O atraso inicial já está incorporado em `priorityScore` e volta a contribuir na urgência diária.
-
-Essa regra favorece visitas vencidas, mas **não estabelece prioridade absoluta**: o resultado depende também dos pesos clínicos e do custo incremental. Os coeficientes 1.000, 100, 10 e 2 da pontuação são constantes no código, sem configuração em `PlanOptions`.
-
-### Inserção em todas as posições e jornada
-
-Para uma rota com k visitas, a estratégia testa as k + 1 posições de inserção de cada candidato elegível. Em cada posição, substitui o trecho `a → b` por `a → i → b`, em que `i` é o paciente candidato. No começo ou no fim, um dos extremos é o posto.
-
-```text
-Δtempo = t(a, i) + t(i, b) − t(a, b)
-Δdistância = dist(a, i) + dist(i, b) − dist(a, b)
-```
-
-Para uma rota vazia, ambos os extremos são o posto: o incremento inclui **ida e volta**. Como a rota é tratada como um circuito, o retorno também permanece incluído ao inserir novas visitas.
-
-A posição só é viável se:
-
-```text
-jornadaAtual + Δtempo + duraçãoDaVisita ≤ team.dailyWorkMinutes
-```
-
-A jornada contém deslocamento e atendimento. A duração não recebe uma penalidade própria na pontuação, mas limita quais inserções cabem. Não há janelas de horário por paciente, pausas ou restrições de habilidade clínica na seleção.
-
-### Escolha da melhor inserção
-
-Entre todos os pares candidato/posição viáveis da rota atual, escolhe-se a maior pontuação:
-
-```text
-score = urgência − 2 × Δtempo
-```
-
-O custo usado diretamente é o **tempo incremental em minutos**. A distância incremental é contabilizada para os totais; com velocidade uniforme positiva, minimizar tempo equivale a minimizar distância para um mesmo candidato.
-
-A atualização usa `score > bestScore`. Em empate exato, permanece o primeiro par encontrado, conforme a ordem dos candidatos e das posições. Não existe um limiar mínimo de score: uma inserção com pontuação negativa ainda pode ser escolhida se for a melhor viável.
-
-Depois de inserir a visita, o algoritmo atualiza a jornada, marca o candidato como alocado e reavalia os candidatos restantes em todas as posições da nova rota. Se nenhum couber, encerra essa equipe e passa à próxima.
-
-### Exemplo numérico
-
-Considere A = 2, jornada atual de 170 minutos e limite de 240 minutos. Os custos abaixo representam as melhores posições de cada candidato nessa rota:
-
-| Candidato | Prazo relativo ao dia | `priorityScore` | Duração | Δtempo | Urgência | Score | Cabe? |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| P1 | Atrasado 1 dia | 25 | 30 min | 8 min | 1125 | 1109 | Sim: 208 min |
-| P2 | Vence hoje | 20 | 30 min | 3 min | 1020 | 1014 | Sim: 203 min |
-| P3 | Vence em 2 dias | 40 | 30 min | 2 min | 20 | 16 | Sim: 202 min |
-| P4 | Atrasado 2 dias | 30 | 60 min | 20 min | 1230 | 1190 | Não: 250 min |
-
-P4 é descartado pela jornada, apesar da pontuação alta. P1 ganha entre os viáveis. A rota passa a consumir 208 minutos e todas as posições dos candidatos restantes são reavaliadas; seus incrementos podem mudar após essa inserção.
-
-### Pseudocódigo, encerramento e limites
-
-```text
-alocados = conjunto vazio
-para cada dia útil, em ordem:
-  para cada equipe disponível, na ordem do cenário:
-    rota = vazia; jornada = 0
-    repetir:
-      melhor = nenhum
-      para cada candidato não alocado com prazo − dia ≤ A:
-        calcular urgência do dia
-        para cada posição da rota, incluindo as extremidades:
-          calcular tempo incremental com retorno ao posto
-          se jornada + incremento + atendimento couber:
-            comparar urgência − 2 × incremento com o melhor score
-      se não houver melhor: encerrar esta rota
-      inserir melhor; atualizar jornada; registrar como alocado
-    recalcular trechos e totais; guardar rota
-listar todos os candidatos não alocados
-```
-
-Ao fechar a rota, a estratégia recalcula os trechos da sequência final e soma o retorno ao posto. Distâncias de rotas/trechos são arredondadas para duas casas decimais e tempos de deslocamento/jornada para uma. O retorno participa dos totais, mas não aparece como uma visita adicional.
-
-Os candidatos restantes recebem um motivo geral: não couberam na capacidade da janela sem violar antecipação ou jornada. O algoritmo não fornece diagnóstico individual mais específico.
-
-As equipes são preenchidas sequencialmente, sem comparar simultaneamente todas as equipes ou reservar capacidade para dias futuros. Alterar a ordem das equipes pode alterar o resultado. A estratégia não transfere visitas já alocadas entre rotas e não otimiza diretamente o equilíbrio de carga. A posterior melhoria 1.5-opt também não retoma a inserção de pendências, mesmo se liberar capacidade.
-
-Para C candidatos, D dias úteis e até E equipes por dia, cada rodada de uma rota com k visitas examina até C × (k + 1) pares. Um limite superior conservador da construção, somando as rodadas, é O(D × E × C³); a matriz requer O(P²) tempo e memória, com P nós. Esses limites descrevem o código atual, não tempos medidos de benchmark.
+Como a heurística usa o baseline geográfico como ponto inicial, ela pode **empatar** com esse baseline quando não encontra uma melhoria viável. Quando aumenta cobertura, é possível percorrer mais quilômetros totais; compare também a cobertura ponderada e a distância por visita. A comparação na interface continua exibindo as métricas originais dos três métodos, inclusive empates. O verificador formal é executado pelo núcleo antes de qualquer plano ser retornado.
 
 ## Etapas após a construção
 
@@ -371,11 +304,11 @@ O verificador atual não recalcula a matriz ou os totais e não verifica antecip
 
 | Estratégia | Elegibilidade diária | Escolha e posição de inserção |
 | --- | --- | --- |
-| `main-heuristic` | Vencidas, devidas hoje e futuras até A dias. | Maior score de urgência menos tempo incremental; testa todas as posições. |
+| `main-heuristic` | Construção inicial apenas com vencidas/devidas; reparo e movimentos posteriores podem antecipar até A dias. | Usa o baseline geográfico, busca economia de caminhada e atraso, depois repara pendências e prioriza resposta pronta dentro da capacidade. |
 | `urgency-baseline` | Apenas vencidas ou devidas hoje. | Ordena por `priorityScore` decrescente e acrescenta ao fim as visitas que cabem. |
 | `nearest-baseline` | Apenas vencidas ou devidas hoje. | Escolhe o candidato viável com menor tempo desde o último nó e acrescenta ao fim. |
 
-Embora a descrição interna do baseline de urgência mencione ordem cronológica e equipe de menor custo, o código efetivo usa a pontuação inicial e processa equipes sequencialmente. Os três métodos incluem retorno na checagem de capacidade e recebem o mesmo pós-processamento 1.5-opt quando habilitado. A matriz e a demanda são compartilhadas; a política de antecipação dos baselines é diferente da principal.
+Embora a descrição interna do baseline de urgência mencione ordem cronológica e equipe de menor custo, o código efetivo usa a pontuação inicial e processa equipes sequencialmente. Os três métodos incluem retorno na checagem de capacidade e recebem o mesmo pós-processamento 1.5-opt quando habilitado. A matriz e a demanda são compartilhadas; apenas a busca mensal da estratégia principal pode antecipar visitas.
 
 ## Execução real e replanejamento
 
@@ -425,6 +358,7 @@ O servidor Fastify persiste cenários por `(id, version)` e planos vinculados à
 | `POST /api/scenarios` | Importar/salvar cenário. |
 | `GET /api/scenarios` e `/:id?version=...` | Listar e consultar cenários/versões. |
 | `POST /api/scenarios/:id/plan` | Planejar a última versão e persistir o plano. |
+| `POST /api/scenarios/:id/compare` | Receber `scenarioVersion`, calcular uma matriz de caminhada e persistir os três métodos comparáveis. |
 | `GET /api/scenarios/:id/plans` | Listar planos do cenário. |
 | `GET /api/plans/:planId` | Obter um plano completo. |
 | `POST /api/scenarios/:id/results` | Aplicar resultados, salvar nova versão e replanejar. |
@@ -434,7 +368,7 @@ O schema inclui `visit_results`, mas o handler atual de resultados não grava ne
 
 O CSV reúne ordem, posto/paciente, horários, deslocamentos e coordenadas. O GPX contém waypoints e um track ordenado do posto aos pacientes e de volta, sem cálculo de trajeto pelas ruas.
 
-A interface React/Vite/Leaflet permite importar JSON, carregar cenários experimentais pela API, selecionar estratégia e data, visualizar pacientes, território, rotas por equipe e métricas, e registrar resultados reais. Se a geração via API falhar, tenta planejar localmente em memória com o mesmo núcleo. Registro de resultados e exportação persistida dependem do servidor; o fallback não fornece toda a funcionalidade do backend.
+A interface React/Vite/Leaflet permite escolher uma região GeoSaúde, amostrar pacientes, gerar e comparar os três métodos, abrir suas rotas no mapa e registrar resultados reais. Quando o servidor de rotas não estiver disponível, o usuário pode optar pela estimativa local em linha reta. Registro de resultados e exportação persistida dependem do servidor.
 
 ## Bancada experimental e manutenção
 

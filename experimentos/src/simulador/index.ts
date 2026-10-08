@@ -9,6 +9,22 @@ export interface BenchmarkRecord {
   strategyId: string;
   executionTimeMs: number;
   coveragePercentage: number;
+  onTimeCoveragePercentage: number;
+  priorityWeightedCoveragePercentage: number;
+  priorityWeightedOnTimeCoveragePercentage: number;
+  priorityWeightedPromptCoveragePercentage: number;
+  priorityWeightedAverageDelayDays: number;
+  priorityWeightedActionableDelayDays: number;
+  p90AllocatedDelayDays: number;
+  delayOnTime: number;
+  delayOneToTwoDays: number;
+  delayThreeToSevenDays: number;
+  delayOverSevenDays: number;
+  delayUnallocated: number;
+  distancePerAllocatedVisitKm: number;
+  travelTimePerAllocatedVisitMinutes: number;
+  timelyPriorityPointsPerKm: number;
+  priorityPointsPerKm: number;
   totalOverdueDays: number;
   totalTravelDistanceKm: number;
   totalTravelTimeMinutes: number;
@@ -64,6 +80,22 @@ for (const file of scenarioFiles) {
         strategyId,
         executionTimeMs,
         coveragePercentage: plan.metrics.coveragePercentage,
+        onTimeCoveragePercentage: plan.metrics.onTimeCoveragePercentage,
+        priorityWeightedCoveragePercentage: plan.metrics.priorityWeightedCoveragePercentage,
+        priorityWeightedOnTimeCoveragePercentage: plan.metrics.priorityWeightedOnTimeCoveragePercentage,
+        priorityWeightedPromptCoveragePercentage: plan.metrics.priorityWeightedPromptCoveragePercentage,
+        priorityWeightedAverageDelayDays: plan.metrics.priorityWeightedAverageDelayDays,
+        priorityWeightedActionableDelayDays: plan.metrics.priorityWeightedActionableDelayDays,
+        p90AllocatedDelayDays: plan.metrics.p90AllocatedDelayDays,
+        delayOnTime: plan.metrics.delayBuckets.onTime,
+        delayOneToTwoDays: plan.metrics.delayBuckets.oneToTwoDays,
+        delayThreeToSevenDays: plan.metrics.delayBuckets.threeToSevenDays,
+        delayOverSevenDays: plan.metrics.delayBuckets.overSevenDays,
+        delayUnallocated: plan.metrics.delayBuckets.unallocated,
+        distancePerAllocatedVisitKm: plan.metrics.distancePerAllocatedVisitKm,
+        travelTimePerAllocatedVisitMinutes: plan.metrics.travelTimePerAllocatedVisitMinutes,
+        timelyPriorityPointsPerKm: plan.metrics.timelyPriorityPointsPerKm,
+        priorityPointsPerKm: plan.metrics.priorityPointsPerKm,
         totalOverdueDays: plan.metrics.totalOverdueDays,
         totalTravelDistanceKm: plan.metrics.totalTravelDistanceKm,
         totalTravelTimeMinutes: plan.metrics.totalTravelTimeMinutes,
@@ -74,9 +106,9 @@ for (const file of scenarioFiles) {
 
       benchmarkRecords.push(record);
 
-      console.log(`  └─ Método [${strategyId}]: ${executionTimeMs} ms | Cobertura: ${record.coveragePercentage}% | Atraso: ${record.totalOverdueDays}d | Dist: ${record.totalTravelDistanceKm} km`);
+      console.log(`  └─ Método [${strategyId}]: ${executionTimeMs} ms | Cobertura: ${record.coveragePercentage}% | Pontual ponderada: ${record.priorityWeightedOnTimeCoveragePercentage}% | Dist: ${record.totalTravelDistanceKm} km`);
     } catch (err: any) {
-      console.error(`  ❌ Erro ao executar ${strategyId} no cenário ${scenario.id}:`, err.message);
+      throw new Error(`Falha em ${scenario.id}/${strategyId}: ${err.message}`);
     }
   }
 }
@@ -94,6 +126,22 @@ const csvHeader = [
   'strategyId',
   'executionTimeMs',
   'coveragePercentage',
+  'onTimeCoveragePercentage',
+  'priorityWeightedCoveragePercentage',
+  'priorityWeightedOnTimeCoveragePercentage',
+  'priorityWeightedPromptCoveragePercentage',
+  'priorityWeightedAverageDelayDays',
+  'priorityWeightedActionableDelayDays',
+  'p90AllocatedDelayDays',
+  'delayOnTime',
+  'delayOneToTwoDays',
+  'delayThreeToSevenDays',
+  'delayOverSevenDays',
+  'delayUnallocated',
+  'distancePerAllocatedVisitKm',
+  'travelTimePerAllocatedVisitMinutes',
+  'timelyPriorityPointsPerKm',
+  'priorityPointsPerKm',
   'totalOverdueDays',
   'totalTravelDistanceKm',
   'totalTravelTimeMinutes',
@@ -109,6 +157,22 @@ const csvRows = benchmarkRecords.map(r => [
   `"${r.strategyId}"`,
   r.executionTimeMs,
   r.coveragePercentage,
+  r.onTimeCoveragePercentage,
+  r.priorityWeightedCoveragePercentage,
+  r.priorityWeightedOnTimeCoveragePercentage,
+  r.priorityWeightedPromptCoveragePercentage,
+  r.priorityWeightedAverageDelayDays,
+  r.priorityWeightedActionableDelayDays,
+  r.p90AllocatedDelayDays,
+  r.delayOnTime,
+  r.delayOneToTwoDays,
+  r.delayThreeToSevenDays,
+  r.delayOverSevenDays,
+  r.delayUnallocated,
+  r.distancePerAllocatedVisitKm,
+  r.travelTimePerAllocatedVisitMinutes,
+  r.timelyPriorityPointsPerKm,
+  r.priorityPointsPerKm,
   r.totalOverdueDays,
   r.totalTravelDistanceKm,
   r.totalTravelTimeMinutes,

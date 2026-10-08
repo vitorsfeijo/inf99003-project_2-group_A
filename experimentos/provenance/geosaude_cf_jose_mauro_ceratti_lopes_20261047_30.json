@@ -1,0 +1,19 @@
+{
+  "source": "GEOSAUDE - Território Base (Jul25) (1).kmz",
+  "sha256": "728181eea8feb1465bcff7e356b563b69e704bf72d19aa04372572f8212fea91",
+  "territoryName": "CF José Mauro Ceratti Lopes",
+  "healthCenter": {
+    "id": "hc_geosaude_cf_jose_mauro_ceratti_lopes_20261047_30",
+    "name": "CF José Mauro Ceratti Lopes",
+    "location": {
+      "lat": -30.1434094,
+      "lng": -51.1288147
+    }
+  },
+  "teamCount": 1,
+  "healthCenterMatch": "nome exato",
+  "startDate": "2026-10-01",
+  "seed": 20261047,
+  "patientCount": 30,
+  "method": "Amostragem uniforme sintética dentro dos polígonos; demanda clínica simulada. Não são moradores reais nem prevalências observadas."
+}

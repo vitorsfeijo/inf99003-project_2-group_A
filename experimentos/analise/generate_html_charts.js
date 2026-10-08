@@ -54,6 +54,10 @@ const summaryRows = strategies.map(s => {
 // ---------------------------------------------------------------------------
 const staticJson  = JSON.stringify(staticData);
 const dynJson     = JSON.stringify(dynData);
+const chartJs = fs.readFileSync(path.join(analiseDir, 'vendor/chart.umd.min.js'), 'utf8')
+  .replace(/<\/script/gi, '<\\/script');
+const chartJsLicense = fs.readFileSync(path.join(analiseDir, 'vendor/LICENSE.chartjs.md'), 'utf8')
+  .replace(/-->/g, '--&gt;');
 
 // Static chart: scenarios with >0 patients, order by patientCount
 const chartScenarios = [...new Set(
@@ -75,7 +79,8 @@ const html = /* html */`<!DOCTYPE html>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Relatório de Experimentos — INF99003</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <!-- Chart.js v4.5.1 license: ${chartJsLicense} -->
+  <script>${chartJs}</script>
   <style>
     :root {
       --blue:   #2563eb;
@@ -167,7 +172,7 @@ const html = /* html */`<!DOCTYPE html>
 <div class="report-header">
   <h1>📊 Relatório de Experimentos — INF99003</h1>
   <p class="subtitle">Planejamento e Replanejamento de Visitas Domiciliares na Atenção Primária à Saúde</p>
-  <p class="meta">Grupo A · Ciclo 2 · Tobias Marion, Vitor Feijo, Fabio Cieslak · Gerado automaticamente</p>
+  <p class="meta">Grupo D · INF99003 · Gerado automaticamente</p>
 </div>
 
 <!-- ══════════════════════════════ KPI STRIP ══════════════════════════ -->
@@ -183,14 +188,16 @@ const html = /* html */`<!DOCTYPE html>
 <div class="tab-panel active" id="tab-static">
 
   <div class="section-note">
-    Cada cenário é planejado uma única vez (sem falhas de campo). Compara as 3 estratégias em termos de atraso clínico,
-    distância percorrida, cobertura de demanda e tempo computacional.
+    Cada cenário é planejado uma vez. A cobertura ponderada soma os pesos clínicos das visitas alocadas e divide pela soma dos pesos de toda a demanda. A resposta pronta conta visitas vencidas no primeiro dia e as demais até o prazo. O atraso controlável conta apenas dias após o início da janela e inclui pendências até seu último dia. Custos em km e minutos são estimativas Haversine.
   </div>
 
+  <div class="section-note">Os cartões abaixo usam média simples por cenário. Para comparar métodos, selecione a mesma área nos gráficos; os cenários variam de tamanho e somar quilômetros entre áreas distorce a análise.</div>
   <!-- Summary cards per strategy -->
   <div class="summary-grid" id="staticSummaryCards"></div>
 
   <!-- Charts -->
+  <label for="delayScenario" style="display:block;margin-bottom:.5rem;font-size:.85rem;font-weight:600;">Cenário para comparação e distribuição de atrasos</label>
+  <select id="delayScenario" style="min-height:40px;max-width:100%;padding:.5rem;margin-bottom:1rem;"></select>
   <div class="chart-grid">
     <div class="chart-card">
       <h3>Atraso Acumulado Total por Cenário (dias)</h3>
@@ -213,10 +220,33 @@ const html = /* html */`<!DOCTYPE html>
       <canvas id="c_imbal"></canvas>
     </div>
     <div class="chart-card">
-      <h3>Distância vs. Atraso (bolha = nº pacientes)</h3>
+      <h3>Km por visita × atraso controlável (bolha = cobertura)</h3>
       <canvas id="c_scatter"></canvas>
     </div>
+    <div class="chart-card">
+      <h3>Cobertura ponderada pela prioridade (%)</h3>
+      <canvas id="c_priority"></canvas>
+    </div>
+    <div class="chart-card">
+      <h3>Atraso controlável ponderado pela prioridade (dias)</h3>
+      <canvas id="c_priority_delay"></canvas>
+    </div>
+    <div class="chart-card">
+      <h3>Resposta pronta ponderada pela prioridade (%)</h3>
+      <canvas id="c_prompt"></canvas>
+    </div>
+    <div class="chart-card">
+      <h3>Distância por visita alocada (km)</h3>
+      <canvas id="c_cost"></canvas>
+    </div>
+    <div class="chart-card">
+      <h3>Pontos de prioridade alocados por km</h3>
+      <canvas id="c_efficiency"></canvas>
+    </div>
   </div>
+
+  <div class="section-note">Distribuição do atraso: as quatro primeiras faixas incluem apenas visitas alocadas. Pendências aparecem em coluna própria; seu atraso é conhecido apenas até o fim da janela.</div>
+  <div class="chart-card" style="margin-bottom:1.5rem;"><h3>Visitas por faixa de atraso e estratégia</h3><canvas id="c_delay"></canvas></div>
 
   <!-- Data table -->
   <h3 style="font-size:.9rem;font-weight:600;color:#334155;margin-bottom:.75rem;">Tabela Completa de Resultados</h3>
@@ -229,14 +259,27 @@ const html = /* html */`<!DOCTYPE html>
 <div class="tab-panel" id="tab-dynamic">
 
   <div class="section-note">
-    Simulação de 5 dias úteis com replanejamento diário. A cada dia são simuladas falhas de campo (missRate),
-    os resultados reais são registrados via <code>applyVisitResults</code> e o cenário é replanejado automaticamente.
+    Simulação de 5 dias úteis com replanejamento diário. A cobertura real usa como denominador toda a demanda identificada no plano inicial, inclusive visitas nunca tentadas. A ausência é sorteada por paciente e dia com a mesma semente para as três estratégias. As curvas mostram média simples entre cenários.
   </div>
+  <label for="dynScenario" style="display:block;margin-bottom:.5rem;font-size:.85rem;font-weight:600;">Cenário para gráficos por área</label>
+  <select id="dynScenario" style="min-height:40px;max-width:100%;padding:.5rem;margin-bottom:1rem;"></select>
 
   <div class="chart-grid">
     <div class="chart-card">
       <h3>Cobertura Real (%) × Taxa de Falha — média sobre cenários</h3>
       <canvas id="d_coverage"></canvas>
+    </div>
+    <div class="chart-card">
+      <h3>Cobertura real ponderada pela prioridade (%)</h3>
+      <canvas id="d_priority"></canvas>
+    </div>
+    <div class="chart-card">
+      <h3>Resposta pronta real ponderada (%)</h3>
+      <canvas id="d_prompt"></canvas>
+    </div>
+    <div class="chart-card">
+      <h3>Atraso controlável real ponderado (dias)</h3>
+      <canvas id="d_actionable"></canvas>
     </div>
     <div class="chart-card">
       <h3>Atraso Acumulado Real (dias) × Taxa de Falha — média</h3>
@@ -267,7 +310,7 @@ const html = /* html */`<!DOCTYPE html>
 </div>
 
 <footer>
-  INF99003 · Grupo A · Relatório gerado automaticamente por <code>generate_html_charts.js</code>
+  INF99003 · Grupo D · Relatório gerado automaticamente por <code>generate_html_charts.js</code>
 </footer>
 
 <!-- ══════════════════════════════ SCRIPTS ════════════════════════════ -->
@@ -306,7 +349,7 @@ function switchTab(e, id) {
     { label:'Cenários Testados',       value: scenCount,           detail:'incluindo edge-cases' },
     { label:'Cobertura Média (estático)', value: avgCov.toFixed(1)+'%', detail:'média sobre cenários >1 paciente' },
     { label:'Cobertura com 20% Falhas', value: dynCov20.toFixed(1)+'%', detail:'simulação dinâmica — missRate=0.2' },
-    { label:'Rodadas Dinâmicas',        value: dynRuns,             detail:'3 estratégias × 4 taxas × 11 cenários' },
+    { label:'Rodadas Dinâmicas',        value: dynRuns,             detail:'3 estratégias × 4 taxas × '+scenCount+' cenários' },
     { label:'Estratégias Comparadas',   value: 3,                   detail:'main-heuristic · urgency · nearest' },
   ];
 
@@ -327,13 +370,20 @@ function switchTab(e, id) {
     const d = staticData.filter(r => r.strategyId === s && r.patientCount > 0);
     const avg = k => d.reduce((sum,r) => sum + r[k],0) / d.length;
     return { s, avgOv: avg('totalOverdueDays'), avgDist: avg('totalTravelDistanceKm'),
-             avgCov: avg('coveragePercentage'), avgTime: avg('executionTimeMs') };
+             avgCov: avg('coveragePercentage'), avgPriority: avg('priorityWeightedCoveragePercentage'),
+             avgPriorityDelay: avg('priorityWeightedActionableDelayDays'),
+             avgPrompt: avg('priorityWeightedPromptCoveragePercentage'),
+             avgKmPerVisit: avg('distancePerAllocatedVisitKm'), avgTime: avg('executionTimeMs') };
   });
   document.getElementById('staticSummaryCards').innerHTML = rows.map(r => \`
     <div class="summary-card">
       <div class="strat-name \${cls[r.s]}">\${STRAT_LABEL[r.s]}</div>
       <table>
         <tr><td>Cobertura média</td><td>\${r.avgCov.toFixed(1)}%</td></tr>
+        <tr><td>Cobertura ponderada</td><td>\${r.avgPriority.toFixed(1)}%</td></tr>
+        <tr><td>Resposta pronta</td><td>\${r.avgPrompt.toFixed(1)}%</td></tr>
+        <tr><td>Atraso controlável</td><td>\${r.avgPriorityDelay.toFixed(1)} d</td></tr>
+        <tr><td>Km por visita</td><td>\${r.avgKmPerVisit.toFixed(1)}</td></tr>
         <tr><td>Atraso médio</td><td>\${r.avgOv.toFixed(1)} d</td></tr>
         <tr><td>Distância média</td><td>\${r.avgDist.toFixed(1)} km</td></tr>
         <tr><td>Tempo médio</td><td>\${r.avgTime.toFixed(2)} ms</td></tr>
@@ -346,11 +396,12 @@ function switchTab(e, id) {
 const chartScens = [...new Set(
   staticData.filter(d => d.patientCount > 0).sort((a,b) => a.patientCount - b.patientCount).map(d => d.scenarioId)
 )];
+let selectedScenarioId = chartScens.find(id => id.includes('cf_santa_marta')) || chartScens.find(id => id.startsWith('geosaude_')) || chartScens[0];
 
 function staticDatasets(metric) {
   return STRATEGIES.map(s => ({
     label: STRAT_LABEL[s],
-    data: chartScens.map(sc => { const r = staticData.find(d => d.scenarioId === sc && d.strategyId === s); return r ? r[metric] : 0; }),
+    data: [selectedScenarioId].map(sc => { const r = staticData.find(d => d.scenarioId === sc && d.strategyId === s); return r ? r[metric] : 0; }),
     backgroundColor: COLORS[s].solid,
   }));
 }
@@ -372,22 +423,33 @@ function barChart(id, datasets, labels, yLabel, opts={}) {
   });
 }
 
-barChart('c_overdue', staticDatasets('totalOverdueDays'),        chartScens, 'dias');
-barChart('c_dist',    staticDatasets('totalTravelDistanceKm'),   chartScens, 'km');
-barChart('c_util',    staticDatasets('teamUtilizationPercentage'),chartScens, '%');
-barChart('c_time',    staticDatasets('executionTimeMs'),          chartScens, 'ms');
-barChart('c_imbal',   staticDatasets('teamWorkloadImbalance'),    chartScens, 'desvio');
+const staticChartDefs = [
+  ['c_overdue', 'totalOverdueDays', 'dias'],
+  ['c_dist', 'totalTravelDistanceKm', 'km'],
+  ['c_util', 'teamUtilizationPercentage', '%'],
+  ['c_time', 'executionTimeMs', 'ms'],
+  ['c_imbal', 'teamWorkloadImbalance', 'desvio'],
+  ['c_priority', 'priorityWeightedCoveragePercentage', '%'],
+  ['c_priority_delay', 'priorityWeightedActionableDelayDays', 'dias'],
+  ['c_prompt', 'priorityWeightedPromptCoveragePercentage', '%'],
+  ['c_cost', 'distancePerAllocatedVisitKm', 'km/visita'],
+  ['c_efficiency', 'priorityPointsPerKm', 'pontos/km']
+];
+const staticCharts = staticChartDefs.map(([id, metric, unit]) => barChart(id, staticDatasets(metric), [selectedScenarioId], unit));
 
-// Scatter: dist vs overdue (bubble size = patientCount)
-new Chart(document.getElementById('c_scatter'), {
+// Scatter: custos por visita versus atendimento clínico pontual.
+const scatterChart = new Chart(document.getElementById('c_scatter'), {
   type: 'bubble',
   data: {
     datasets: STRATEGIES.map(s => ({
       label: STRAT_LABEL[s],
-      data: staticData.filter(d => d.strategyId === s && d.patientCount > 0).map(d => ({
-        x: d.totalTravelDistanceKm,
-        y: d.totalOverdueDays,
-        r: Math.max(4, Math.sqrt(d.patientCount) * 2.5)
+      data: staticData.filter(d => d.strategyId === s && d.scenarioId === selectedScenarioId).map(d => ({
+        x: d.distancePerAllocatedVisitKm,
+        y: d.priorityWeightedActionableDelayDays,
+        r: Math.max(4, d.coveragePercentage / 10),
+        scenarioId: d.scenarioId,
+        coverage: d.coveragePercentage,
+        travelMinutes: d.travelTimePerAllocatedVisitMinutes
       })),
       backgroundColor: COLORS[s].light,
       borderColor:     COLORS[s].solid,
@@ -397,14 +459,60 @@ new Chart(document.getElementById('c_scatter'), {
   options: {
     responsive: true, maintainAspectRatio: true,
     plugins: { legend:{ position:'bottom', labels:{font:{size:11}} }, tooltip:{ callbacks:{
-      label: ctx => \`Dist: \${ctx.raw.x} km | Atraso: \${ctx.raw.y}d\`
+      label: ctx => \`\${ctx.raw.scenarioId}: \${ctx.raw.x} km/visita, \${ctx.raw.travelMinutes} min/visita, cobertura \${ctx.raw.coverage}%, atraso controlável \${ctx.raw.y} dias\`
     }}},
     scales: {
-      x: { title:{ display:true, text:'Distância total (km)', font:{size:11} } },
-      y: { title:{ display:true, text:'Atraso acumulado (dias)', font:{size:11} }, beginAtZero:true }
+      x: { title:{ display:true, text:'Distância por visita alocada (km)', font:{size:11} } },
+      y: { title:{ display:true, text:'Atraso controlável ponderado (dias)', font:{size:11} }, beginAtZero:true }
     }
   }
 });
+
+const delaySelect = document.getElementById('delayScenario');
+for (const scenarioId of chartScens) {
+  const option = document.createElement('option');
+  option.value = scenarioId;
+  option.textContent = scenarioId;
+  delaySelect.appendChild(option);
+}
+delaySelect.value = selectedScenarioId;
+let delayChart;
+function renderDelayChart() {
+  if (delayChart) delayChart.destroy();
+  const rows = STRATEGIES.map(strategy => staticData.find(row => row.scenarioId === delaySelect.value && row.strategyId === strategy));
+  const bands = [
+    ['No prazo', 'delayOnTime', '#16a34a'],
+    ['1–2 dias', 'delayOneToTwoDays', '#84cc16'],
+    ['3–7 dias', 'delayThreeToSevenDays', '#f59e0b'],
+    ['8+ dias', 'delayOverSevenDays', '#dc2626'],
+    ['Não alocadas', 'delayUnallocated', '#64748b']
+  ];
+  delayChart = new Chart(document.getElementById('c_delay'), {
+    type:'bar',
+    data:{ labels: STRATEGIES.map(strategy => STRAT_LABEL[strategy]),
+      datasets: bands.map(([label,key,color]) => ({ label, data:rows.map(row => row ? row[key] : 0), backgroundColor:color })) },
+    options:{ responsive:true, plugins:{ legend:{position:'bottom'} },
+      scales:{ x:{stacked:true}, y:{stacked:true,beginAtZero:true,title:{display:true,text:'Visitas'}} } }
+  });
+}
+delaySelect.addEventListener('change', () => {
+  selectedScenarioId = delaySelect.value;
+  staticCharts.forEach((chart, index) => {
+    chart.data.labels = [selectedScenarioId];
+    chart.data.datasets = staticDatasets(staticChartDefs[index][1]);
+    chart.update();
+  });
+  scatterChart.data.datasets.forEach((dataset, index) => {
+    const strategy = STRATEGIES[index];
+    const d = staticData.find(row => row.strategyId === strategy && row.scenarioId === selectedScenarioId);
+    dataset.data = d ? [{ x:d.distancePerAllocatedVisitKm, y:d.priorityWeightedActionableDelayDays,
+      r:Math.max(4,d.coveragePercentage/10), scenarioId:d.scenarioId, coverage:d.coveragePercentage,
+      travelMinutes:d.travelTimePerAllocatedVisitMinutes }] : [];
+  });
+  scatterChart.update();
+  renderDelayChart();
+});
+renderDelayChart();
 
 // ─── Static table ───────────────────────────────────────────────────────────
 (function buildStaticTable() {
@@ -412,7 +520,7 @@ new Chart(document.getElementById('c_scatter'), {
   t.innerHTML = \`
     <thead><tr>
       <th>Cenário</th><th>Pacientes</th><th>Equipes</th><th>Estratégia</th>
-      <th>Cobertura</th><th>Atraso (d)</th><th>Dist. (km)</th>
+      <th>Cobertura</th><th>Prioridade coberta</th><th>Resposta pronta</th><th>Prioridade no prazo</th><th>Atraso controlável (d)</th><th>P90 atraso (d)</th><th>Atraso (d)</th><th>Dist. (km)</th><th>Km/visita</th><th>Min/visita</th><th>Pontos/km</th>
       <th>Utiliz. (%)</th><th>Desequil.</th><th>Exec. (ms)</th>
     </tr></thead>
     <tbody>
@@ -423,8 +531,16 @@ new Chart(document.getElementById('c_scatter'), {
           <td>\${d.teamCount}</td>
           <td><span class="badge \${BADGE_CLASS[d.strategyId]}">\${STRAT_LABEL[d.strategyId]}</span></td>
           <td><span class="badge \${d.coveragePercentage >= 100 ? 'badge-good':'badge-miss'}">\${d.coveragePercentage}%</span></td>
+          <td>\${d.priorityWeightedCoveragePercentage}%</td>
+          <td>\${d.priorityWeightedPromptCoveragePercentage}%</td>
+          <td>\${d.priorityWeightedOnTimeCoveragePercentage}%</td>
+          <td>\${d.priorityWeightedActionableDelayDays}d</td>
+          <td>\${d.p90AllocatedDelayDays}d</td>
           <td>\${d.totalOverdueDays}d</td>
           <td>\${d.totalTravelDistanceKm} km</td>
+          <td>\${d.distancePerAllocatedVisitKm}</td>
+          <td>\${d.travelTimePerAllocatedVisitMinutes}</td>
+          <td>\${d.priorityPointsPerKm}</td>
           <td>\${d.teamUtilizationPercentage}%</td>
           <td>\${d.teamWorkloadImbalance}</td>
           <td>\${d.executionTimeMs} ms</td>
@@ -470,14 +586,25 @@ function lineChart(id, datasets, labels, yLabel, opts={}) {
 }
 
 lineChart('d_coverage', dynLineDatasets('realCoveragePercentage'), missLabels, 'Cobertura real (%)', { yScale:{ max:105 } });
+lineChart('d_priority', dynLineDatasets('realPriorityWeightedCoveragePercentage'), missLabels, 'Cobertura prioritária (%)', { yScale:{ max:105 } });
+lineChart('d_prompt', dynLineDatasets('realPriorityWeightedPromptCoveragePercentage'), missLabels, 'Resposta pronta (%)', { yScale:{ max:105 } });
+lineChart('d_actionable', dynLineDatasets('realPriorityWeightedActionableDelayDays'), missLabels, 'Atraso controlável (dias)');
 lineChart('d_overdue',  dynLineDatasets('realAccumulatedOverdueDays'), missLabels, 'Atraso acumulado real (dias)');
 lineChart('d_dist',     dynLineDatasets('realTravelDistanceKm'),   missLabels, 'Distância efetiva (km)');
 lineChart('d_replan',   dynLineDatasets('avgReplanningTimeMs'),    missLabels, 'Avg replanning (ms)');
 
 // Missed visits at missRate=0.2 per scenario (bar, grouped by strategy)
-const dynScens = [...new Set(dynData.filter(d=>d.patientCount>0).sort((a,b)=>a.patientCount-b.patientCount).map(d=>d.scenarioId))];
+const dynScenarioSelect = document.getElementById('dynScenario');
+for (const scenarioId of chartScens) {
+  const option = document.createElement('option');
+  option.value = scenarioId;
+  option.textContent = scenarioId;
+  dynScenarioSelect.appendChild(option);
+}
+dynScenarioSelect.value = selectedScenarioId;
+let dynScens = [selectedScenarioId];
 const MISS_RATE = 0.2;
-new Chart(document.getElementById('d_missed'), {
+const missedChart = new Chart(document.getElementById('d_missed'), {
   type: 'bar',
   data: {
     labels: dynScens.map(s=>s.replace('cenario_','')),
@@ -491,7 +618,7 @@ new Chart(document.getElementById('d_missed'), {
 });
 
 // Coverage at missRate=0.2 per scenario
-new Chart(document.getElementById('d_covscen'), {
+const coverageScenarioChart = new Chart(document.getElementById('d_covscen'), {
   type: 'bar',
   data: {
     labels: dynScens.map(s=>s.replace('cenario_','')),
@@ -503,6 +630,18 @@ new Chart(document.getElementById('d_covscen'), {
   },
   options: { responsive:true, maintainAspectRatio:true, plugins:{ legend:{position:'bottom', labels:{font:{size:11}}} }, scales:{ y:{ title:{display:true,text:'Cobertura real (%)'},beginAtZero:true, max:105 } } }
 });
+dynScenarioSelect.addEventListener('change', () => {
+  dynScens = [dynScenarioSelect.value];
+  for (const [chart, metric] of [[missedChart, 'missedVisits'], [coverageScenarioChart, 'realCoveragePercentage']]) {
+    chart.data.labels = dynScens;
+    chart.data.datasets.forEach((dataset, index) => {
+      const strategy = STRATEGIES[index];
+      const row = dynData.find(d => d.scenarioId === dynScens[0] && d.strategyId === strategy && d.missRate === MISS_RATE);
+      dataset.data = [row ? row[metric] : 0];
+    });
+    chart.update();
+  }
+});
 
 // ─── Dynamic table ──────────────────────────────────────────────────────────
 (function buildDynTable() {
@@ -511,8 +650,8 @@ new Chart(document.getElementById('d_covscen'), {
   t.innerHTML = \`
     <thead><tr>
       <th>Cenário</th><th>Pac.</th><th>Estratégia</th><th>Taxa Falha</th>
-      <th>Concluídas</th><th>Perdidas</th><th>Cobertura Real</th>
-      <th>Atraso Real (d)</th><th>Dist. Real (km)</th>
+      <th>Concluídas</th><th>Perdidas</th><th>Pendentes</th><th>Cobertura Real</th>
+      <th>Cobertura Prioritária</th><th>Resposta Pronta</th><th>Atraso Controlável (d)</th><th>Atraso Real (d)</th><th>Dist. Real (km)</th>
       <th>Avg Replanning (ms)</th>
     </tr></thead>
     <tbody>
@@ -524,7 +663,11 @@ new Chart(document.getElementById('d_covscen'), {
           <td><span class="badge badge-miss">\${(d.missRate*100).toFixed(0)}%</span></td>
           <td>\${d.completedVisits}</td>
           <td>\${d.missedVisits}</td>
+          <td>\${d.unservedVisits}</td>
           <td><span class="badge \${d.realCoveragePercentage >= 90 ? 'badge-good':'badge-miss'}">\${d.realCoveragePercentage}%</span></td>
+          <td>\${d.realPriorityWeightedCoveragePercentage}%</td>
+          <td>\${d.realPriorityWeightedPromptCoveragePercentage}%</td>
+          <td>\${d.realPriorityWeightedActionableDelayDays}d</td>
           <td>\${d.realAccumulatedOverdueDays}d</td>
           <td>\${d.realTravelDistanceKm} km</td>
           <td>\${d.avgReplanningTimeMs} ms</td>

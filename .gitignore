@@ -50,6 +50,14 @@ projeto_de_pesquisa.log
 artefato/packages/server/data/*.db
 artefato/packages/server/data/*.db-shm
 artefato/packages/server/data/*.db-wal
+/data/
+
+# Mapa OSM baixado e índices OSRM gerados localmente
+/osm-data/
+
+# Exportações auxiliares do GeoSaúde: o KMZ completo (1) é a fonte versionada
+/experimentos/dados/GEOSAUDE - Território Base (Jul25).kml
+/experimentos/dados/GEOSAUDE - Território Base (Jul25).kmz
 
 # ---------------------------------------------------------------------------
 # EXPERIMENTOS — resultados de simulações (gerados em runtime)

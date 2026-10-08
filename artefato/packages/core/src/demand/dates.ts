@@ -59,3 +59,17 @@ export function getWorkingDaysHorizon(startDateStr: string, horizonCount: number
 
   return workingDays;
 }
+
+/** Conta os dias de segunda a sexta no mês corrido a partir da data inicial. */
+export function countWorkingDaysInNextMonth(startDateStr: string): number {
+  const [year, month, day] = startDateStr.split('-').map(Number);
+  if (!year || !month || !day) throw new Error(`Data inicial inválida: ${startDateStr}.`);
+  const cursor = new Date(Date.UTC(year, month - 1, day));
+  const end = new Date(Date.UTC(year, month, day));
+  let count = 0;
+  while (cursor < end) {
+    if (cursor.getUTCDay() !== 0 && cursor.getUTCDay() !== 6) count++;
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+  return count;
+}

@@ -1,0 +1,750 @@
+{
+  "id": "geosaude_us_domenico_feoli_20261129_30",
+  "version": 1,
+  "healthCenter": {
+    "id": "hc_geosaude_us_domenico_feoli_20261129_30",
+    "name": "US Domênico Feoli",
+    "location": {
+      "lat": -30.0256804,
+      "lng": -51.106466
+    }
+  },
+  "polygons": [
+    {
+      "id": "geosaude_1",
+      "name": "US Domênico Feoli",
+      "vertices": [
+        {
+          "lat": -30.02311,
+          "lng": -51.10672
+        },
+        {
+          "lat": -30.02299,
+          "lng": -51.10766
+        },
+        {
+          "lat": -30.02372,
+          "lng": -51.10774
+        },
+        {
+          "lat": -30.02377,
+          "lng": -51.10774
+        },
+        {
+          "lat": -30.0244,
+          "lng": -51.10779
+        },
+        {
+          "lat": -30.02463,
+          "lng": -51.10782
+        },
+        {
+          "lat": -30.02504,
+          "lng": -51.10787
+        },
+        {
+          "lat": -30.02561,
+          "lng": -51.10793
+        },
+        {
+          "lat": -30.02603,
+          "lng": -51.10797
+        },
+        {
+          "lat": -30.02626,
+          "lng": -51.10799
+        },
+        {
+          "lat": -30.02656,
+          "lng": -51.108
+        },
+        {
+          "lat": -30.0268,
+          "lng": -51.10798
+        },
+        {
+          "lat": -30.02696,
+          "lng": -51.10795
+        },
+        {
+          "lat": -30.02706,
+          "lng": -51.10791
+        },
+        {
+          "lat": -30.02726,
+          "lng": -51.10782
+        },
+        {
+          "lat": -30.02743,
+          "lng": -51.10774
+        },
+        {
+          "lat": -30.0277,
+          "lng": -51.10761
+        },
+        {
+          "lat": -30.02776,
+          "lng": -51.10758
+        },
+        {
+          "lat": -30.02857,
+          "lng": -51.10711
+        },
+        {
+          "lat": -30.028645,
+          "lng": -51.107019
+        },
+        {
+          "lat": -30.028345,
+          "lng": -51.106329
+        },
+        {
+          "lat": -30.02825,
+          "lng": -51.10636
+        },
+        {
+          "lat": -30.028311,
+          "lng": -51.106269
+        },
+        {
+          "lat": -30.028071,
+          "lng": -51.105679
+        },
+        {
+          "lat": -30.02798,
+          "lng": -51.10572
+        },
+        {
+          "lat": -30.0275,
+          "lng": -51.10615
+        },
+        {
+          "lat": -30.027369,
+          "lng": -51.105844
+        },
+        {
+          "lat": -30.027325,
+          "lng": -51.105149
+        },
+        {
+          "lat": -30.02704,
+          "lng": -51.10483
+        },
+        {
+          "lat": -30.02671,
+          "lng": -51.10436
+        },
+        {
+          "lat": -30.02631,
+          "lng": -51.10453
+        },
+        {
+          "lat": -30.02627,
+          "lng": -51.10448
+        },
+        {
+          "lat": -30.02622,
+          "lng": -51.10443
+        },
+        {
+          "lat": -30.02617,
+          "lng": -51.10441
+        },
+        {
+          "lat": -30.02614,
+          "lng": -51.10439
+        },
+        {
+          "lat": -30.02585,
+          "lng": -51.10437
+        },
+        {
+          "lat": -30.025702,
+          "lng": -51.104337
+        },
+        {
+          "lat": -30.025644,
+          "lng": -51.104194
+        },
+        {
+          "lat": -30.024869,
+          "lng": -51.104149
+        },
+        {
+          "lat": -30.02479,
+          "lng": -51.10427
+        },
+        {
+          "lat": -30.02479,
+          "lng": -51.10455
+        },
+        {
+          "lat": -30.02475,
+          "lng": -51.10487
+        },
+        {
+          "lat": -30.02466,
+          "lng": -51.10525
+        },
+        {
+          "lat": -30.02453,
+          "lng": -51.10561
+        },
+        {
+          "lat": -30.02438,
+          "lng": -51.10587
+        },
+        {
+          "lat": -30.02423,
+          "lng": -51.10608
+        },
+        {
+          "lat": -30.02412,
+          "lng": -51.1062
+        },
+        {
+          "lat": -30.02396,
+          "lng": -51.10636
+        },
+        {
+          "lat": -30.0237,
+          "lng": -51.10653
+        },
+        {
+          "lat": -30.0234,
+          "lng": -51.10668
+        }
+      ],
+      "holes": []
+    }
+  ],
+  "patients": [
+    {
+      "id": "pat_1",
+      "code": "P001",
+      "location": {
+        "lat": -30.026517225381067,
+        "lng": -51.105937086721674
+      },
+      "defaultVisitDurationMinutes": 30,
+      "conditions": [
+        {
+          "conditionId": "cond_principal",
+          "initialDueDate": "2026-10-03",
+          "maxIntervalDays": 14,
+          "priorityWeight": 2
+        }
+      ]
+    },
+    {
+      "id": "pat_2",
+      "code": "P002",
+      "location": {
+        "lat": -30.026196541856237,
+        "lng": -51.104766276999925
+      },
+      "defaultVisitDurationMinutes": 30,
+      "conditions": [
+        {
+          "conditionId": "cond_principal",
+          "initialDueDate": "2026-10-05",
+          "maxIntervalDays": 14,
+          "priorityWeight": 2
+        }
+      ]
+    },
+    {
+      "id": "pat_3",
+      "code": "P003",
+      "location": {
+        "lat": -30.0246925653901,
+        "lng": -51.10723411432671
+      },
+      "defaultVisitDurationMinutes": 30,
+      "conditions": [
+        {
+          "conditionId": "cond_principal",
+          "initialDueDate": "2026-10-03",
+          "maxIntervalDays": 14,
+          "priorityWeight": 5
+        }
+      ]
+    },
+    {
+      "id": "pat_4",
+      "code": "P004",
+      "location": {
+        "lat": -30.025099034768708,
+        "lng": -51.10546894268922
+      },
+      "defaultVisitDurationMinutes": 30,
+      "conditions": [
+        {
+          "conditionId": "cond_principal",
+          "initialDueDate": "2026-09-21",
+          "maxIntervalDays": 14,
+          "priorityWeight": 1
+        }
+      ]
+    },
+    {
+      "id": "pat_5",
+      "code": "P005",
+      "location": {
+        "lat": -30.02489520925512,
+        "lng": -51.10753432173544
+      },
+      "defaultVisitDurationMinutes": 30,
+      "conditions": [
+        {
+          "conditionId": "cond_principal",
+          "initialDueDate": "2026-10-04",
+          "maxIntervalDays": 14,
+          "priorityWeight": 3
+        }
+      ]
+    },
+    {
+      "id": "pat_6",
+      "code": "P006",
+      "location": {
+        "lat": -30.025198698747268,
+        "lng": -51.10602808965141
+      },
+      "defaultVisitDurationMinutes": 30,
+      "conditions": [
+        {
+          "conditionId": "cond_principal",
+          "initialDueDate": "2026-09-23",
+          "maxIntervalDays": 14,
+          "priorityWeight": 1
+        }
+      ]
+    },
+    {
+      "id": "pat_7",
+      "code": "P007",
+      "location": {
+        "lat": -30.02622321803471,
+        "lng": -51.105456549689514
+      },
+      "defaultVisitDurationMinutes": 30,
+      "conditions": [
+        {
+          "conditionId": "cond_principal",
+          "initialDueDate": "2026-10-04",
+          "maxIntervalDays": 14,
+          "priorityWeight": 1
+        }
+      ]
+    },
+    {
+      "id": "pat_8",
+      "code": "P008",
+      "location": {
+        "lat": -30.025318608393544,
+        "lng": -51.106176357490305
+      },
+      "defaultVisitDurationMinutes": 30,
+      "conditions": [
+        {
+          "conditionId": "cond_principal",
+          "initialDueDate": "2026-09-20",
+          "maxIntervalDays": 14,
+          "priorityWeight": 2
+        }
+      ]
+    },
+    {
+      "id": "pat_9",
+      "code": "P009",
+      "location": {
+        "lat": -30.024564976361248,
+        "lng": -51.106045968711825
+      },
+      "defaultVisitDurationMinutes": 30,
+      "conditions": [
+        {
+          "conditionId": "cond_principal",
+          "initialDueDate": "2026-10-03",
+          "maxIntervalDays": 14,
+          "priorityWeight": 4
+        }
+      ]
+    },
+    {
+      "id": "pat_10",
+      "code": "P010",
+      "location": {
+        "lat": -30.025362511049767,
+        "lng": -51.10466434147046
+      },
+      "defaultVisitDurationMinutes": 30,
+      "conditions": [
+        {
+          "conditionId": "cond_principal",
+          "initialDueDate": "2026-09-21",
+          "maxIntervalDays": 14,
+          "priorityWeight": 3
+        }
+      ]
+    },
+    {
+      "id": "pat_11",
+      "code": "P011",
+      "location": {
+        "lat": -30.025566141037114,
+        "lng": -51.10447313282728
+      },
+      "defaultVisitDurationMinutes": 30,
+      "conditions": [
+        {
+          "conditionId": "cond_principal",
+          "initialDueDate": "2026-10-05",
+          "maxIntervalDays": 14,
+          "priorityWeight": 3
+        }
+      ]
+    },
+    {
+      "id": "pat_12",
+      "code": "P012",
+      "location": {
+        "lat": -30.02626466528572,
+        "lng": -51.10595294432793
+      },
+      "defaultVisitDurationMinutes": 30,
+      "conditions": [
+        {
+          "conditionId": "cond_principal",
+          "initialDueDate": "2026-09-29",
+          "maxIntervalDays": 14,
+          "priorityWeight": 5
+        }
+      ]
+    },
+    {
+      "id": "pat_13",
+      "code": "P013",
+      "location": {
+        "lat": -30.027395296135566,
+        "lng": -51.10749769059389
+      },
+      "defaultVisitDurationMinutes": 30,
+      "conditions": [
+        {
+          "conditionId": "cond_principal",
+          "initialDueDate": "2026-09-28",
+          "maxIntervalDays": 14,
+          "priorityWeight": 2
+        }
+      ]
+    },
+    {
+      "id": "pat_14",
+      "code": "P014",
+      "location": {
+        "lat": -30.025320239775375,
+        "lng": -51.104606345378606
+      },
+      "defaultVisitDurationMinutes": 30,
+      "conditions": [
+        {
+          "conditionId": "cond_principal",
+          "initialDueDate": "2026-10-02",
+          "maxIntervalDays": 14,
+          "priorityWeight": 2
+        }
+      ]
+    },
+    {
+      "id": "pat_15",
+      "code": "P015",
+      "location": {
+        "lat": -30.025306823573473,
+        "lng": -51.10781621310984
+      },
+      "defaultVisitDurationMinutes": 30,
+      "conditions": [
+        {
+          "conditionId": "cond_principal",
+          "initialDueDate": "2026-10-04",
+          "maxIntervalDays": 14,
+          "priorityWeight": 5
+        }
+      ]
+    },
+    {
+      "id": "pat_16",
+      "code": "P016",
+      "location": {
+        "lat": -30.026908690537415,
+        "lng": -51.10470277006897
+      },
+      "defaultVisitDurationMinutes": 30,
+      "conditions": [
+        {
+          "conditionId": "cond_principal",
+          "initialDueDate": "2026-10-01",
+          "maxIntervalDays": 14,
+          "priorityWeight": 1
+        }
+      ]
+    },
+    {
+      "id": "pat_17",
+      "code": "P017",
+      "location": {
+        "lat": -30.027116126973088,
+        "lng": -51.10701709515878
+      },
+      "defaultVisitDurationMinutes": 30,
+      "conditions": [
+        {
+          "conditionId": "cond_principal",
+          "initialDueDate": "2026-09-26",
+          "maxIntervalDays": 14,
+          "priorityWeight": 3
+        }
+      ]
+    },
+    {
+      "id": "pat_18",
+      "code": "P018",
+      "location": {
+        "lat": -30.02344972261759,
+        "lng": -51.107407360972914
+      },
+      "defaultVisitDurationMinutes": 30,
+      "conditions": [
+        {
+          "conditionId": "cond_principal",
+          "initialDueDate": "2026-10-04",
+          "maxIntervalDays": 14,
+          "priorityWeight": 4
+        }
+      ]
+    },
+    {
+      "id": "pat_19",
+      "code": "P019",
+      "location": {
+        "lat": -30.024254971902682,
+        "lng": -51.10671884108806
+      },
+      "defaultVisitDurationMinutes": 30,
+      "conditions": [
+        {
+          "conditionId": "cond_principal",
+          "initialDueDate": "2026-10-03",
+          "maxIntervalDays": 14,
+          "priorityWeight": 3
+        }
+      ]
+    },
+    {
+      "id": "pat_20",
+      "code": "P020",
+      "location": {
+        "lat": -30.025802229745818,
+        "lng": -51.10626122374967
+      },
+      "defaultVisitDurationMinutes": 30,
+      "conditions": [
+        {
+          "conditionId": "cond_principal",
+          "initialDueDate": "2026-10-03",
+          "maxIntervalDays": 14,
+          "priorityWeight": 2
+        }
+      ]
+    },
+    {
+      "id": "pat_21",
+      "code": "P021",
+      "location": {
+        "lat": -30.02574049067035,
+        "lng": -51.10492332702555
+      },
+      "defaultVisitDurationMinutes": 30,
+      "conditions": [
+        {
+          "conditionId": "cond_principal",
+          "initialDueDate": "2026-09-20",
+          "maxIntervalDays": 14,
+          "priorityWeight": 2
+        }
+      ]
+    },
+    {
+      "id": "pat_22",
+      "code": "P022",
+      "location": {
+        "lat": -30.026896926466545,
+        "lng": -51.106535582654175
+      },
+      "defaultVisitDurationMinutes": 30,
+      "conditions": [
+        {
+          "conditionId": "cond_principal",
+          "initialDueDate": "2026-09-28",
+          "maxIntervalDays": 14,
+          "priorityWeight": 4
+        }
+      ]
+    },
+    {
+      "id": "pat_23",
+      "code": "P023",
+      "location": {
+        "lat": -30.025270628414408,
+        "lng": -51.10456177885893
+      },
+      "defaultVisitDurationMinutes": 30,
+      "conditions": [
+        {
+          "conditionId": "cond_principal",
+          "initialDueDate": "2026-09-27",
+          "maxIntervalDays": 14,
+          "priorityWeight": 2
+        }
+      ]
+    },
+    {
+      "id": "pat_24",
+      "code": "P024",
+      "location": {
+        "lat": -30.024268083448522,
+        "lng": -51.10760570184434
+      },
+      "defaultVisitDurationMinutes": 30,
+      "conditions": [
+        {
+          "conditionId": "cond_principal",
+          "initialDueDate": "2026-10-04",
+          "maxIntervalDays": 14,
+          "priorityWeight": 5
+        }
+      ]
+    },
+    {
+      "id": "pat_25",
+      "code": "P025",
+      "location": {
+        "lat": -30.0270040869216,
+        "lng": -51.106614639585146
+      },
+      "defaultVisitDurationMinutes": 30,
+      "conditions": [
+        {
+          "conditionId": "cond_principal",
+          "initialDueDate": "2026-09-28",
+          "maxIntervalDays": 14,
+          "priorityWeight": 5
+        }
+      ]
+    },
+    {
+      "id": "pat_26",
+      "code": "P026",
+      "location": {
+        "lat": -30.023459566755914,
+        "lng": -51.10671884092756
+      },
+      "defaultVisitDurationMinutes": 30,
+      "conditions": [
+        {
+          "conditionId": "cond_principal",
+          "initialDueDate": "2026-09-20",
+          "maxIntervalDays": 14,
+          "priorityWeight": 5
+        }
+      ]
+    },
+    {
+      "id": "pat_27",
+      "code": "P027",
+      "location": {
+        "lat": -30.026193798357195,
+        "lng": -51.107626420147184
+      },
+      "defaultVisitDurationMinutes": 30,
+      "conditions": [
+        {
+          "conditionId": "cond_principal",
+          "initialDueDate": "2026-09-28",
+          "maxIntervalDays": 14,
+          "priorityWeight": 5
+        }
+      ]
+    },
+    {
+      "id": "pat_28",
+      "code": "P028",
+      "location": {
+        "lat": -30.026271021941216,
+        "lng": -51.105921127571975
+      },
+      "defaultVisitDurationMinutes": 30,
+      "conditions": [
+        {
+          "conditionId": "cond_principal",
+          "initialDueDate": "2026-10-02",
+          "maxIntervalDays": 14,
+          "priorityWeight": 1
+        }
+      ]
+    },
+    {
+      "id": "pat_29",
+      "code": "P029",
+      "location": {
+        "lat": -30.028495044551686,
+        "lng": -51.10674086967606
+      },
+      "defaultVisitDurationMinutes": 30,
+      "conditions": [
+        {
+          "conditionId": "cond_principal",
+          "initialDueDate": "2026-09-28",
+          "maxIntervalDays": 14,
+          "priorityWeight": 5
+        }
+      ]
+    },
+    {
+      "id": "pat_30",
+      "code": "P030",
+      "location": {
+        "lat": -30.025572728276167,
+        "lng": -51.105619765733145
+      },
+      "defaultVisitDurationMinutes": 30,
+      "conditions": [
+        {
+          "conditionId": "cond_principal",
+          "initialDueDate": "2026-10-03",
+          "maxIntervalDays": 14,
+          "priorityWeight": 1
+        }
+      ]
+    }
+  ],
+  "teams": [
+    {
+      "id": "team_1",
+      "name": "Equipe A",
+      "doctorName": "Dr(a). Medico 1",
+      "nurseName": "Enf. Enfermeiro 1",
+      "socialWorkerName": "AS Assistente 1",
+      "dailyWorkMinutes": 240,
+      "availableDays": []
+    }
+  ],
+  "startDate": "2026-10-01",
+  "planningHorizonDays": 22,
+  "maxAnticipationDays": 2,
+  "costParameters": {
+    "travelSpeedKmh": 20
+  }
+}
