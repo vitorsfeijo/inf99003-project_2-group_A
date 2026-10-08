@@ -47,6 +47,8 @@ experimentos/
 
 ### Varredura fatorial para apresentação
 
+Para a síntese curta de **todos os 132 territórios importados de Porto Alegre**, execute `npm run citywide:report --prefix experimentos` após compilar o núcleo e os experimentos. O [resumo pronto para slides](analise/porto-alegre/resumo-slides.md) informa ganhos relativos, custos e limites; os registros por território e taxa de falha são gerados em `resultados/porto-alegre/`. Essa média dá o mesmo peso a cada território e usa 30 pacientes sintéticos em cada um; não representa a população real da cidade.
+
 O [protocolo fatorial](PROTOCOLO_FATORIAL.md) varia independentemente **pacientes, área do território, horizonte de planejamento, proporção inicialmente vencida e chance de falha**. As taxas de falha são **0%, 5% e 10% por tentativa**. O experimento completo usa três sementes, uma equipe e o território GeoSaúde US Restinga como geometria base; as versões de área reduzida ou ampliada são cenários sintéticos de sensibilidade. Os três métodos recebem exatamente os mesmos casos. Os arquivos de saída e o relatório são gerados com:
 
 ```bash
