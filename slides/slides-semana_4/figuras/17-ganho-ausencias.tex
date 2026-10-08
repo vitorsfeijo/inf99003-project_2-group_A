@@ -1,0 +1,13 @@
+% Figura do slide 17. Compilar a partir desta pasta.
+\documentclass[aspectratio=169,11pt]{beamer}
+\input{preambulo-figuras.tex}
+\begin{document}
+\begin{frame}
+\begin{tikzpicture}[x=.58cm,y=.53cm]
+\foreach \y in {0,2,4,6,8} {\draw[light] (0,\y)--(10,\y);\node[anchor=east,font=\scriptsize,text=muted] at (-.2,\y) {\y};}
+\draw[blue,line width=1.3pt] (0,6.44)--(5,6.11)--(10,5.52);
+\foreach \x/\y/\v/\lab in {0/6.44/6{,}44/0,5/6.11/6{,}11/5,10/5.52/5{,}52/10} {\fill[blue] (\x,\y) circle (2.4pt);\node[font=\small,above] at (\x,\y+.3) {\v};\node[font=\small,text=muted] at (\x,-.7) {\lab\%};}
+\node[anchor=west,font=\scriptsize,text=muted] at (0,9.2) {Ganho de resposta pronta (p.p.)};\node[font=\scriptsize,text=muted] at (5,-1.4) {Chance de falha por tentativa};
+\end{tikzpicture}
+\end{frame}
+\end{document}

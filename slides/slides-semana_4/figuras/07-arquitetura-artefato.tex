@@ -1,0 +1,20 @@
+% Figura do slide 07. Compilar a partir desta pasta.
+\documentclass[aspectratio=169,11pt]{beamer}
+\input{preambulo-figuras.tex}
+\begin{document}
+\begin{frame}
+\begin{tikzpicture}
+\node[font=\small\ttfamily,text=muted] at (0,1.1) {web};
+\node[font=\small\ttfamily,text=muted] at (5,1.1) {server};
+\node[font=\small\ttfamily,text=blue] at (10,1.1) {core};
+\node[txt,font=\large] at (0,0) {Mapa e comparação\\\small React · Leaflet};
+\node[txt,font=\large] at (5,0) {API e histórico\\\small Fastify · SQLite};
+\node[txt,font=\large,text=blue] at (10,0) {Núcleo de rotas\\\small TypeScript};
+\draw[arr] (1.8,0)--(3.2,0);\draw[arr] (6.8,0)--(8.2,0);
+\node[txt] at (0,-2.25) {CSV / GPX};
+\node[txt] at (10,-2.25) {Experimentos em lote};
+\draw[arr] (10,-1.85)--(10,-.7);\draw[arr] (0,-.7)--(0,-1.85);
+\node[smalltxt] at (5,-2.25) {Cenários e planos\\versionados};
+\end{tikzpicture}
+\end{frame}
+\end{document}

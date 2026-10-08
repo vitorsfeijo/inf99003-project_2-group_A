@@ -1,0 +1,16 @@
+% Figura do slide 10. Compilar a partir desta pasta.
+\documentclass[aspectratio=169,11pt]{beamer}
+\input{preambulo-figuras.tex}
+\begin{document}
+\begin{frame}
+\begin{tikzpicture}
+\node[txt] at (0,0) {Vizinho\\mais próximo};
+\node[txt] at (4.3,0) {Busca\\econômica};
+\node[txt,text=blue] at (8.9,0) {Reparo e\\prioridade};
+\draw[arr] (1.55,0)--(2.8,0);\draw[arr] (5.9,0)--(7.3,0);
+\node[smalltxt] at (0,-1.55) {Construção\\geográfica};
+\node[smalltxt] at (4.3,-1.55) {Mover / trocar\\entre dias e equipes};
+\node[smalltxt] at (8.9,-1.55) {Inserir pendências\\e antecipar prioridades};
+\end{tikzpicture}
+\end{frame}
+\end{document}
