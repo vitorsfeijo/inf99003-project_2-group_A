@@ -20,6 +20,7 @@ import {
 
 import fs from 'fs';
 import path from 'path';
+import { pathToFileURL } from 'node:url';
 
 // ---------------------------------------------------------------------------
 // Tipos de saída
@@ -87,7 +88,7 @@ function nextWorkingDay(dateStr: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// PRNG Mulberry32 determinístico (semente fixa por (strategyId, scenarioId, missRate))
+// PRNG Mulberry32 determinístico (mesmo sorteio por paciente/data entre métodos e taxas)
 // ---------------------------------------------------------------------------
 
 function mulberry32(seed: number) {
@@ -99,9 +100,9 @@ function mulberry32(seed: number) {
   };
 }
 
-function seedForVisit(scenarioId: string, missRate: number, date: string, patientId: string): number {
+function seedForVisit(scenarioId: string, date: string, patientId: string): number {
   // O mesmo paciente no mesmo dia tem o mesmo resultado em todas as estratégias.
-  const str = `${scenarioId}|${missRate}|${date}|${patientId}`;
+  const str = `${scenarioId}|${date}|${patientId}`;
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
     hash = (Math.imul(31, hash) + str.charCodeAt(i)) | 0;
@@ -113,11 +114,12 @@ function seedForVisit(scenarioId: string, missRate: number, date: string, patien
 // Função principal: simular uma rodada dinâmica
 // ---------------------------------------------------------------------------
 
-function runDynamicSimulation(
+export function runDynamicSimulation(
   baseScenario: Scenario,
   strategyId: string,
   missRate: number,
-  totalSimulationDays: number
+  totalSimulationDays: number,
+  failureKey = baseScenario.id
 ): DynamicSimulationRecord {
   // Estado inicial: avança a janela de planejamento para cada dia simulado
   let state: ScenarioState = {
@@ -187,7 +189,7 @@ function runDynamicSimulation(
       realTravelDistanceKm += route.totalDistanceKm;
 
       for (const visit of route.visits) {
-        const failed = mulberry32(seedForVisit(baseScenario.id, missRate, currentDate, visit.patientId))() < missRate;
+        const failed = mulberry32(seedForVisit(failureKey, currentDate, visit.patientId))() < missRate;
         const status: 'completed' | 'missed' = failed ? 'missed' : 'completed';
 
         if (status === 'completed') {
@@ -282,6 +284,7 @@ function runDynamicSimulation(
 // Entrypoint: executa todas as combinações e salva resultados
 // ---------------------------------------------------------------------------
 
+if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
 const cenariosDir = path.resolve(process.cwd(), 'cenarios');
 const resultadosDir = path.resolve(process.cwd(), 'resultados');
 
@@ -370,3 +373,4 @@ fs.writeFileSync(csvOut, `${csvHeader}\n${csvRows.join('\n')}`, 'utf-8');
 console.log(`💾 CSV salvo: ${csvOut}`);
 
 console.log('\n✨ Simulação dinâmica concluída com sucesso!');
+}

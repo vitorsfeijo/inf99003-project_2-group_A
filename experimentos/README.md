@@ -45,6 +45,19 @@ experimentos/
 
 ## 🚀 Como Executar os Experimentos
 
+### Varredura fatorial para apresentação
+
+O [protocolo fatorial](PROTOCOLO_FATORIAL.md) varia independentemente **pacientes, área do território, horizonte de planejamento, proporção inicialmente vencida e chance de falha**. As taxas de falha são **0%, 5% e 10% por tentativa**. O experimento completo usa três sementes, uma equipe e o território GeoSaúde US Restinga como geometria base; as versões de área reduzida ou ampliada são cenários sintéticos de sensibilidade. Os três métodos recebem exatamente os mesmos casos. Os arquivos de saída e o relatório são gerados com:
+
+```bash
+npm run build --prefix artefato/packages/core
+npm run build --prefix experimentos
+npm run factorial --prefix experimentos
+npm run factorial:report --prefix experimentos
+```
+
+Abra [o relatório fatorial](analise/fatorial/relatorio.html) e use [o resumo para apresentação](analise/fatorial/resumo.md). Os resultados brutos ficam em `resultados/fatorial/` e podem ser regenerados com os comandos acima.
+
 ### Territórios GeoSaúde
 
 Exporte **GeoJSON WGS84 (EPSG:4326), KML ou KMZ completo** do GeoSaúde. O arquivo completo usado para os cenários versionados está em `dados/GEOSAUDE - Território Base (Jul25) (1).kmz`; o SHA-256 aparece em cada arquivo de `provenance/`. As outras exportações locais em `dados/` são auxiliares e não são versionadas. Arquivos KMZ que contêm somente `NetworkLink` não incluem as áreas e são rejeitados. O gerador percorre a camada **Territórios da Atenção Primária**, cria um cenário separado por território e associa a unidade de saúde por nome exato. No arquivo de julho de 2025, 131 das 132 áreas têm associação exata; a área `US Ramos` usa a unidade mais próxima do centro geométrico e essa aproximação fica registrada na proveniência. Cada cenário usa **uma equipe**, um mês corrido a partir da data inicial (22 dias úteis em outubro de 2026) e 30 atendimentos sintéticos por padrão: 3.960 pessoas no conjunto, distribuídas entre as 132 áreas. A distribuição é uniforme dentro dos polígonos e não representa endereços reais, densidade populacional, prevalência clínica ou efetivo observado das equipes. Para estimar demanda proporcional à população, ainda são necessários setores censitários, contagens populacionais e parâmetros clínicos observados.
@@ -62,7 +75,7 @@ O relatório mostra distribuição das visitas alocadas em faixas de atraso e as
 
 O relatório HTML incorpora uma cópia local do Chart.js 4.5.1 e abre sem conexão; a licença MIT está em `analise/vendor/LICENSE.chartjs.md`.
 
-Na simulação dinâmica, a cobertura efetiva usa como denominador a demanda inicial completa, inclusive quem nunca recebeu tentativa de atendimento. Falhas são determinadas por `(cenário, taxa de falha, paciente, dia)`, gerando a mesma ausência quando estratégias diferentes visitam a mesma pessoa no mesmo dia. O atraso efetivo inclui pacientes ainda pendentes até o último dia simulado.
+Na simulação dinâmica, a cobertura efetiva usa como denominador a demanda inicial completa, inclusive quem nunca recebeu tentativa de atendimento. Falhas são determinadas por um sorteio estável para `(cenário, paciente, dia)`; a taxa de falha define o limiar desse sorteio, garantindo a mesma ausência quando estratégias diferentes visitam a mesma pessoa no mesmo dia. O atraso efetivo inclui pacientes ainda pendentes até o último dia simulado.
 
 Para rodar a geração de dados e a simulação em lote:
 
