@@ -1,0 +1,98 @@
+\documentclass[aspectratio=169,11pt]{beamer}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[brazilian]{babel}
+\usepackage{amsmath,booktabs,graphicx,array}
+% Figuras pré-compiladas em figuras/. Dados e falas documentados no roteiro.
+% Recompilar figuras: powershell -File figuras/compilar-figuras.ps1
+% Estética: Singapore, como semanas 1--3. Conteúdo conciso e visual: Mini-ARC.
+\usetheme{Singapore}
+\title[PHVD-APS -- Apresentação final]{Planejamento de Visitas Domiciliares na APS}
+\subtitle{Slides de apoio}
+\author{Fabio Cieslak, Tobias Marion e Vitor Feijo}
+\date{INF99003 -- Projeto 2 -- Grupo A\\Apresentação final -- 09/10/2026}
+\definecolor{ink}{HTML}{202124}
+\definecolor{muted}{HTML}{666666}
+\definecolor{blue}{RGB}{30,80,160}
+\definecolor{green}{RGB}{30,130,60}
+\definecolor{red}{RGB}{190,60,60}
+\definecolor{light}{HTML}{E8E8E8}
+\definecolor{amber}{HTML}{B68432}
+\setbeamercolor{normal text}{fg=ink,bg=white}
+\setbeamersize{text margin left=8mm,text margin right=8mm}
+\setbeamertemplate{navigation symbols}{}
+\setbeamercovered{transparent}
+\setbeamertemplate{footline}[frame number]
+\newcommand{\bigtext}[1]{{\fontsize{24.88}{30}\selectfont #1\par}}
+\newcommand{\smallnote}[1]{\par\vspace{2mm}{\fontsize{8}{10}\selectfont\color{muted}#1\par}}
+\newcommand{\labeltext}[1]{{\color{muted}\small #1}}
+\begin{document}
+\section{Apoio}
+% Apoio 1
+\begin{frame}{Apoio · como medimos atendimento}
+\vspace{3mm}
+\begin{tabular}{@{}p{.31\textwidth}p{.62\textwidth}@{}}
+\textbf{Prioridade a tempo} & Pesos atendidos a tempo / pesos da demanda inicial\\[6mm]
+\textbf{Cobertura efetiva} & Visitas concluídas / visitas da demanda inicial\\[6mm]
+\textbf{Atraso controlável} & Dias adicionais de atraso, ponderados pelos pesos
+\end{tabular}
+\vspace{7mm}\par{\large Pesos 1, 3 e 5; só o peso 5 foi atendido a tempo:}
+\par\vspace{3mm}{\large $5/9 = 55{,}56\%$ da prioridade}
+\smallnote{Prioridade e cobertura multiplicadas por 100. Já vencidas contam como prontas se atendidas no primeiro dia. Pendências permanecem no denominador.}
+\end{frame}
+% Apoio 2
+\begin{frame}{Apoio · 250 pacientes: capacidade e cálculo}
+{\large Restinga · 3 sementes · 1 equipe de 300 min/dia\par}
+\vspace{5mm}
+\begin{columns}[T]
+\column{.54\textwidth}\textbf{Visitas no plano inicial}\par\vspace{3mm}
+{\small\begin{tabular}{@{}lrr@{}}
+\toprule Método & 4 meses & 12 meses\\\midrule
+Principal & 249--250 & 250\\
+Vizinho & 241--243 & 250\\
+Urgência & 246--248 & 250\\\bottomrule
+\end{tabular}}
+\column{.43\textwidth}\textbf{Cálculo da principal}\par\vspace{3mm}
+{\small\begin{tabular}{@{}lr@{}}
+\toprule Ausência & Média acumulada\\\midrule
+0\% & 22,14 s\\
+5\% & 116,20 s\\
+10\% & 151,78 s\\\bottomrule
+\end{tabular}}
+\end{columns}
+\vspace{5mm}\labeltext{Com 240 min/dia, algumas visitas isoladas excediam a jornada.}
+\smallnote{Capacidade: mínimo--máximo entre sementes, de 250 visitas. Cálculo: médias das execuções longas por taxa. Limite comum de 261 dias úteis; feriados não retirados.}
+\end{frame}
+% Apoio 3
+\begin{frame}{Apoio · protocolo e função de busca}
+\begin{columns}[T]
+\column{.47\textwidth}\textbf{Fatorial}\par\vspace{3mm}
+\begin{tabular}{@{}ll@{}}
+Pacientes & 15 / 30 / 45 / 90\\[2mm]
+Área & 0,5 / 1 / 2$\times$\\[2mm]
+Dias úteis & 5 / 10 / 22\\[2mm]
+Já vencidas & 0 / 25 / 50\%\\[2mm]
+Falha & 0 / 5 / 10\%
+\end{tabular}
+\column{.5\textwidth}\textbf{Busca entre rotas}\par\vspace{3mm}
+{\small $J=T_{\mathrm{viagem}}+12D_w-24P_{\mathrm{pronta}}$}\par
+\vspace{4mm}\labeltext{$D_w$: atraso controlável ponderado\\$P_{\mathrm{pronta}}$: pontos de prioridade pronta}
+\par\vspace{4mm}\labeltext{Primeira busca: peso da resposta pronta = 0\\Segunda busca: peso = 24}
+\end{columns}
+\smallnote{324 cenários; 2.916 simulações; 972 pares por referência. OSRM a pé. Pesos em minutos equivalentes; até 80 movimentos por busca.}
+\end{frame}
+% Apoio 4
+\begin{frame}{Apoio · reprodução dos três estudos}
+\relax
+{\large OSRM local com OpenStreetMap e perfil de caminhada\par}
+\vspace{6mm}
+\begin{tabular}{@{}ll@{}}
+Porto Alegre & \texttt{npm run citywide:report}\\[4mm]
+Fatorial & \texttt{npm run factorial}\\[2mm]
+ & \texttt{npm run factorial:report}\\[4mm]
+250 pacientes & \texttt{npm run long-horizon}
+\end{tabular}
+\vspace{6mm}\par\labeltext{Comandos com \texttt{\mbox{-}\mbox{-}prefix experimentos} e \texttt{OSRM\_BASE\_URL} definido}
+\smallnote{Compilar core, server e experimentos antes. Sequência completa, capacidade e verificação das matrizes no roteiro e em experimentos/README.md.}
+\end{frame}
+\end{document}

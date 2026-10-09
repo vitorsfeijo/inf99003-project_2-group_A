@@ -1,0 +1,17 @@
+% Figura do slide 12. Compilar a partir desta pasta.
+\documentclass[aspectratio=169,11pt]{beamer}
+\input{preambulo-figuras.tex}
+\begin{document}
+\begin{frame}
+\begin{tikzpicture}
+\node[txt] at (0,0) {Plano\\do dia};
+\node[txt] at (3.5,0) {Tentativa\\de visita};
+\node[txt,text=green] at (8.3,1.05) {Concluída\\\small atualiza última visita};
+\node[txt,text=red] at (8.3,-1.05) {Não realizada\\\small mantém o prazo original};
+\draw[arr] (1,0)--(2.4,0);\draw[arr] (4.5,.2)--(6.5,1.05);\draw[arr] (4.5,-.2)--(6.5,-1.05);
+\node[txt,text=blue] at (5.5,-2.9) {Novo estado $\to$ replanejar dias futuros};
+\draw[arr] (8.3,-1.65)--(8.3,-2.1)--(5.5,-2.1)--(5.5,-2.5);
+\draw[arr] (10.5,1.05)--(11,1.05)--(11,-2.1)--(8.3,-2.1);
+\end{tikzpicture}
+\end{frame}
+\end{document}

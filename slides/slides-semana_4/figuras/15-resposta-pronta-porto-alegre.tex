@@ -1,0 +1,13 @@
+% Porto Alegre com OSRM a pe: analise/porto-alegre-caminhada/resumo-slides.md.
+\documentclass[aspectratio=169,11pt]{beamer}
+\input{preambulo-figuras.tex}
+\begin{document}
+\begin{frame}
+\begin{tikzpicture}[x=.14cm,y=1.05cm]
+\foreach \x in {0,10,20,30,40} {\draw[light] (\x,-.6)--(\x,2.8);\node[font=\scriptsize,text=muted] at (\x,-.9) {\x};}
+\fill[blue] (0,2) rectangle (34.63,2.45);\fill[green] (0,.8) rectangle (28.18,1.25);\fill[red] (0,-.4) rectangle (17.93,.05);
+\node[anchor=west,font=\small] at (35.3,2.22) {34,63\%};\node[anchor=west,font=\small] at (28.9,1.02) {28,18\%};\node[anchor=west,font=\small] at (18.6,-.18) {17,93\%};
+\node[anchor=west,font=\small] at (0,2.75) {Principal};\node[anchor=west,font=\small] at (0,1.55) {Vizinho próximo};\node[anchor=west,font=\small] at (0,.35) {Urgência};
+\end{tikzpicture}
+\end{frame}
+\end{document}

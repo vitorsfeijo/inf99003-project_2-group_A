@@ -1,0 +1,16 @@
+% Figura do slide 02. Compilar a partir desta pasta.
+\documentclass[aspectratio=169,11pt]{beamer}
+\input{preambulo-figuras.tex}
+\begin{document}
+\begin{frame}
+\begin{tikzpicture}
+\node[txt] at (0,0) {Prioridade\\clínica};
+\node[txt] at (4.2,0) {Jornada\\limitada};
+\node[txt] at (8.4,0) {Distância entre\\domicílios};
+\draw[arr] (0,-.65)--(4.2,-1.7);
+\draw[arr] (4.2,-.65)--(4.2,-1.7);
+\draw[arr] (8.4,-.65)--(4.2,-1.7);
+\node[txt,text=blue] at (4.2,-2.15) {Uma agenda que precisa reagir às ausências};
+\end{tikzpicture}
+\end{frame}
+\end{document}

@@ -1,0 +1,17 @@
+% Fatorial OSRM a pe: analise/fatorial-caminhada/resumo.md, 972 pares.
+\documentclass[aspectratio=169,11pt]{beamer}
+\input{preambulo-figuras.tex}
+\begin{document}
+\begin{frame}
+\begin{tikzpicture}[x=.049cm,y=1.05cm]
+\foreach \x in {0,40,80,120} {\draw[light] (\x,-.2)--(\x,2.6);\node[font=\scriptsize,text=muted] at (\x,-.5) {\x};}
+\fill[blue] (0,1.65) rectangle (113.16,2.10);
+\fill[green] (0,.25) rectangle (109.83,.70);
+\node[anchor=west,font=\small] at (115.5,1.87) {113,16};
+\node[anchor=west,font=\small] at (112.2,.47) {109,83};
+\node[anchor=west,font=\small,text=blue] at (0,2.4) {Principal};
+\node[anchor=west,font=\small,text=green] at (0,1) {Vizinho próximo};
+\node[anchor=west,font=\small,text=muted] at (0,3.3) {Caminhada por execução (km)};
+\end{tikzpicture}
+\end{frame}
+\end{document}

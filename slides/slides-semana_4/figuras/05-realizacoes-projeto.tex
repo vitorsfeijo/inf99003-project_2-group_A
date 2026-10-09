@@ -1,0 +1,26 @@
+% Realizações do projeto. Identificador estável da figura: 05.
+\documentclass[aspectratio=169,11pt]{beamer}
+\input{preambulo-figuras.tex}
+\begin{document}
+\begin{frame}
+\begin{tikzpicture}
+\foreach \x in {0,4.7,9.4} {
+  \foreach \y in {0,-2.3} {
+    \node[draw=light,rounded corners=2pt,minimum width=4.2cm,minimum height=1.55cm] at (\x,\y) {};
+  }
+}
+\node[txt,text=blue] at (0,.25) {Revisão bibliográfica};
+\node[smalltxt] at (0,-.3) {8 trabalhos};
+\node[txt,text=blue] at (4.7,.25) {Modelo de planejamento};
+\node[smalltxt] at (4.7,-.3) {Prazos e restrições};
+\node[txt,text=blue] at (9.4,.25) {Artefato computacional};
+\node[smalltxt] at (9.4,-.3) {3 estratégias + aplicação};
+\node[txt,text=blue] at (0,-2.05) {Dados territoriais};
+\node[smalltxt] at (0,-2.6) {GeoSaúde + amostras};
+\node[txt,text=blue] at (4.7,-2.05) {Experimentos};
+\node[smalltxt] at (4.7,-2.6) {Piloto + cidade + fatorial};
+\node[txt,text=blue] at (9.4,-2.05) {Validação e análise};
+\node[smalltxt] at (9.4,-2.6) {Versões, métricas e limites};
+\end{tikzpicture}
+\end{frame}
+\end{document}

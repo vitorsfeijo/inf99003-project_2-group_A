@@ -1,0 +1,15 @@
+% Figura do slide 14. Compilar a partir desta pasta.
+\documentclass[aspectratio=169,11pt]{beamer}
+\input{preambulo-figuras.tex}
+\begin{document}
+\begin{frame}
+\begin{tikzpicture}
+\draw[arr] (0,0)--(12.8,0);
+\fill[muted] (3,0) circle (2pt);\fill[muted] (9,0) circle (2pt);
+\node[smalltxt] at (3,-.5) {Início da janela};\node[smalltxt] at (9,-.5) {Prazo futuro};
+\node[smalltxt] at (1,1.1) {Já vencida};\draw[arr] (1,.7)--(3,.15);
+\node[smalltxt,text=green] at (3,1.6) {Atender no primeiro dia};
+\node[smalltxt,text=green] at (9,1.6) {Atender até o prazo};\draw[green,thick] (5,.3)--(9,.3);
+\end{tikzpicture}
+\end{frame}
+\end{document}
