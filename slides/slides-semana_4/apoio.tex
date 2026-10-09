@@ -29,39 +29,46 @@
 \begin{document}
 \section{Apoio}
 % Apoio 1
-\begin{frame}{Apoio · avaliação piloto de 01/10}
-\relax
-{\large 11 cenários · 33 planos · 132 simulações dinâmicas\par}
-\vspace{6mm}\centering
-\begin{tabular}{lrrr}
-\toprule Método & Cobertura & Atraso total (dias) & Distância (km)\\\midrule
-Principal & 100,00\% & 116,91 & 90,59\\
-Urgência & 99,09\% & 120,64 & 103,68\\
-Vizinho & 100,00\% & 114,36 & 62,61\\\bottomrule
+\begin{frame}{Apoio · como medimos atendimento}
+\vspace{3mm}
+\begin{tabular}{@{}p{.31\textwidth}p{.62\textwidth}@{}}
+\textbf{Prioridade a tempo} & Pesos atendidos a tempo / pesos da demanda inicial\\[6mm]
+\textbf{Cobertura efetiva} & Visitas concluídas / visitas da demanda inicial\\[6mm]
+\textbf{Atraso controlável} & Dias adicionais de atraso, ponderados pelos pesos
 \end{tabular}
-\vspace{7mm}\par\labeltext{O piloto não mostrou domínio da heurística em todos os critérios.}
-\smallnote{Médias estáticas do protocolo histórico. Versão anterior e métricas diferentes; não comparar numericamente com o estudo final.}
+\vspace{7mm}\par{\large Pesos 1, 3 e 5; só o peso 5 foi atendido a tempo:}
+\par\vspace{3mm}{\large $5/9 = 55{,}56\%$ da prioridade}
+\smallnote{Prioridade e cobertura multiplicadas por 100. Já vencidas contam como prontas se atendidas no primeiro dia. Pendências permanecem no denominador.}
 \end{frame}
 % Apoio 2
-\begin{frame}{Apoio · validação da heurística revista}
-\relax
-{\large 36 instâncias · duas regiões · três sementes separadas\par}
-\vspace{6mm}\centering
-\begin{tabular}{lrr}
-\toprule Versão atual vs. anterior & Ganho médio & Vitórias / empates / derrotas\\\midrule
-Cobertura planejada & +0,346 p.p. & 5 / 31 / 0\\
-Resposta pronta & +0,724 p.p. & 5 / 31 / 0\\
-Atraso controlável & $-$0,014 dia & 7 / 27 / 2\\
-Distância & +0,392 km & 4 / 27 / 5\\\bottomrule
-\end{tabular}
-\smallnote{Planos iniciais da Restinga e CF Santa Marta; comparação com 423e6d4. Sementes 20261101--20261103. Haversine, sem falhas.}
+\begin{frame}{Apoio · 250 pacientes: capacidade e cálculo}
+{\large Restinga · 3 sementes · 1 equipe de 300 min/dia\par}
+\vspace{5mm}
+\begin{columns}[T]
+\column{.54\textwidth}\textbf{Visitas no plano inicial}\par\vspace{3mm}
+{\small\begin{tabular}{@{}lrr@{}}
+\toprule Método & 4 meses & 12 meses\\\midrule
+Principal & 249--250 & 250\\
+Vizinho & 241--243 & 250\\
+Urgência & 246--248 & 250\\\bottomrule
+\end{tabular}}
+\column{.43\textwidth}\textbf{Cálculo da principal}\par\vspace{3mm}
+{\small\begin{tabular}{@{}lr@{}}
+\toprule Ausência & Média acumulada\\\midrule
+0\% & 22,14 s\\
+5\% & 116,20 s\\
+10\% & 151,78 s\\\bottomrule
+\end{tabular}}
+\end{columns}
+\vspace{5mm}\labeltext{Com 240 min/dia, algumas visitas isoladas excediam a jornada.}
+\smallnote{Capacidade: mínimo--máximo entre sementes, de 250 visitas. Cálculo: médias das execuções longas por taxa. Limite comum de 261 dias úteis; feriados não retirados.}
 \end{frame}
 % Apoio 3
 \begin{frame}{Apoio · protocolo e função de busca}
 \begin{columns}[T]
 \column{.47\textwidth}\textbf{Fatorial}\par\vspace{3mm}
 \begin{tabular}{@{}ll@{}}
-Pacientes & 15 / 30 / 45\\[2mm]
+Pacientes & 15 / 30 / 45 / 90\\[2mm]
 Área & 0,5 / 1 / 2$\times$\\[2mm]
 Dias úteis & 5 / 10 / 22\\[2mm]
 Já vencidas & 0 / 25 / 50\%\\[2mm]
@@ -72,19 +79,20 @@ Falha & 0 / 5 / 10\%
 \vspace{4mm}\labeltext{$D_w$: atraso controlável ponderado\\$P_{\mathrm{pronta}}$: pontos de prioridade pronta}
 \par\vspace{4mm}\labeltext{Primeira busca: peso da resposta pronta = 0\\Segunda busca: peso = 24}
 \end{columns}
-\smallnote{Parâmetros em minutos equivalentes, não desfechos clínicos. Até 80 movimentos por busca; orçamento de caminhada e jornada.}
+\smallnote{324 cenários; 2.916 simulações; 972 pares por referência. OSRM a pé. Pesos em minutos equivalentes; até 80 movimentos por busca.}
 \end{frame}
 % Apoio 4
-\begin{frame}{Apoio · referências e reprodução}
+\begin{frame}{Apoio · reprodução dos três estudos}
 \relax
-{\small
-Faria (2020). \emph{A territorialização da Atenção Básica à Saúde do SUS.}\par\vspace{2mm}
-Rodrigues et al. (2014). \emph{A APS na coordenação das redes de atenção.}\par\vspace{2mm}
-Bender et al. (2024). \emph{O uso de TIC em Saúde na APS no Brasil, de 2014 a 2018.}\par\vspace{2mm}
-CONASS (2021). \emph{A APS no SUS: avanços e ameaças.}\par\vspace{2mm}
-Randriamihaja et al. (2024). \emph{Combining OpenStreetMap mapping and route optimization algorithms.} PLOS Digital Health, e0000621.
-}
-\vspace{5mm}{\small\texttt{npm run citywide:report \mbox{-}\mbox{-}prefix experimentos}\par\texttt{npm run factorial:report \mbox{-}\mbox{-}prefix experimentos}}
-\smallnote{Fontes, bibliografia completa, definições e sequência de reprodução no roteiro. Relatórios CSV/JSON e HTML no repositório.}
+{\large OSRM local com OpenStreetMap e perfil de caminhada\par}
+\vspace{6mm}
+\begin{tabular}{@{}ll@{}}
+Porto Alegre & \texttt{npm run citywide:report}\\[4mm]
+Fatorial & \texttt{npm run factorial}\\[2mm]
+ & \texttt{npm run factorial:report}\\[4mm]
+250 pacientes & \texttt{npm run long-horizon}
+\end{tabular}
+\vspace{6mm}\par\labeltext{Comandos com \texttt{\mbox{-}\mbox{-}prefix experimentos} e \texttt{OSRM\_BASE\_URL} definido}
+\smallnote{Compilar core, server e experimentos antes. Sequência completa, capacidade e verificação das matrizes no roteiro e em experimentos/README.md.}
 \end{frame}
 \end{document}

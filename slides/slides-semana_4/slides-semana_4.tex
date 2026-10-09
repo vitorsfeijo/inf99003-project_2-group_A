@@ -77,17 +77,22 @@
 % 08
 \begin{frame}{Território, pacientes e uma rota}
 \begin{columns}[c]
-\column{.61\textwidth}\centering\includegraphics{figuras/08-mapa-restinga.pdf}
+\column{.55\textwidth}\centering\includegraphics{figuras/08-mapa-vila-ipiranga.pdf}
 \column{.37\textwidth}
-{\large US Restinga\par}
+{\large US Vila Ipiranga\par}
 \vspace{4mm}\labeltext{Contorno GeoSaúde real}
 \par\vspace{2mm}\labeltext{30 pacientes sintéticos}
 \par\vspace{6mm}{\large Selecionar $\to$ amostrar\\$\to$ planejar $\to$ comparar}
 \par\vspace{6mm}\labeltext{Registro de visitas + exportação}
 \end{columns}
-\smallnote{Exemplo gerado pelo núcleo: primeiro dia não vazio, 4,5 km/h, jornada de 240 min. Traços em linha reta.}
+\smallnote{Exemplo da interface: 01/10/2026, jornada de 240 min. Traços esquemáticos; custos pela rede de caminhada (OSRM).}
 \end{frame}
 % 09
+\begin{frame}{Interface do protótipo}
+\centering
+\includegraphics[page=1,width=\textwidth,height=.73\paperheight,keepaspectratio]{mvp-aps.png}
+\end{frame}
+% 10
 \section{Métodos}
 \begin{frame}{Três estratégias comparáveis}
 \centering
@@ -100,110 +105,117 @@
 \vspace{8mm}\par\labeltext{Mesmos pacientes, calendário, jornada e matriz de custos}
 \smallnote{A melhoria intra-rota 1.5-opt está habilitada nas três estratégias nos experimentos apresentados.}
 \end{frame}
-% 10
+% 11
 \begin{frame}{Heurística principal: versão final}
 \centering
 \includegraphics{figuras/10-heuristica-principal.pdf}
 \vspace{8mm}\par{\large 1.5-opt em cada rota + limites de jornada}
 \smallnote{A busca controla caminhada; a recuperação de visitas adicionais pode aumentar a distância total.}
 \end{frame}
-% 11
+% 12
 \begin{frame}{O que acontece quando a visita falha?}
 \centering
 \includegraphics{figuras/12-replanejamento-ausencias.pdf}
 \smallnote{Uma visita ausente conta deslocamento, permanece pendente e nunca é presumida como concluída.}
 \end{frame}
-% 12
-\section{Experimentos}
-\begin{frame}{Dois estudos complementares}
-\begin{columns}[T]
-\column{.48\textwidth}{\large Porto Alegre\par}
-\vspace{5mm}{\fontsize{35.83}{42}\selectfont\color{blue}132}\par\labeltext{territórios reais}
-\par\vspace{5mm}30 pacientes · 22 dias úteis
-\par\vspace{2mm}1 amostra por território
-\par\vspace{4mm}\textbf{1.188 simulações}
-\column{.48\textwidth}{\large Fatorial na Restinga\par}
-\vspace{5mm}{\fontsize{35.83}{42}\selectfont\color{blue}5}\par\labeltext{fatores, com três níveis}
-\par\vspace{5mm}Pacientes · área · horizonte
-\par\vspace{2mm}Vencidas · falhas · 3 sementes
-\par\vspace{4mm}\textbf{2.187 simulações}
-\end{columns}
-\smallnote{Três estratégias; falhas de 0\%, 5\% e 10\% por tentativa; uma equipe de 240 min/dia; sorteios comuns por paciente e data.}
-\end{frame}
 % 13
-\begin{frame}{Porto Alegre: maior resposta pronta}
+\section{Experimentos}
+\begin{frame}{Três estudos com rotas a pé}
+\begin{columns}[T]
+\column{.31\textwidth}{\large Porto Alegre\par}
+\vspace{5mm}{\fontsize{35.83}{42}\selectfont\color{blue}131}\par\labeltext{territórios avaliados}
+\par\vspace{5mm}30 pacientes · 22 dias
+\par\vspace{2mm}\labeltext{1 equipe · 240 min/dia}
+\par\vspace{4mm}\textbf{1.179 simulações}
+\column{.32\textwidth}{\large Fatorial · Restinga\par}
+\vspace{5mm}{\fontsize{35.83}{42}\selectfont\color{blue}324}\par\labeltext{cenários · 5 fatores}
+\par\vspace{5mm}15 / 30 / 45 / 90 pacientes
+\par\vspace{2mm}\labeltext{1 equipe · 240 min/dia}
+\par\vspace{4mm}\textbf{2.916 simulações}
+\column{.31\textwidth}{\large 250 · Restinga\par}
+\vspace{5mm}{\fontsize{35.83}{42}\selectfont\color{blue}250}\par\labeltext{pacientes até a conclusão}
+\par\vspace{5mm}Limite de 261 dias úteis
+\par\vspace{2mm}\labeltext{1 equipe · 300 min/dia}
+\par\vspace{4mm}\textbf{27 simulações}
+\end{columns}
+\smallnote{OSRM a pé / OpenStreetMap; mesma matriz entre estratégias; ausências de 0\%, 5\% e 10\%. Porto Alegre: 132 territórios importados, 1 excluído por falta de caminho completo.}
+\end{frame}
+% 14
+\begin{frame}{Porto Alegre: mais prioridade atendida a tempo}
 \begin{columns}[c]
 \column{.65\textwidth}
 \includegraphics{figuras/15-resposta-pronta-porto-alegre.pdf}
-\column{.32\textwidth}{\fontsize{24.88}{31}\selectfont\color{blue}\mbox{+6,02 p.p.}}\par
-\vspace{4mm}{\large +21,2\% relativo}\par
+\column{.32\textwidth}{\fontsize{24.88}{31}\selectfont\color{blue}\mbox{+6,45 p.p.}}\par
+\vspace{4mm}{\large +22,9\% relativo}\par
 \vspace{4mm}\labeltext{ante o vizinho próximo}
-\par\vspace{7mm}\labeltext{Cobertura: 99,81\%\\vs. 99,72\%}
+\par\vspace{7mm}\labeltext{Cobertura: 98,07\%\\vs. 98,23\%}
 \end{columns}
-\smallnote{Médias das 132 regiões e três taxas de falha, com peso igual. Demanda e perfis clínicos sintéticos.}
+\smallnote{Prioridade a tempo = pesos das visitas feitas a tempo / pesos da demanda inicial. Já vencidas: atendimento no primeiro dia. Médias das 131 regiões e três taxas de ausência.}
 \end{frame}
-% 14
-\begin{frame}{O ganho tem custos e limites}
+% 15
+\begin{frame}{Porto Alegre: menor atraso, mais cálculo}
 \centering
 \includegraphics{figuras/16-custos-limites.pdf}
 \par\vspace{5mm}{\small\textcolor{blue}{\rule{3mm}{2mm}} Principal\quad\textcolor{green}{\rule{3mm}{2mm}} Vizinho próximo\quad\textcolor{red}{\rule{3mm}{2mm}} Urgência}
-\smallnote{Cada painel usa escala própria e base zero. Variações ante o vizinho. Tempo do horizonte simulado, dependente da máquina.}
-\end{frame}
-% 15
-\begin{frame}{O ganho permanece com ausências}
-\begin{columns}[c]
-\column{.58\textwidth}
-\includegraphics{figuras/17-ganho-ausencias.pdf}
-\column{.37\textwidth}{\fontsize{35.83}{38}\selectfont\color{blue}283 / 396}\par
-\labeltext{vitórias em resposta pronta}
-\par\vspace{5mm}87 empates · 26 derrotas
-\par\vspace{7mm}\labeltext{Distância maior em\\163 dos 396 pares}
-\end{columns}
-\smallnote{Porto Alegre, principal vs. vizinho próximo. Mesma ausência quando ambos visitam o mesmo paciente na mesma data.}
+\smallnote{Médias por simulação territorial. Cada painel usa escala própria e base zero; atraso ponderado por prioridade. Variações ante o vizinho; cálculo acumulado, dependente da máquina.}
 \end{frame}
 % 16
 \begin{frame}{Fatorial: o ganho varia com a demanda}
 \begin{columns}[c]
 \column{.55\textwidth}
 \includegraphics{figuras/18-fatorial-demanda.pdf}
-\column{.42\textwidth}{\fontsize{29.86}{36}\selectfont\color{blue}+6,64 p.p.}\par
-\labeltext{ganho médio em 729 pares}
-\par\vspace{5mm}580 vitórias · 111 empates\par38 derrotas
-\par\vspace{6mm}\labeltext{Distância: 334 derrotas\\Com 10\% de falha: +0,25 km}
+\column{.42\textwidth}{\fontsize{29.86}{36}\selectfont\color{blue}+9,65 p.p.}\par
+\labeltext{ganho médio em 972 pares}
+\par\vspace{5mm}899 vitórias · 64 empates\par9 derrotas
+\par\vspace{6mm}\labeltext{Com 90 pacientes:\\237 vitórias em 243 pares}
 \end{columns}
-\smallnote{Principal vs. vizinho. Médias marginais sobre os outros fatores e três sementes. Área 0,5$\times$/2$\times$ é sintética.}
+\smallnote{Principal vs. vizinho, prioridade atendida a tempo. Cada barra agrega 243 pares sobre os demais fatores e três sementes. Área 0,5$\times$/2$\times$ é sintética.}
 \end{frame}
 % 17
+\begin{frame}{250 pacientes: conclusão mais cedo}
+\begin{columns}[c]
+\column{.61\textwidth}\centering
+\includegraphics{figuras/19-tempo-250-pacientes.pdf}
+\column{.35\textwidth}{\fontsize{29.86}{36}\selectfont\color{blue}-5,56}\par
+\labeltext{dias úteis até concluir}
+\par\vspace{5mm}{\fontsize{24.88}{31}\selectfont\color{blue}-13,03\%}\par
+\labeltext{de caminhada}
+\par\vspace{5mm}\labeltext{Ante o vizinho · 9 pares\\250/250 em todas as 27 execuções}
+\end{columns}
+\smallnote{Restinga; 3 sementes; 1 equipe de 300 min/dia; limite de 261 dias úteis. Principal: 22--152 s de cálculo acumulado nas médias por taxa de ausência.}
+\end{frame}
+% 18
 \section{Conclusão}
 \begin{frame}{Limites da evidência}
 \vspace{4mm}
 \begin{tabular}{@{}p{.44\textwidth}p{.49\textwidth}@{}}
 {\large Pacientes sintéticos} & Perfis e ausências simulados\\[6mm]
-{\large Distância Haversine} & Ruas e barreiras não avaliadas\\[6mm]
+{\large Caminhada estimada} & Rede OSM/OSRM; sem medição em campo\\[6mm]
 {\large Amostras controladas} & Uma equipe; poucas sementes\\[6mm]
 {\large Comparação descritiva} & Sem superioridade universal
 \end{tabular}
 \smallnote{Eficiência simulada do algoritmo. Os resultados não medem benefício clínico na população.}
 \end{frame}
-% 18
-\begin{frame}[c]{Conclusão}
-\centering\bigtext{Melhor resposta às prioridades\\na avaliação simulada}
-\vspace{8mm}{\large Menor atraso médio · caminhada média próxima}
-\par\vspace{4mm}{\large Mais cálculo · vantagem variável entre cenários}
-\vspace{9mm}\par\labeltext{Artefato reutilizável + experimentos reproduzíveis}
-\end{frame}
 % 19
+\begin{frame}[c]{Conclusão}
+\centering\bigtext{Mais prioridade atendida a tempo\\nas simulações com rotas a pé}
+\vspace{7mm}{\large Fatorial: menor atraso, +3,03\% de caminhada}
+\par\vspace{4mm}{\large 250 pacientes: 5,56 dias antes, 13,03\% menos caminhada}
+\par\vspace{6mm}\labeltext{Ante o vizinho próximo · mais cálculo · resultados dependem do cenário}
+\vspace{5mm}\par\labeltext{Artefato reutilizável + experimentos reproduzíveis}
+\end{frame}
+% 20
 \begin{frame}{Trabalhos futuros}
 \vspace{3mm}
 \begin{tabular}{@{}p{.25\textwidth}p{.67\textwidth}@{}}
-{\large Ruas} & Avaliar o algoritmo com a matriz OSRM a pé\\[6mm]
 {\large Campo} & Demanda e jornadas observadas; piloto com equipes\\[6mm]
 {\large Generalização} & Mais sementes, territórios e múltiplas equipes\\[6mm]
+{\large Escala} & Reduzir custo de cálculo e testar cargas maiores\\[6mm]
 {\large Método} & Pesos, ablações, Pareto e referência exata pequena
 \end{tabular}
-\smallnote{A integração OSRM já existe na aplicação; falta avaliar seus efeitos no protocolo experimental.}
+\smallnote{Matriz OSRM a pé já avaliada; próximos passos: validação operacional, escala e contribuição de cada etapa.}
 \end{frame}
-% 20
+% 21
 \begin{frame}{Referências}
 \begin{columns}[T]
 \column{.49\textwidth}
@@ -221,9 +233,9 @@
 \textbf{Bender et al. (2024).} \emph{O uso de Tecnologias de Informação e Comunicação em Saúde na Atenção Primária à Saúde no Brasil, de 2014 a 2018.} Ciência \& Saúde Coletiva, 29(1), e19882022.
 }
 \end{columns}
-\smallnote{Dados territoriais: GeoSaúde / Porto Alegre, Território Base (jul./2025).}
+\smallnote{Dados territoriais: GeoSaúde / Porto Alegre, Território Base (jul./2025). Custos de caminhada: OpenStreetMap e OSRM (perfil foot.lua).}
 \end{frame}
-% 21
+% 22
 \begin{frame}[plain,c]
 \centering\bigtext{Obrigado!}
 \end{frame}

@@ -1,12 +1,12 @@
-% Figura do slide 18. Compilar a partir desta pasta.
+% Fatorial OSRM a pe: resumo-fatores.csv, 243 pares por nivel de pacientes.
 \documentclass[aspectratio=169,11pt]{beamer}
 \input{preambulo-figuras.tex}
 \begin{document}
 \begin{frame}
-\begin{tikzpicture}[x=1.6cm,y=.24cm]
-\foreach \y in {0,5,10,15} {\draw[light] (.3,\y)--(3.7,\y);\node[font=\scriptsize,text=muted,anchor=east] at (.2,\y) {\y};}
-\foreach \x/\y/\v/\p in {1/10.4696/10{,}47/15,2/5.2477/5{,}25/30,3/4.2039/4{,}20/45} {\fill[blue] (\x-.25,0) rectangle (\x+.25,\y);\node[font=\small,above] at (\x,\y+.2) {\v};\node[font=\small,text=muted] at (\x,-1.3) {\p};}
-\node[font=\scriptsize,text=muted] at (2,-3) {Número de pacientes};\node[font=\scriptsize,text=muted,anchor=west] at (.3,17) {Ganho de resposta pronta (p.p.)};
+\begin{tikzpicture}[x=1.4cm,y=.24cm]
+\foreach \y in {0,5,10,15} {\draw[light] (.3,\y)--(4.7,\y);\node[font=\scriptsize,text=muted,anchor=east] at (.2,\y) {\y};}
+\foreach \x/\y/\v/\p in {1/15.26198/15{,}26/15,2/10.78885/10{,}79/30,3/7.86695/7{,}87/45,4/4.67988/4{,}68/90} {\fill[blue] (\x-.25,0) rectangle (\x+.25,\y);\node[font=\small,above] at (\x,\y+.2) {\v};\node[font=\small,text=muted] at (\x,-1.3) {\p};}
+\node[font=\scriptsize,text=muted] at (2.5,-3) {Número de pacientes};\node[font=\scriptsize,text=muted,anchor=west] at (.3,18.2) {Ganho de prioridade a tempo (p.p.)};
 \end{tikzpicture}
 \end{frame}
 \end{document}
