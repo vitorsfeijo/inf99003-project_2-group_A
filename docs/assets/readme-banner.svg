@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="320" viewBox="0 0 1200 320" role="img" aria-labelledby="title description">
+  <title id="title">PHVD-APS: Planejamento de Visitas Domiciliares</title>
+  <desc id="description">Cabeçalho azul com um desenho esquemático de rota entre uma unidade de saúde e domicílios. Projeto em TypeScript, Node.js 22 ou superior e OSRM a pé.</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0f172a"/>
+      <stop offset="1" stop-color="#173e68"/>
+    </linearGradient>
+    <linearGradient id="route" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#60a5fa"/>
+      <stop offset="1" stop-color="#5eead4"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="320" rx="20" fill="url(#background)"/>
+  <g fill="none" stroke="#b6d7ef" stroke-width="1.5" opacity="0.10">
+    <path d="M728 16 805 42 850 18 932 56 1027 30 1147 83 1200 73"/>
+    <path d="M700 105 788 87 834 127 922 96 1016 126 1106 104 1200 146"/>
+    <path d="M722 216 791 178 875 201 949 167 1042 193 1128 182 1199 213"/>
+    <path d="M783 320 805 245 859 215 893 145 874 93 910 0"/>
+    <path d="M974 320 1000 256 975 215 1033 154 1015 104 1057 0"/>
+    <path d="M1123 320 1108 260 1151 220 1126 146 1151 72 1140 0"/>
+    <path d="M679 285 765 278 843 292 927 269 1019 293 1102 267 1200 285"/>
+  </g>
+  <g font-family="Segoe UI, Arial, sans-serif">
+    <text x="56" y="53" fill="#93c5fd" font-size="13" font-weight="600" letter-spacing="2.4">ROTAS · PRIORIDADES · REPLANEJAMENTO</text>
+    <text x="54" y="123" fill="#ffffff" font-size="62" font-weight="700" letter-spacing="-1.8">PHVD-APS</text>
+    <text x="56" y="168" fill="#eff6ff" font-size="27" font-weight="500">Planejamento de Visitas Domiciliares</text>
+    <text x="56" y="201" fill="#b9cde3" font-size="20">Atenção Primária à Saúde</text>
+    <g font-size="13" font-weight="600" text-anchor="middle">
+      <rect x="56" y="242" width="121" height="30" rx="15" fill="#1e426d" stroke="#46668c"/>
+      <text x="116.5" y="262" fill="#e0f2fe">TypeScript</text>
+      <rect x="187" y="242" width="121" height="30" rx="15" fill="#183c42" stroke="#3b726d"/>
+      <text x="247.5" y="262" fill="#bbf7d0">Node.js 22+</text>
+      <rect x="318" y="242" width="121" height="30" rx="15" fill="#1c455b" stroke="#427789"/>
+      <text x="378.5" y="262" fill="#ccfbf1">OSRM a pé</text>
+    </g>
+  </g>
+  <g fill="none" stroke="url(#route)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M791 241 822 180 872 157 921 193 992 169 1016 111 1090 82"/>
+    <path d="M1090 82 1125 170 1074 237 978 263 903 256 791 241" stroke-dasharray="3 11" stroke-width="2.5" opacity="0.45"/>
+  </g>
+  <g fill="#173252" stroke="#7dd3fc" stroke-width="3">
+    <circle cx="822" cy="180" r="8"/>
+    <circle cx="872" cy="157" r="8"/>
+    <circle cx="921" cy="193" r="8"/>
+    <circle cx="992" cy="169" r="8"/>
+    <circle cx="1016" cy="111" r="8"/>
+  </g>
+  <circle cx="1090" cy="82" r="15" fill="#5eead4" fill-opacity="0.15"/>
+  <circle cx="1090" cy="82" r="7" fill="#5eead4"/>
+  <rect x="768" y="218" width="46" height="46" rx="13" fill="#f8fafc"/>
+  <path d="M783 241h16M791 233v16" stroke="#2563eb" stroke-width="4" stroke-linecap="round"/>
+  <text x="1127" y="289" font-family="Segoe UI, Arial, sans-serif" font-size="11" text-anchor="end" fill="#b9cde3" letter-spacing="1">INF99003 · PROJETO 2 · GRUPO A</text>
+</svg>
