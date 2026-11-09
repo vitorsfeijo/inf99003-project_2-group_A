@@ -1,6 +1,8 @@
-import { Scenario, Plan, VisitResult, PlanOptions } from '@routing/core';
+import { Scenario, Plan, VisitResult, PlanOptions, Patient } from '@routing/core';
 
-const API_BASE_URL = 'http://localhost:3001/api';
+// Em desenvolvimento o Vite (porta 3000) consulta a API na porta 3001; no modo aplicativo,
+// a própria API entrega a interface, então o caminho é relativo.
+const API_BASE_URL = import.meta.env.DEV ? 'http://localhost:3001/api' : '/api';
 
 export interface ExperimentalScenarioSummary {
   id: string;
@@ -30,7 +32,14 @@ export async function fetchBaseRegion(id: string): Promise<Scenario> {
   return res.json();
 }
 
-export async function fetchRoutingStatus(): Promise<{ walkingNetworkConfigured: boolean }> {
+export interface RoutingStatus {
+  walkingNetworkConfigured: boolean;
+  router?: 'internal' | 'osrm' | 'none';
+  riskAreasSupported?: boolean;
+  detail?: string;
+}
+
+export async function fetchRoutingStatus(): Promise<RoutingStatus> {
   const res = await fetch(`${API_BASE_URL}/routing-status`);
   if (!res.ok) throw new Error('Falha ao consultar o roteador de caminhada.');
   return res.json();
@@ -40,6 +49,7 @@ export interface RoadRoute {
   distanceKm: number;
   durationMinutes: number;
   positions: [number, number][];
+  riskAreasCrossed?: string[];
 }
 
 export async function fetchRoadRoute(planId: string, date: string, teamId: string, signal: AbortSignal): Promise<RoadRoute> {
@@ -65,13 +75,13 @@ export async function fetchScenarios(): Promise<any[]> {
 
 export async function fetchExperimentalScenarios(): Promise<ExperimentalScenarioSummary[]> {
   const res = await fetch(`${API_BASE_URL}/experimental-scenarios`);
-  if (!res.ok) throw new Error('Falha ao carregar cenÃ¡rios experimentais.');
+  if (!res.ok) throw new Error('Falha ao carregar cenários experimentais.');
   return res.json();
 }
 
 export async function fetchExperimentalScenario(id: string): Promise<Scenario> {
   const res = await fetch(`${API_BASE_URL}/experimental-scenarios/${encodeURIComponent(id)}`);
-  if (!res.ok) throw new Error('Falha ao carregar o cenÃ¡rio experimental.');
+  if (!res.ok) throw new Error('Falha ao carregar o cenário experimental.');
   return res.json();
 }
 
@@ -127,7 +137,7 @@ export async function registerVisitResults(
   currentDate: string,
   options?: Omit<PlanOptions, 'costMatrix'>,
   scenarioVersion?: number
-): Promise<{ scenarioVersion: number; plan: Plan }> {
+): Promise<{ scenarioVersion: number; scenario: Scenario; plan: Plan }> {
   const res = await fetch(`${API_BASE_URL}/scenarios/${scenarioId}/results`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -146,4 +156,32 @@ export function getExportCsvUrl(scenarioId: string, planId: string, date: string
 
 export function getExportGpxUrl(scenarioId: string, planId: string, date: string, teamId: string): string {
   return `${API_BASE_URL}/export/gpx?scenarioId=${scenarioId}&planId=${planId}&date=${date}&teamId=${teamId}`;
+}
+
+export interface IncomingPatient {
+  transferId: string;
+  fromRegionId: string;
+  fromHealthCenterName: string;
+  reason?: string;
+  createdAt: string;
+  patient: Patient;
+}
+
+/** Pacientes que outras unidades transferiram para este território. */
+export async function fetchIncomingPatients(regionId: string): Promise<IncomingPatient[]> {
+  const res = await fetch(`${API_BASE_URL}/base-regions/${encodeURIComponent(regionId)}/incoming-patients`);
+  if (!res.ok) throw new Error('Falha ao consultar pacientes transferidos para esta unidade.');
+  return res.json();
+}
+
+export async function createTransfer(transfer: { fromScenarioId: string; fromRegionId: string; fromHealthCenterName: string;
+  toRegionId: string; patient: Patient; reason?: string }): Promise<{ id: string }> {
+  const res = await fetch(`${API_BASE_URL}/transfers`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(transfer)
+  });
+  if (!res.ok) {
+    const body = await res.json() as { error?: string };
+    throw new Error(body.error || 'Falha ao registrar a transferência.');
+  }
+  return res.json();
 }

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Map, Calendar, FileText } from 'lucide-react';
 import { Plan, Scenario } from '@routing/core';
 import { getExportCsvUrl, getExportGpxUrl } from '../services/api';
@@ -26,7 +26,9 @@ export const Header: React.FC<HeaderProps> = ({
     : scenario
     ? [scenario.startDate]
     : [];
-  const exportRoute = plan?.routes.find(route => route.date === selectedDate && route.visits.length > 0);
+  const [exportTeamId, setExportTeamId] = useState('');
+  const exportableRoutes = plan?.routes.filter(route => route.date === selectedDate && route.visits.length > 0) ?? [];
+  const exportRoute = exportableRoutes.find(route => route.teamId === exportTeamId) ?? exportableRoutes[0];
 
   return (
     <header style={{
@@ -74,6 +76,10 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Botões de Exportação CSV / GPX */}
         {showRouteControls && canExport && plan && scenario && exportRoute && (
           <div style={{ display: 'flex', gap: '0.5rem' }}>
+            {exportableRoutes.length > 1 && <select aria-label="Equipe a exportar" value={exportRoute.teamId} onChange={event => setExportTeamId(event.target.value)}
+              style={{ background: '#1e293b', color: 'white', border: 'none', borderRadius: '0.375rem', padding: '0 0.5rem', fontSize: '0.8rem' }}>
+              {exportableRoutes.map(route => <option key={route.teamId} value={route.teamId}>{scenario.teams.find(team => team.id === route.teamId)?.name ?? route.teamId}</option>)}
+            </select>}
             <a
               href={getExportCsvUrl(scenario.id, plan.id, selectedDate, exportRoute.teamId)}
               download

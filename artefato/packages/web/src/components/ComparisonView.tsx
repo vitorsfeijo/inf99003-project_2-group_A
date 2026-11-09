@@ -68,7 +68,7 @@ export const ComparisonView: React.FC<Props> = ({ scenario, plans, onOpenPlan })
       <div><p className="comparison-eyebrow">Análise comparativa · 1 mês de trabalho</p><h2>Três planos, a mesma demanda</h2>
         <p>{scenario.polygons[0]?.name ?? scenario.healthCenter.name} · {scenario.patients.length} pacientes simulados · {scenario.teams.length} equipe(s) · {scenario.planningHorizonDays} dias úteis</p>
       </div>
-      <span className="comparison-source">Deslocamento a pé · OSRM</span>
+      <span className="comparison-source">Deslocamento a pé · ruas do OpenStreetMap</span>
     </div>
     <p className="comparison-note">Os três métodos usam o mesmo cenário, versão {scenario.version}, pacientes, equipes e matriz de custos. A busca mensal parte do vizinho mais próximo e troca visitas entre dias para reduzir caminhada e atraso, preservando cobertura e prioridade atendida a tempo. ★ indica o melhor valor em cada indicador visualizado; não representa uma escolha clínica automática.</p>
 
