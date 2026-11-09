@@ -14,4 +14,4 @@ image='ghcr.io/project-osrm/osrm-backend'
 docker run --rm -v "$data_dir:/data" "$image" osrm-extract -p /opt/foot.lua "/data/$data_file"
 docker run --rm -v "$data_dir:/data" "$image" osrm-partition "/data/$dataset"
 docker run --rm -v "$data_dir:/data" "$image" osrm-customize "/data/$dataset"
-docker run --rm -p 127.0.0.1:5000:5000 -v "$data_dir:/data" "$image" osrm-routed --algorithm mld "/data/$dataset"
+docker run --rm -p 127.0.0.1:5000:5000 -v "$data_dir:/data" "$image" osrm-routed --algorithm mld --keepalive-timeout 3600 "/data/$dataset"

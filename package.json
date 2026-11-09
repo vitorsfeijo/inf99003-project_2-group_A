@@ -7,7 +7,9 @@
   "scripts": {
     "prestart": "npm run build",
     "start": "node run-artefact.js",
+    "app": "npm run build && node run-app.js",
     "build": "npm run build --prefix artefato",
+    "prepare-map": "npm run build --prefix artefato/packages/core && npm run build --prefix artefato/packages/server && node artefato/scripts/prepare-map.mjs",
     "start:server": "npm start --prefix artefato/packages/server",
     "start:web": "npm run dev --prefix artefato/packages/web",
     "experiments": "npm run factorial --prefix experimentos",
