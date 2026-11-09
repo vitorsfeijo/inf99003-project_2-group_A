@@ -3,7 +3,8 @@ import { DailyTeamRoute, Scenario, Patient, Team, PlannedVisit } from '@routing/
 /**
  * Gerador de arquivo GPX padrão XML para uma Rota Diária de Equipe
  */
-export function generateRouteGpx(scenario: Scenario, route: DailyTeamRoute): string {
+export function generateRouteGpx(scenario: Scenario, route: DailyTeamRoute,
+  track: { positions?: [number, number][]; unavailableReason?: string } = {}): string {
   const team = scenario.teams.find((t: Team) => t.id === route.teamId);
   const teamName = team ? team.name : route.teamId;
   const patientMap = new Map<string, Patient>(scenario.patients.map((p: Patient) => [p.id, p]));
@@ -30,7 +31,7 @@ export function generateRouteGpx(scenario: Scenario, route: DailyTeamRoute): str
     waypointsXml.push(`
   <wpt lat="${lat}" lon="${lng}">
     <name>${numStr}. Paciente: ${code}</name>
-    <desc>Horário estimado: ${visit.estimatedStartTime} - ${visit.estimatedEndTime} | Duração: ${visit.durationMinutes || 0} min</desc>
+    <desc>Horário estimado: ${visit.estimatedStartTime} - ${visit.estimatedEndTime} | Duração: ${visit.durationMinutes || 0} min${visit.bufferMinutes ? ` (inclui ${visit.bufferMinutes} min de folga)` : ''}${visit.mandatory ? ' | Prazo rígido' : ''}</desc>
     <sym>Home</sym>
   </wpt>`);
   });
@@ -44,16 +45,22 @@ export function generateRouteGpx(scenario: Scenario, route: DailyTeamRoute): str
     <sym>Hospital</sym>
   </wpt>`);
 
-  // Track points (Segmentos ordenados)
+  // Track points: traçado pelas ruas quando disponível; senão, a sequência de paradas em linha reta.
   const trackpointsXml: string[] = [];
-  trackpointsXml.push(`    <trkpt lat="${healthCenter.location.lat}" lon="${healthCenter.location.lng}"></trkpt>`);
-  route.visits.forEach((visit: PlannedVisit) => {
-    const patient = patientMap.get(visit.patientId);
-    if (patient) {
-      trackpointsXml.push(`    <trkpt lat="${patient.location.lat}" lon="${patient.location.lng}"></trkpt>`);
-    }
-  });
-  trackpointsXml.push(`    <trkpt lat="${healthCenter.location.lat}" lon="${healthCenter.location.lng}"></trkpt>`);
+  if (track.positions?.length) {
+    for (const [lat, lng] of track.positions) trackpointsXml.push(`    <trkpt lat="${lat}" lon="${lng}"></trkpt>`);
+  } else {
+    trackpointsXml.push(`    <trkpt lat="${healthCenter.location.lat}" lon="${healthCenter.location.lng}"></trkpt>`);
+    route.visits.forEach((visit: PlannedVisit) => {
+      const patient = patientMap.get(visit.patientId);
+      if (patient) {
+        trackpointsXml.push(`    <trkpt lat="${patient.location.lat}" lon="${patient.location.lng}"></trkpt>`);
+      }
+    });
+    trackpointsXml.push(`    <trkpt lat="${healthCenter.location.lat}" lon="${healthCenter.location.lng}"></trkpt>`);
+  }
+  const trackNote = track.positions?.length ? 'Traçado pela rede de caminhada'
+    : `Traçado em linha reta entre as paradas${track.unavailableReason ? ` (trajeto pelas ruas indisponível: ${escapeXml(track.unavailableReason)})` : ''}`;
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <gpx version="1.1" creator="FrameworkRoteamentoTS" xmlns="http://www.topografix.com/GPX/1/1">
@@ -64,9 +71,14 @@ export function generateRouteGpx(scenario: Scenario, route: DailyTeamRoute): str
   ${waypointsXml.join('')}
   <trk>
     <name>Traçado Rota ${teamName}</name>
+    <desc>${trackNote}</desc>
     <trkseg>
   ${trackpointsXml.join('\n')}
     </trkseg>
   </trk>
 </gpx>`;
+}
+
+function escapeXml(text: string): string {
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }

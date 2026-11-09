@@ -1,12 +1,13 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { db } from '../db/database.js';
-import { planScenario, applyVisitResults, Scenario, Plan, VisitResult, PlanOptions, DailyTeamRoute } from '@routing/core';
+import { planScenario, applyVisitResults, Scenario, Plan, VisitResult, PlanOptions, DailyTeamRoute, Patient,
+  addCalendarDays, getWorkingDaysHorizon } from '@routing/core';
 import { generateRouteCsv } from '../export/csv.js';
 import { generateRouteGpx } from '../export/gpx.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
-import { buildWalkingCostMatrix } from './road-matrix.js';
+import { buildRoadRoute, buildScenarioCostMatrix, routingStatus } from './routing-provider.js';
 
 const experimentalScenariosDirectories = [
   path.resolve(process.cwd(), 'experimentos/cenarios'),
@@ -23,6 +24,33 @@ function readExperimentalScenario(id: string): Scenario | undefined {
   const filePath = path.join(getExperimentalScenariosDirectory(), `${id}.json`);
   if (!fs.existsSync(filePath)) return undefined;
   return JSON.parse(fs.readFileSync(filePath, 'utf-8')) as Scenario;
+}
+
+function loadScenarioVersion(id: string, version: number): Scenario | undefined {
+  const row = db.prepare('SELECT data_json FROM scenarios WHERE id = ? AND version = ?').get(id, version) as { data_json: string } | undefined;
+  return row ? JSON.parse(row.data_json) as Scenario : undefined;
+}
+
+/** Traçado pelas ruas de uma rota salva: posto → visitas na ordem → posto. */
+async function roadRouteForPlan(planId: string, date: string, teamId: string) {
+  const row = db.prepare('SELECT plan_json FROM plans WHERE id = ?').get(planId) as { plan_json: string } | undefined;
+  if (!row) return { status: 404, error: 'Plano não encontrado.' } as const;
+  const plan = JSON.parse(row.plan_json) as Plan;
+  const route = plan.routes.find(item => item.date === date && item.teamId === teamId);
+  if (!route) return { status: 404, error: 'Rota não encontrada.' } as const;
+  const scenario = loadScenarioVersion(plan.scenarioId, plan.scenarioVersion);
+  if (!scenario) return { status: 404, error: 'Cenário não encontrado.' } as const;
+  const locations = [scenario.healthCenter.location, ...route.visits.map(visit => {
+    const patient = scenario.patients.find(item => item.id === visit.patientId);
+    if (!patient) throw new Error(`Paciente ${visit.patientId} não encontrado no cenário.`);
+    return patient.location;
+  }), scenario.healthCenter.location];
+  return { status: 200, plan, route, scenario, road: await buildRoadRoute(scenario, locations) } as const;
+}
+
+/** Próximo dia útil (segunda a sexta) depois da data informada. */
+function nextWorkingDay(date: string): string {
+  return getWorkingDaysHorizon(addCalendarDays(date, 1), 1)[0];
 }
 
 export async function registerApiRoutes(fastify: FastifyInstance) {
@@ -50,55 +78,59 @@ export async function registerApiRoutes(fastify: FastifyInstance) {
     return scenario;
   });
 
-  // A URL deve apontar para uma instância OSRM controlada pelo operador. Não
+  // O traçado usa o roteador interno ou um OSRM controlado pelo operador. Não
   // enviamos coordenadas de pacientes a um serviço público por padrão.
   fastify.get<{ Params: { planId: string }; Querystring: { date: string; teamId: string } }>(
     '/api/plans/:planId/road-route', async (request, reply) => {
-      const baseUrl = process.env.OSRM_BASE_URL;
-      if (!baseUrl) return reply.status(503).send({ error: 'OSRM_BASE_URL não configurada.' });
-      const row = db.prepare('SELECT * FROM plans WHERE id = ?').get(request.params.planId) as { plan_json: string } | undefined;
-      if (!row) return reply.status(404).send({ error: 'Plano não encontrado.' });
-      const plan = JSON.parse(row.plan_json) as Plan;
-      const route = plan.routes.find(item => item.date === request.query.date && item.teamId === request.query.teamId);
-      if (!route) return reply.status(404).send({ error: 'Rota não encontrada.' });
-      const scenarioRow = db.prepare('SELECT data_json FROM scenarios WHERE id = ? AND version = ?')
-        .get(plan.scenarioId, plan.scenarioVersion) as { data_json: string } | undefined;
-      if (!scenarioRow) return reply.status(404).send({ error: 'Cenário não encontrado.' });
-      const scenario = JSON.parse(scenarioRow.data_json) as Scenario;
-      const locations = [scenario.healthCenter.location, ...route.visits.map(visit => {
-        const patient = scenario.patients.find(item => item.id === visit.patientId);
-        if (!patient) throw new Error(`Paciente ${visit.patientId} não encontrado no cenário.`);
-        return patient.location;
-      }), scenario.healthCenter.location];
-      if (locations.length > 102) return reply.status(400).send({ error: 'Rota excede 100 visitas para consulta viária.' });
-      const coordinates = locations.map(point => `${point.lng},${point.lat}`).join(';');
-      const url = `${baseUrl.replace(/\/$/, '')}/route/v1/foot/${coordinates}?overview=full&geometries=geojson`;
       try {
-        const response = await fetch(url, { signal: AbortSignal.timeout(15000) });
-        if (!response.ok) throw new Error(`OSRM respondeu HTTP ${response.status}.`);
-        const data = await response.json() as { code: string; routes?: { distance: number; duration: number; geometry: { coordinates: [number, number][] } }[] };
-        const result = data.routes?.[0];
-        if (data.code !== 'Ok' || !result) throw new Error(`OSRM não encontrou trajeto: ${data.code}.`);
-        return { distanceKm: result.distance / 1000, durationMinutes: result.duration / 60,
-          positions: result.geometry.coordinates.map(([lng, lat]) => [lat, lng]) };
+        const result = await roadRouteForPlan(request.params.planId, request.query.date, request.query.teamId);
+        if (result.status !== 200) return reply.status(result.status).send({ error: result.error });
+        return result.road;
       } catch (error) {
         return reply.status(502).send({ error: error instanceof Error ? error.message : String(error) });
       }
     }
   );
 
-  fastify.get('/api/routing-status', async () => {
-    const baseUrl = process.env.OSRM_BASE_URL;
-    if (!baseUrl) return { walkingNetworkConfigured: false };
-    try {
-      const response = await fetch(`${baseUrl.replace(/\/$/, '')}/nearest/v1/foot/-51.2177,-30.0346?number=1`,
-        { signal: AbortSignal.timeout(3000) });
-      if (!response.ok) return { walkingNetworkConfigured: false };
-      const data = await response.json() as { code?: string; waypoints?: { distance: number }[] };
-      return { walkingNetworkConfigured: data.code === 'Ok' && (data.waypoints?.[0]?.distance ?? Infinity) < 1000 };
-    } catch {
-      return { walkingNetworkConfigured: false };
+  fastify.get('/api/routing-status', async () => routingStatus());
+
+  // Transferência de pacientes entre unidades: a unidade de origem marca o paciente como
+  // transferido (nova versão do cenário) e a de destino o recebe ao amostrar seu território.
+  fastify.post<{ Body: { fromScenarioId: string; fromRegionId: string; fromHealthCenterName: string; toRegionId: string; patient: Patient; reason?: string } }>(
+    '/api/transfers', async (request, reply) => {
+      const { fromScenarioId, fromRegionId, fromHealthCenterName, toRegionId, patient, reason } = request.body ?? {};
+      if (!fromScenarioId || !fromRegionId || !toRegionId || !patient?.id || !patient.location) {
+        return reply.status(400).send({ error: 'Transferência incompleta: informe origem, destino e paciente.' });
+      }
+      if (fromRegionId === toRegionId) return reply.status(400).send({ error: 'A unidade de destino deve ser diferente da origem.' });
+      if (!readExperimentalScenario(toRegionId)) return reply.status(404).send({ error: 'Unidade de destino não encontrada.' });
+      const id = randomUUID();
+      db.prepare(`INSERT INTO patient_transfers (id, from_scenario_id, from_region_id, from_health_center_name, to_region_id, patient_json, reason, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`).run(id, fromScenarioId, fromRegionId, fromHealthCenterName ?? '', toRegionId,
+        JSON.stringify(patient), reason ?? null, new Date().toISOString());
+      return { id };
     }
+  );
+
+  // Pacientes recebidos por transferência: entram no território da unidade mesmo fora do contorno.
+  fastify.get<{ Params: { id: string } }>('/api/base-regions/:id/incoming-patients', async request => {
+    const rows = db.prepare(`SELECT id, from_region_id, from_health_center_name, patient_json, reason, created_at
+      FROM patient_transfers WHERE to_region_id = ? ORDER BY created_at`).all(request.params.id) as
+      { id: string; from_region_id: string; from_health_center_name: string; patient_json: string; reason: string | null; created_at: string }[];
+    return rows.map(row => {
+      const { transfer: _transfer, assignedTeamId: _team, ...patient } = JSON.parse(row.patient_json) as Patient;
+      return {
+        transferId: row.id, fromRegionId: row.from_region_id, fromHealthCenterName: row.from_health_center_name,
+        reason: row.reason ?? undefined, createdAt: row.created_at,
+        patient: { ...patient, id: `transf_${row.id.slice(0, 8)}`, code: `T-${patient.code}`, territoryOverride: 'include' as const }
+      };
+    });
+  });
+
+  fastify.delete<{ Params: { transferId: string } }>('/api/transfers/:transferId', async (request, reply) => {
+    const result = db.prepare('DELETE FROM patient_transfers WHERE id = ?').run(request.params.transferId);
+    if (!result.changes) return reply.status(404).send({ error: 'Transferência não encontrada.' });
+    return { removed: true };
   });
 
   // Cenários JSON produzidos pela bancada experimental.
@@ -207,7 +239,7 @@ export async function registerApiRoutes(fastify: FastifyInstance) {
 
     let costMatrix;
     try {
-      costMatrix = await buildWalkingCostMatrix(scenario);
+      costMatrix = await buildScenarioCostMatrix(scenario);
     } catch (error) {
       return reply.status(502).send({ error: error instanceof Error ? error.message : String(error) });
     }
@@ -237,7 +269,7 @@ export async function registerApiRoutes(fastify: FastifyInstance) {
     const scenario = JSON.parse(row.data_json) as Scenario;
     let costMatrix;
     try {
-      costMatrix = await buildWalkingCostMatrix(scenario);
+      costMatrix = await buildScenarioCostMatrix(scenario);
     } catch (error) {
       return reply.status(502).send({ error: error instanceof Error ? error.message : String(error) });
     }
@@ -295,10 +327,12 @@ export async function registerApiRoutes(fastify: FastifyInstance) {
       );
       const latest = db.prepare('SELECT MAX(version) AS version FROM scenarios WHERE id = ?').get(id) as { version: number };
       newState.scenario.version = latest.version + 1;
+      // Encerrar o dia avança a janela móvel: o novo plano começa no próximo dia útil.
+      if (currentDate) newState.scenario.startDate = nextWorkingDay(currentDate);
 
       let costMatrix;
       try {
-        costMatrix = await buildWalkingCostMatrix(newState.scenario);
+        costMatrix = await buildScenarioCostMatrix(newState.scenario);
       } catch (error) {
         return reply.status(502).send({ error: error instanceof Error ? error.message : String(error) });
       }
@@ -328,6 +362,7 @@ export async function registerApiRoutes(fastify: FastifyInstance) {
       return {
         message: 'Resultados registrados e replanejamento gerado com sucesso.',
         scenarioVersion: newVersion,
+        scenario: newState.scenario,
         plan: newPlan
       };
     }
@@ -379,7 +414,16 @@ export async function registerApiRoutes(fastify: FastifyInstance) {
 
       if (!route) return reply.status(404).send({ error: 'Rota não encontrada para a data e equipe informadas.' });
 
-      const gpxContent = generateRouteGpx(scenario, route);
+      // O traçado segue as ruas quando o roteador responde; caso contrário, o arquivo registra o motivo.
+      let track: { positions?: [number, number][]; unavailableReason?: string } = {};
+      try {
+        const road = await roadRouteForPlan(planId, date, teamId);
+        if (road.status === 200) track = { positions: road.road.positions };
+        else track = { unavailableReason: road.error };
+      } catch (error) {
+        track = { unavailableReason: error instanceof Error ? error.message : String(error) };
+      }
+      const gpxContent = generateRouteGpx(scenario, route, track);
 
       reply.header('Content-Type', 'application/gpx+xml; charset=utf-8');
       reply.header('Content-Disposition', `attachment; filename="rota_${teamId}_${date}.gpx"`);

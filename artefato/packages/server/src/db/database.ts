@@ -45,5 +45,16 @@ export function initDatabase() {
       reason TEXT,
       created_at TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS patient_transfers (
+      id TEXT PRIMARY KEY,
+      from_scenario_id TEXT NOT NULL,
+      from_region_id TEXT NOT NULL,
+      from_health_center_name TEXT NOT NULL,
+      to_region_id TEXT NOT NULL,
+      patient_json TEXT NOT NULL,
+      reason TEXT,
+      created_at TEXT NOT NULL
+    );
   `);
 }

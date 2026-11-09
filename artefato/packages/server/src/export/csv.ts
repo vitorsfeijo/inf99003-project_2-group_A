@@ -1,4 +1,4 @@
-import { DailyTeamRoute, Scenario, Patient, Team, PlannedVisit } from '@routing/core';
+import { DailyTeamRoute, Scenario, Patient, Team, PlannedVisit, professionLabel } from '@routing/core';
 
 /**
  * Gerador de CSV para uma Rota Diária de Equipe
@@ -20,7 +20,10 @@ export function generateRouteCsv(scenario: Scenario, route: DailyTeamRoute): str
     'latitude',
     'longitude',
     'equipe',
-    'data_atendimento'
+    'data_atendimento',
+    'folga_min',
+    'prazo_rigido',
+    'categorias_exigidas'
   ].join(',');
 
   const rows: string[] = [];
@@ -40,7 +43,10 @@ export function generateRouteCsv(scenario: Scenario, route: DailyTeamRoute): str
     healthCenter.location.lat,
     healthCenter.location.lng,
     `"${teamName}"`,
-    `"${route.date}"`
+    `"${route.date}"`,
+    0,
+    '""',
+    '""'
   ].join(','));
 
   // Atendimentos em Ordem
@@ -59,13 +65,16 @@ export function generateRouteCsv(scenario: Scenario, route: DailyTeamRoute): str
       `"${patientCode}"`,
       `"${visit.estimatedStartTime}"`,
       `"${visit.estimatedEndTime}"`,
-      visit.durationMinutes || 0,
+      (visit.durationMinutes || 0) - (visit.bufferMinutes ?? 0),
       visit.travelTimeMinutesFromPrevious,
       visit.travelDistanceKmFromPrevious,
       lat,
       lng,
       `"${teamName}"`,
-      `"${route.date}"`
+      `"${route.date}"`,
+      visit.bufferMinutes ?? 0,
+      `"${patient?.hardDeadline ?? ''}"`,
+      `"${(patient?.requiredProfessions ?? []).map(professionLabel).join('; ')}"`
     ].join(','));
   });
 
@@ -84,7 +93,10 @@ export function generateRouteCsv(scenario: Scenario, route: DailyTeamRoute): str
     healthCenter.location.lat,
     healthCenter.location.lng,
     `"${teamName}"`,
-    `"${route.date}"`
+    `"${route.date}"`,
+    0,
+    '""',
+    '""'
   ].join(','));
 
   return `${header}\n${rows.join('\n')}`;
