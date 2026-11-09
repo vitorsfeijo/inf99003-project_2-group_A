@@ -37,6 +37,24 @@ export interface PatientCondition {
 }
 
 /**
+  Categoria profissional que pode compor uma equipe e ser exigida por um paciente.
+  Os identificadores do catálogo `PROFESSIONS` são os usados pela interface; outros
+  textos são aceitos para permitir categorias locais.
+ */
+export type ProfessionId = string;
+
+/**
+  Transferência registrada por um profissional: o paciente passa a ser
+  acompanhado por outra unidade e deixa de entrar no planejamento desta.
+ */
+export interface PatientTransfer {
+  toRegionId: string;            // Território GeoSaúde de destino
+  toHealthCenterName: string;
+  date: string;                  // YYYY-MM-DD do registro
+  reason?: string;
+}
+
+/**
   Paciente cadastrado no cenário
  */
 export interface Patient {
@@ -45,10 +63,15 @@ export interface Patient {
   location: Coordinates;
   conditions: PatientCondition[];
   defaultVisitDurationMinutes: number; // Duração estimada do atendimento
+  requiredProfessions?: ProfessionId[]; // Todas precisam estar na equipe que fizer a visita
+  hardDeadline?: string;         // YYYY-MM-DD: prazo rígido, acima da prioridade (âncora = dia atual)
+  assignedTeamId?: string;       // Vínculo: só esta equipe pode visitar o paciente
+  territoryOverride?: 'include'; // Pertence à unidade mesmo fora do contorno GeoSaúde
+  transfer?: PatientTransfer;    // Transferido para outra unidade: fora do planejamento
 }
 
 /**
-  Equipe multiprofissional (Médico, Enfermeiro e Assistente Social)
+  Equipe de visita (pode reunir várias categorias profissionais)
  */
 export interface Team {
   id: string;
@@ -56,8 +79,19 @@ export interface Team {
   doctorName?: string;
   nurseName?: string;
   socialWorkerName?: string;
+  professions?: ProfessionId[];  // Categorias presentes na equipe que sai para as visitas
   dailyWorkMinutes: number;    // Minutos disponíveis para atendimento + deslocamento por dia
   availableDays: string[];     // Datas YYYY-MM-DD em que a equipe está disponível
+}
+
+/**
+  Área marcada pela equipe como de risco: as rotas evitam atravessá-la.
+ */
+export interface RiskArea {
+  id: string;
+  name: string;
+  vertices: Coordinates[];
+  reason?: string;
 }
 
 /**
@@ -73,6 +107,9 @@ export interface Scenario {
   startDate: string;              // YYYY-MM-DD inicial da janela de planejamento
   planningHorizonDays: number;   // N dias de trabalho na janela
   maxAnticipationDays: number;    // A dias de antecipação máxima permitida
+  visitBufferMinutes?: number;    // Folga reservada após cada visita para imprevistos (padrão 0)
+  deadlineSafetyMarginDays?: number; // Planejar cada visita estes dias antes do prazo (padrão 0)
+  riskAreas?: RiskArea[];         // Áreas que as rotas devem evitar atravessar
 }
 
 /**
@@ -83,8 +120,13 @@ export interface VisitCandidate {
   patientId: string;
   conditionId: string;
   dueDate: string;               // YYYY-MM-DD data limite da visita
+  targetDate: string;            // Prazo usado no planejamento: dueDate menos a margem de segurança
   priorityScore: number;         // Pontuação computada de urgência/peso
-  durationMinutes: number;
+  durationMinutes: number;       // Atendimento + folga reservada
+  bufferMinutes?: number;        // Parte de durationMinutes reservada como folga
+  hardDeadline?: string;         // Prazo rígido efetivo (nunca anterior ao primeiro dia útil)
+  requiredProfessions?: ProfessionId[];
+  assignedTeamId?: string;
   isConditional: boolean;        // Se depende do cumprimento de uma visita anterior na mesma janela
   dependsOnVisitId?: string;
 }
@@ -105,7 +147,9 @@ export interface PlannedVisit {
   visitCandidateId: string;
   patientId: string;
   conditionId: string;
-  durationMinutes?: number;
+  durationMinutes?: number;      // Atendimento + folga reservada
+  bufferMinutes?: number;        // Folga incluída em durationMinutes
+  mandatory?: boolean;           // Visita com prazo rígido (âncora ou prazo máximo)
   estimatedStartTime: string;    // Horário estimado (ex: "08:30")
   estimatedEndTime: string;      // Horário estimado (ex: "09:15")
   travelTimeMinutesFromPrevious: number;
@@ -133,6 +177,7 @@ export interface UnallocatedVisit {
   patientId: string;
   conditionId: string;
   reason: string;
+  mandatory?: boolean;           // Prazo rígido que não pôde ser cumprido
 }
 
 /**
@@ -157,6 +202,8 @@ export interface PlanMetrics {
   totalTravelTimeMinutes: number;       // Tempo total de deslocamento (min)
   teamUtilizationPercentage: number;    // % média da jornada utilizada pelas equipes
   teamWorkloadImbalance: number;        // Desvio padrão / variação entre cargas das equipes
+  mandatoryVisitCount?: number;         // Visitas com prazo rígido (presente só quando houver)
+  mandatoryVisitsMetCount?: number;     // Das anteriores, alocadas até o prazo rígido
 }
 
 /**
@@ -171,6 +218,7 @@ export interface Plan {
   routes: DailyTeamRoute[];
   unallocatedVisits: UnallocatedVisit[];
   metrics: PlanMetrics;
+  warnings?: string[];                  // Restrições que não puderam ser atendidas (ex.: prazo rígido)
 }
 
 /**

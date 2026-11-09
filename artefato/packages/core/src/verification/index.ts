@@ -1,5 +1,7 @@
 import { Scenario, Plan, VerificationResult } from '../types/index.js';
 import { validateScenario } from '../validation/scenario.js';
+import { differenceInCalendarDays, getWorkingDaysHorizon } from '../demand/dates.js';
+import { isTeamAvailable, professionLabel, teamCanServe } from '../constraints/index.js';
 
 /**
  * Verificador Formal de Restrições (Etapa 5 do Pipeline)
@@ -15,7 +17,10 @@ export function verifyPlan(scenario: Scenario, plan: Plan): VerificationResult {
   }
 
   const eligiblePatientIds = new Set(validation.eligiblePatients.map(p => p.id));
+  const patientById = new Map(scenario.patients.map(patient => [patient.id, patient]));
   const teamMap = new Map(scenario.teams.map(t => [t.id, t]));
+  const firstWorkingDay = getWorkingDaysHorizon(scenario.startDate, 1)[0];
+  const visitedMandatory = new Set<string>();
 
   for (const route of plan.routes) {
     const team = teamMap.get(route.teamId);
@@ -25,11 +30,11 @@ export function verifyPlan(scenario: Scenario, plan: Plan): VerificationResult {
     }
 
     // 1. Verificação de disponibilidade da equipe
-    if (team.availableDays && team.availableDays.length > 0 && !team.availableDays.includes(route.date)) {
+    if (!isTeamAvailable(team, route.date)) {
       errors.push(`A equipe ${team.name} recebeu uma rota no dia ${route.date}, mas não está disponível nesta data.`);
     }
 
-    // 2. Verificação de limite da jornada diária
+    // 2. Verificação de limite da jornada diária (inclui a folga reservada entre visitas)
     if (route.totalWorkTimeMinutes > team.dailyWorkMinutes) {
       errors.push(`A rota da equipe ${team.name} no dia ${route.date} excede a jornada diária (${route.totalWorkTimeMinutes} min > ${team.dailyWorkMinutes} min).`);
     }
@@ -45,6 +50,30 @@ export function verifyPlan(scenario: Scenario, plan: Plan): VerificationResult {
       if (!eligiblePatientIds.has(visit.patientId)) {
         errors.push(`O paciente ${visit.patientId} está fora do território e foi incluído na rota do dia ${route.date}.`);
       }
+
+      // 4. Categorias profissionais exigidas e vínculo com equipe
+      const patient = patientById.get(visit.patientId);
+      if (patient && !teamCanServe(team, patient)) {
+        const required = (patient.requiredProfessions ?? []).map(professionLabel).join(', ');
+        errors.push(patient.assignedTeamId && patient.assignedTeamId !== team.id
+          ? `O paciente ${patient.code} é vinculado à equipe ${patient.assignedTeamId}, mas foi visitado pela equipe ${team.name} em ${route.date}.`
+          : `A equipe ${team.name} não reúne as categorias exigidas pelo paciente ${patient.code} (${required}) em ${route.date}.`);
+      }
+
+      // 5. Prazo rígido: um prazo já vencido vale para o primeiro dia útil da janela
+      if (patient?.hardDeadline) {
+        const deadline = patient.hardDeadline < firstWorkingDay ? firstWorkingDay : patient.hardDeadline;
+        visitedMandatory.add(patient.id);
+        if (differenceInCalendarDays(route.date, deadline) > 0) {
+          errors.push(`O paciente ${patient.code} tem prazo rígido até ${deadline}, mas foi agendado para ${route.date}.`);
+        }
+      }
+    }
+  }
+
+  for (const unallocated of plan.unallocatedVisits) {
+    if (unallocated.mandatory && !visitedMandatory.has(unallocated.patientId)) {
+      warnings.push(`Prazo rígido não cumprido para o paciente ${patientById.get(unallocated.patientId)?.code ?? unallocated.patientId}: ${unallocated.reason}.`);
     }
   }
 

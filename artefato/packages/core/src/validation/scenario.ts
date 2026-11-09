@@ -5,6 +5,7 @@ export interface ValidationDiagnostics {
   isValid: boolean;
   eligiblePatients: Patient[];
   outOfTerritoryPatients: Patient[];
+  transferredPatients: Patient[];
   errors: string[];
   warnings: string[];
 }
@@ -49,9 +50,11 @@ export function validateScenario(scenario: Scenario): ValidationDiagnostics {
     errors.push('A antecipação máxima (A) não pode ser negativa.');
   }
 
-  // Filtragem de pacientes por território
+  // Filtragem de pacientes por território. A equipe pode incluir manualmente um paciente
+  // fora do contorno (microárea desenhada incorretamente) ou transferi-lo para outra unidade.
   const eligiblePatients: Patient[] = [];
   const outOfTerritoryPatients: Patient[] = [];
+  const transferredPatients: Patient[] = [];
 
   if (scenario.patients && scenario.patients.length > 0) {
     for (const patient of scenario.patients) {
@@ -61,7 +64,12 @@ export function validateScenario(scenario: Scenario): ValidationDiagnostics {
         continue;
       }
 
-      const isInside = isPointInAnyPolygon(patient.location, scenario.polygons);
+      if (patient.transfer) {
+        transferredPatients.push(patient);
+        continue;
+      }
+
+      const isInside = patient.territoryOverride === 'include' || isPointInAnyPolygon(patient.location, scenario.polygons);
       if (isInside) {
         eligiblePatients.push(patient);
       } else {
@@ -73,11 +81,28 @@ export function validateScenario(scenario: Scenario): ValidationDiagnostics {
   if (outOfTerritoryPatients.length > 0) {
     warnings.push(`${outOfTerritoryPatients.length} paciente(s) estão fora da área delimitada e foram excluídos da otimização.`);
   }
+  if (transferredPatients.length > 0) {
+    warnings.push(`${transferredPatients.length} paciente(s) foram transferidos para outra unidade e não entram no planejamento.`);
+  }
+
+  const teamIds = new Set((scenario.teams ?? []).map(team => team.id));
+  for (const patient of eligiblePatients) {
+    if (patient.assignedTeamId && !teamIds.has(patient.assignedTeamId)) {
+      errors.push(`O paciente ${patient.code || patient.id} está vinculado a uma equipe inexistente (${patient.assignedTeamId}).`);
+    }
+  }
+
+  (scenario.riskAreas ?? []).forEach((area, index) => {
+    if (!area.vertices || area.vertices.length < 3) {
+      errors.push(`A área de risco ${area.name || index} possui menos de 3 vértices.`);
+    }
+  });
 
   return {
     isValid: errors.length === 0,
     eligiblePatients,
     outOfTerritoryPatients,
+    transferredPatients,
     errors,
     warnings
   };

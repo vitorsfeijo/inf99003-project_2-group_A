@@ -111,6 +111,18 @@ export function calculatePlanMetrics(
     teamWorkloadImbalance = Math.sqrt(variance);
   }
 
+  // Prazos rígidos que vencem dentro da janela e quantos foram alocados até o prazo.
+  const mandatory = candidates.filter(candidate => candidate.hardDeadline
+    && differenceInCalendarDays(candidate.hardDeadline, lastDay) <= 0);
+  const routeDateByCandidate = new Map(routes.flatMap(route => route.visits.map(visit => [visit.visitCandidateId, route.date] as const)));
+  const mandatoryMetrics = mandatory.length ? {
+    mandatoryVisitCount: mandatory.length,
+    mandatoryVisitsMetCount: mandatory.filter(candidate => {
+      const date = routeDateByCandidate.get(candidate.id);
+      return date !== undefined && differenceInCalendarDays(date, candidate.hardDeadline!) <= 0;
+    }).length
+  } : {};
+
   return {
     coveragePercentage: Number(coveragePercentage.toFixed(2)),
     onTimeCoveragePercentage: Number(onTimeCoveragePercentage.toFixed(2)),
@@ -129,6 +141,7 @@ export function calculatePlanMetrics(
     totalTravelDistanceKm: Number(totalTravelDistanceKm.toFixed(2)),
     totalTravelTimeMinutes: Number(totalTravelTimeMinutes.toFixed(2)),
     teamUtilizationPercentage: Number(teamUtilizationPercentage.toFixed(2)),
-    teamWorkloadImbalance: Number(teamWorkloadImbalance.toFixed(2))
+    teamWorkloadImbalance: Number(teamWorkloadImbalance.toFixed(2)),
+    ...mandatoryMetrics
   };
 }

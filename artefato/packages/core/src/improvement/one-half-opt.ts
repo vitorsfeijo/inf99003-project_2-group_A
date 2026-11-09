@@ -1,4 +1,5 @@
 import { DailyTeamRoute, CostMatrix, PlannedVisit } from '../types/index.js';
+import { nodeIndexByPatient, rebuildRoute } from './route-utils.js';
 
 /**
  * Algoritmo 1.5-Opt para Otimização Intra-Rota (Etapa 5 do Pipeline)
@@ -7,11 +8,12 @@ import { DailyTeamRoute, CostMatrix, PlannedVisit } from '../types/index.js';
  * visando reduzir o tempo/distância total de deslocamento dentro de uma mesma rota diária.
  */
 export function apply1Point5Opt(route: DailyTeamRoute, costMatrix: CostMatrix): DailyTeamRoute {
+  const nodeIndexMap = nodeIndexByPatient(costMatrix);
+  // Com até duas visitas não há reordenação útil; apenas preenche horários e totais.
   if (!route.visits || route.visits.length <= 2) {
-    return route;
+    return rebuildRoute(route, route.visits ?? [], costMatrix, nodeIndexMap);
   }
 
-  const nodeIndexMap = new Map(costMatrix.nodeIds.map((id, index) => [id, index]));
   const depotIdx = 0;
 
   let currentVisits = [...route.visits];
@@ -82,56 +84,5 @@ export function apply1Point5Opt(route: DailyTeamRoute, costMatrix: CostMatrix): 
   }
 
   // Recomputar distâncias e horários finais após otimização 1.5-opt
-  let prevIdx = depotIdx;
-  let accumulatedTimeMinutes = 0;
-  let totalDistKm = 0;
-  let totalTravelTimeMinutes = 0;
-  let totalVisitTimeMinutes = 0;
-
-  const updatedVisits: PlannedVisit[] = currentVisits.map(v => {
-    const currIdx = nodeIndexMap.get(v.patientId) ?? 0;
-    const travelDist = costMatrix.distanceMatrix[prevIdx][currIdx];
-    const travelTime = costMatrix.timeMatrix[prevIdx][currIdx];
-
-    totalDistKm += travelDist;
-    totalTravelTimeMinutes += travelTime;
-    totalVisitTimeMinutes += v.durationMinutes || 0;
-
-    accumulatedTimeMinutes += travelTime;
-    const startTimeStr = formatMinutesToTime(accumulatedTimeMinutes);
-    accumulatedTimeMinutes += v.durationMinutes || 0;
-    const endTimeStr = formatMinutesToTime(accumulatedTimeMinutes);
-
-    prevIdx = currIdx;
-
-    return {
-      ...v,
-      estimatedStartTime: startTimeStr,
-      estimatedEndTime: endTimeStr,
-      travelTimeMinutesFromPrevious: Number(travelTime.toFixed(1)),
-      travelDistanceKmFromPrevious: Number(travelDist.toFixed(2))
-    };
-  });
-
-  const returnDist = costMatrix.distanceMatrix[prevIdx][depotIdx];
-  const returnTime = costMatrix.timeMatrix[prevIdx][depotIdx];
-  totalDistKm += returnDist;
-  totalTravelTimeMinutes += returnTime;
-
-  return {
-    ...route,
-    visits: updatedVisits,
-    totalDistanceKm: Number(totalDistKm.toFixed(2)),
-    totalTravelTimeMinutes: Number(totalTravelTimeMinutes.toFixed(1)),
-    totalVisitTimeMinutes,
-    totalWorkTimeMinutes: Number((totalTravelTimeMinutes + totalVisitTimeMinutes).toFixed(1))
-  };
-}
-
-function formatMinutesToTime(minutes: number): string {
-  const startHour = 8;
-  const totalMin = startHour * 60 + Math.round(minutes);
-  const h = Math.floor(totalMin / 60) % 24;
-  const m = totalMin % 60;
-  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+  return rebuildRoute(route, currentVisits, costMatrix, nodeIndexMap);
 }

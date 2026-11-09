@@ -1,5 +1,7 @@
 import { RoutingStrategy, PlanningContext, DailyTeamRoute, UnallocatedVisit, PlannedVisit } from '../types/index.js';
 import { differenceInCalendarDays } from '../demand/dates.js';
+import { isTeamAvailable, teamCanServe } from '../constraints/index.js';
+import { toPlannedVisit } from '../improvement/route-utils.js';
 
 /**
  * Baseline 1: Ordenação Cronológica por Urgência / Vencimento
@@ -22,7 +24,7 @@ export const UrgencyBaselineStrategy: RoutingStrategy = {
 
     for (const day of workingDays) {
       // Filtrar equipes disponíveis neste dia
-      const availableTeams = scenario.teams.filter(t => !t.availableDays || t.availableDays.length === 0 || t.availableDays.includes(day));
+      const availableTeams = scenario.teams.filter(t => isTeamAvailable(t, day));
 
       for (const team of availableTeams) {
         let currentVisits: PlannedVisit[] = [];
@@ -34,7 +36,7 @@ export const UrgencyBaselineStrategy: RoutingStrategy = {
 
         // Candidatos elegíveis até o dia atual (vencidos ou vencem hoje)
         const eligibleNow = unassignedCandidates
-          .filter(c => !allocatedCandidateIds.has(c.id) && differenceInCalendarDays(c.dueDate, day) <= 0)
+          .filter(c => !allocatedCandidateIds.has(c.id) && differenceInCalendarDays(c.targetDate, day) <= 0 && teamCanServe(team, c))
           .sort((a, b) => b.priorityScore - a.priorityScore);
 
         for (const cand of eligibleNow) {
@@ -52,12 +54,8 @@ export const UrgencyBaselineStrategy: RoutingStrategy = {
             const travelDistToAdd = costMatrix.distanceMatrix[lastNodeIdx][candidateNodeIdx];
 
             currentVisits.push({
-              visitCandidateId: cand.id,
-              patientId: cand.patientId,
-              conditionId: cand.conditionId,
+              ...toPlannedVisit(cand),
               durationMinutes: visitDuration,
-              estimatedStartTime: '',
-              estimatedEndTime: '',
               travelTimeMinutesFromPrevious: Number(travelTimeToAdd.toFixed(1)),
               travelDistanceKmFromPrevious: Number(travelDistToAdd.toFixed(2))
             });

@@ -1,5 +1,7 @@
 import { RoutingStrategy, PlanningContext, DailyTeamRoute, UnallocatedVisit, PlannedVisit } from '../types/index.js';
 import { differenceInCalendarDays } from '../demand/dates.js';
+import { isTeamAvailable, teamCanServe } from '../constraints/index.js';
+import { toPlannedVisit } from '../improvement/route-utils.js';
 
 /**
  * Baseline 2: Vizinho Mais Próximo Viável (Geográfico)
@@ -20,7 +22,7 @@ export const NearestBaselineStrategy: RoutingStrategy = {
     const allocatedCandidateIds = new Set<string>();
 
     for (const day of workingDays) {
-      const availableTeams = scenario.teams.filter(t => !t.availableDays || t.availableDays.length === 0 || t.availableDays.includes(day));
+      const availableTeams = scenario.teams.filter(t => isTeamAvailable(t, day));
 
       for (const team of availableTeams) {
         let currentVisits: PlannedVisit[] = [];
@@ -34,7 +36,7 @@ export const NearestBaselineStrategy: RoutingStrategy = {
         while (building) {
           // Candidatos pendentes elegíveis
           const eligibleNow = unassignedCandidates.filter(c =>
-            !allocatedCandidateIds.has(c.id) && differenceInCalendarDays(c.dueDate, day) <= 0
+            !allocatedCandidateIds.has(c.id) && differenceInCalendarDays(c.targetDate, day) <= 0 && teamCanServe(team, c)
           );
 
           if (eligibleNow.length === 0) {
@@ -69,12 +71,8 @@ export const NearestBaselineStrategy: RoutingStrategy = {
             const visitDuration = bestCandidate.durationMinutes || 30;
 
             currentVisits.push({
-              visitCandidateId: bestCandidate.id,
-              patientId: bestCandidate.patientId,
-              conditionId: bestCandidate.conditionId,
+              ...toPlannedVisit(bestCandidate),
               durationMinutes: visitDuration,
-              estimatedStartTime: '',
-              estimatedEndTime: '',
               travelTimeMinutesFromPrevious: Number(minTravelTime.toFixed(1)),
               travelDistanceKmFromPrevious: Number(travelDist.toFixed(2))
             });

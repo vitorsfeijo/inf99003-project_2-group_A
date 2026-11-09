@@ -1,6 +1,9 @@
 export * from './types/index.js';
 export { sampleTerritoryPatients } from './sampling/territory.js';
-export { countWorkingDaysInNextMonth } from './demand/dates.js';
+export { countWorkingDaysInNextMonth, getWorkingDaysHorizon, addCalendarDays } from './demand/dates.js';
+export { PROFESSIONS, professionLabel, teamProfessions, teamCanServe } from './constraints/index.js';
+export { isPointInPolygon, isPointInAnyPolygon } from './validation/polygon.js';
+export { validateScenario } from './validation/scenario.js';
 
 import {
   Scenario,
@@ -18,6 +21,7 @@ import { generateDemandCandidates } from './demand/index.js';
 import { calculatePlanMetrics } from './metrics/index.js';
 import { verifyPlan as verifyPlanInternal } from './verification/index.js';
 import { apply1Point5Opt } from './improvement/one-half-opt.js';
+import { enforceMandatoryVisits } from './constraints/mandatory.js';
 
 import { UrgencyBaselineStrategy } from './strategies/baseline-urgency.js';
 import { NearestBaselineStrategy } from './strategies/baseline-nearest.js';
@@ -67,8 +71,11 @@ export function planScenario(scenario: Scenario, options: PlanOptions): Plan {
     workingDays
   };
 
-  // 5. Planejar rotas via Estratégia
-  let { routes, unallocatedVisits } = strategy.solve(context);
+  // 5. Planejar rotas via Estratégia e garantir as visitas com prazo rígido (âncoras),
+  //    que valem para todas as estratégias.
+  const enforced = enforceMandatoryVisits(context, strategy.solve(context));
+  let { routes } = enforced;
+  const { unallocatedVisits } = enforced;
 
   // 6. Aplicar 1.5-Opt intra-rota se ativado (padrão: ativado)
   const enable1_5Opt = options?.enable1_5Opt !== false && options?.enable2Opt !== false;
@@ -95,6 +102,8 @@ export function planScenario(scenario: Scenario, options: PlanOptions): Plan {
   if (!verification.isValid) {
     throw new Error(`Plano gerado é inválido segundo as restrições formais:\n${verification.errors.join('\n')}`);
   }
+  // Avisos só são anexados quando existem, preservando o formato dos planos sem restrições novas.
+  if (verification.warnings.length) plan.warnings = verification.warnings;
 
   return plan;
 }
@@ -118,8 +127,11 @@ export function applyVisitResults(state: ScenarioState, results: VisitResult[]):
       return cond;
     });
 
+    // Uma visita concluída cumpre o prazo rígido; uma não realizada o mantém (vale no próximo dia útil se vencer).
+    const completed = patientResults.some(result => result.status === 'completed');
+    const { hardDeadline, ...rest } = patient;
     return {
-      ...patient,
+      ...(completed ? rest : patient),
       conditions: updatedConditions
     };
   });

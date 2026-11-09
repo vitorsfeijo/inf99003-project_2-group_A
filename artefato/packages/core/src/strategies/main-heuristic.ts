@@ -1,6 +1,9 @@
-import { CostMatrix, DailyTeamRoute, PlannedVisit, PlanningContext, RoutingStrategy, VisitCandidate } from '../types/index.js';
+import { CostMatrix, PlannedVisit, PlanningContext, RoutingStrategy, VisitCandidate } from '../types/index.js';
 import { differenceInCalendarDays } from '../demand/dates.js';
 import { apply1Point5Opt } from '../improvement/one-half-opt.js';
+import { rebuildRoute, routeTravelMinutes, toPlannedVisit } from '../improvement/route-utils.js';
+import { canVisitOnRoute } from '../constraints/index.js';
+import { enforceMandatoryVisits } from '../constraints/mandatory.js';
 import { NearestBaselineStrategy } from './baseline-nearest.js';
 
 // Uma unidade de prioridade clínica atrasada por um dia equivale a 12 minutos
@@ -10,18 +13,6 @@ const MINUTES_PER_PRIORITY_DELAY_DAY = 12;
 // minutos equivalentes, aproximadamente uma visita curta.
 const MINUTES_PER_PROMPT_PRIORITY_POINT = 24;
 const MAX_MOVES = 80;
-
-function routeTravelMinutes(visits: PlannedVisit[], matrix: CostMatrix, nodeByPatient: Map<string, number>): number {
-  let previous = 0;
-  let total = 0;
-  for (const visit of visits) {
-    const node = nodeByPatient.get(visit.patientId);
-    if (node === undefined) throw new Error(`Paciente ${visit.patientId} ausente da matriz viária.`);
-    total += matrix.timeMatrix[previous][node];
-    previous = node;
-  }
-  return total + matrix.timeMatrix[previous][0];
-}
 
 function routeDistanceKm(visits: PlannedVisit[], matrix: CostMatrix, nodeByPatient: Map<string, number>): number {
   let previous = 0;
@@ -35,42 +26,9 @@ function routeDistanceKm(visits: PlannedVisit[], matrix: CostMatrix, nodeByPatie
   return total + matrix.distanceMatrix[previous][0];
 }
 
-function rebuildRoute(route: DailyTeamRoute, visits: PlannedVisit[], matrix: CostMatrix, nodeByPatient: Map<string, number>): DailyTeamRoute {
-  let previous = 0;
-  let elapsed = 0;
-  let distance = 0;
-  let travel = 0;
-  let service = 0;
-  const updated = visits.map(visit => {
-    const node = nodeByPatient.get(visit.patientId);
-    if (node === undefined) throw new Error(`Paciente ${visit.patientId} ausente da matriz viária.`);
-    const legMinutes = matrix.timeMatrix[previous][node];
-    const legKm = matrix.distanceMatrix[previous][node];
-    const duration = visit.durationMinutes ?? 30;
-    travel += legMinutes;
-    distance += legKm;
-    elapsed += legMinutes;
-    const start = formatTime(elapsed);
-    elapsed += duration;
-    service += duration;
-    previous = node;
-    return { ...visit, estimatedStartTime: start, estimatedEndTime: formatTime(elapsed),
-      travelTimeMinutesFromPrevious: Number(legMinutes.toFixed(1)), travelDistanceKmFromPrevious: Number(legKm.toFixed(2)) };
-  });
-  travel += matrix.timeMatrix[previous][0];
-  distance += matrix.distanceMatrix[previous][0];
-  return { ...route, visits: updated, totalTravelTimeMinutes: Number(travel.toFixed(1)),
-    totalDistanceKm: Number(distance.toFixed(2)), totalVisitTimeMinutes: service,
-    totalWorkTimeMinutes: Number((travel + service).toFixed(1)) };
-}
-
-function formatTime(minutesFromStart: number): string {
-  const minutes = 8 * 60 + Math.round(minutesFromStart);
-  return `${String(Math.floor(minutes / 60) % 24).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
-}
-
+// O atraso acionável é medido contra o prazo de planejamento (prazo real menos a margem de segurança).
 function actionableDelay(date: string, candidate: VisitCandidate, startDate: string): number {
-  return Math.max(0, differenceInCalendarDays(date, candidate.dueDate < startDate ? startDate : candidate.dueDate));
+  return Math.max(0, differenceInCalendarDays(date, candidate.targetDate < startDate ? startDate : candidate.targetDate));
 }
 
 type RouteSolution = ReturnType<RoutingStrategy['solve']>;
@@ -97,24 +55,19 @@ function improveFromSeed(context: PlanningContext, seed: RouteSolution,
         const first = candidateById.get(a.visitCandidateId);
         const second = candidateById.get(b.visitCandidateId);
         if (!first || !second) throw new Error('Visita pendente ausente da demanda.');
-        return first.dueDate.localeCompare(second.dueDate) || a.visitCandidateId.localeCompare(b.visitCandidateId);
+        return first.targetDate.localeCompare(second.targetDate) || a.visitCandidateId.localeCompare(b.visitCandidateId);
       });
       for (const unallocated of ordered) {
         const candidate = candidateById.get(unallocated.visitCandidateId);
         if (!candidate) throw new Error(`Visita ${unallocated.visitCandidateId} ausente da demanda.`);
-        const visit: PlannedVisit = {
-          visitCandidateId: candidate.id, patientId: candidate.patientId,
-          conditionId: candidate.conditionId, durationMinutes: candidate.durationMinutes,
-          estimatedStartTime: '', estimatedEndTime: '',
-          travelTimeMinutesFromPrevious: 0, travelDistanceKmFromPrevious: 0
-        };
+        const visit = toPlannedVisit(candidate);
         let best: { route: number; position: number; score: number } | undefined;
         for (let routeIndex = 0; routeIndex < routes.length; routeIndex++) {
           const route = routes[routeIndex];
-          if (differenceInCalendarDays(candidate.dueDate, route.date) > scenario.maxAnticipationDays ||
-              route.visits.some(item => item.patientId === candidate.patientId)) continue;
           const team = teamById.get(route.teamId);
           if (!team) throw new Error(`Equipe ${route.teamId} ausente do cenário.`);
+          if (!canVisitOnRoute(candidate, route, team, scenario) ||
+              route.visits.some(item => item.patientId === candidate.patientId)) continue;
           const currentTravel = routeTravelMinutes(route.visits, costMatrix, nodeByPatient);
           const service = route.visits.reduce((sum, item) => sum + (item.durationMinutes ?? 30), 0);
           for (let position = 0; position <= route.visits.length; position++) {
@@ -170,10 +123,10 @@ function improveFromSeed(context: PlanningContext, seed: RouteSolution,
           for (let to = 0; to < routes.length; to++) {
             if (from === to) continue;
             const destination = routes[to];
-            if (differenceInCalendarDays(candidate.dueDate, destination.date) > scenario.maxAnticipationDays) continue;
-            if (destination.visits.some(item => item.patientId === visit.patientId)) continue;
             const team = teamById.get(destination.teamId);
             if (!team) throw new Error(`Equipe ${destination.teamId} ausente do cenário.`);
+            if (!canVisitOnRoute(candidate, destination, team, scenario)) continue;
+            if (destination.visits.some(item => item.patientId === visit.patientId)) continue;
             const destinationService = destination.visits.reduce((sum, item) => sum + (item.durationMinutes ?? 30), 0);
             const delayDelta = priority * (actionableDelay(destination.date, candidate, scenario.startDate)
               - actionableDelay(source.date, candidate, scenario.startDate));
@@ -203,11 +156,11 @@ function improveFromSeed(context: PlanningContext, seed: RouteSolution,
               const other = destination.visits[otherIndex];
               const otherCandidate = candidateById.get(other.visitCandidateId);
               if (!otherCandidate) throw new Error(`Visita ${other.visitCandidateId} ausente da demanda.`);
-              if (differenceInCalendarDays(otherCandidate.dueDate, source.date) > scenario.maxAnticipationDays) continue;
-              if (source.visits.some((item, index) => index !== visitIndex && item.patientId === other.patientId)) continue;
-              if (destination.visits.some((item, index) => index !== otherIndex && item.patientId === visit.patientId)) continue;
               const sourceTeam = teamById.get(source.teamId);
               if (!sourceTeam) throw new Error(`Equipe ${source.teamId} ausente do cenário.`);
+              if (!canVisitOnRoute(otherCandidate, source, sourceTeam, scenario)) continue;
+              if (source.visits.some((item, index) => index !== visitIndex && item.patientId === other.patientId)) continue;
+              if (destination.visits.some((item, index) => index !== otherIndex && item.patientId === visit.patientId)) continue;
               const sourceService = source.visits.reduce((sum, item) => sum + (item.durationMinutes ?? 30), 0);
               const sourceWith = [...source.visits];
               const destinationWith = [...destination.visits];
@@ -272,16 +225,18 @@ function improveFromSeed(context: PlanningContext, seed: RouteSolution,
         let best: { route: number; index: number; score: number; displaced: VisitCandidate } | undefined;
         for (let routeIndex = 0; routeIndex < routes.length; routeIndex++) {
           const route = routes[routeIndex];
-          if (differenceInCalendarDays(candidate.dueDate, route.date) > scenario.maxAnticipationDays ||
-              route.visits.some(visit => visit.patientId === candidate.patientId)) continue;
           const team = teamById.get(route.teamId);
           if (!team) throw new Error(`Equipe ${route.teamId} ausente do cenário.`);
+          if (!canVisitOnRoute(candidate, route, team, scenario) ||
+              route.visits.some(visit => visit.patientId === candidate.patientId)) continue;
           const beforeTravel = routeTravelMinutes(route.visits, costMatrix, nodeByPatient);
           const beforeDistance = routeDistanceKm(route.visits, costMatrix, nodeByPatient);
           const beforeService = route.visits.reduce((sum, visit) => sum + (visit.durationMinutes ?? 30), 0);
           for (let index = 0; index < route.visits.length; index++) {
             const displaced = candidateById.get(route.visits[index].visitCandidateId);
             if (!displaced) throw new Error(`Visita ${route.visits[index].visitCandidateId} ausente da demanda.`);
+            // Visitas com prazo rígido nunca são substituídas.
+            if (displaced.hardDeadline) continue;
             const displacedPriority = priorityById.get(displaced.id) ?? 1;
             if (priority <= displacedPriority) continue;
             const promptChange = priority * Number(actionableDelay(route.date, candidate, scenario.startDate) === 0)
@@ -292,12 +247,7 @@ function improveFromSeed(context: PlanningContext, seed: RouteSolution,
               + displacedPriority * (actionableDelay(lastDay, displaced, scenario.startDate)
                 - actionableDelay(route.date, displaced, scenario.startDate));
             if (delayChange > 1e-6) continue;
-            const replacement: PlannedVisit = {
-              visitCandidateId: candidate.id, patientId: candidate.patientId,
-              conditionId: candidate.conditionId, durationMinutes: candidate.durationMinutes,
-              estimatedStartTime: '', estimatedEndTime: '',
-              travelTimeMinutesFromPrevious: 0, travelDistanceKmFromPrevious: 0
-            };
+            const replacement = toPlannedVisit(candidate);
             const withVisit = [...route.visits];
             withVisit[index] = replacement;
             const afterTravel = routeTravelMinutes(withVisit, costMatrix, nodeByPatient);
@@ -314,12 +264,7 @@ function improveFromSeed(context: PlanningContext, seed: RouteSolution,
           }
         }
         if (!best) continue;
-        routes[best.route].visits[best.index] = {
-          visitCandidateId: candidate.id, patientId: candidate.patientId,
-          conditionId: candidate.conditionId, durationMinutes: candidate.durationMinutes,
-          estimatedStartTime: '', estimatedEndTime: '',
-          travelTimeMinutesFromPrevious: 0, travelDistanceKmFromPrevious: 0
-        };
+        routes[best.route].visits[best.index] = toPlannedVisit(candidate);
         routes[best.route] = apply1Point5Opt(rebuildRoute(routes[best.route], routes[best.route].visits,
           costMatrix, nodeByPatient), costMatrix);
         pending = pending.filter(item => item.visitCandidateId !== candidate.id);
@@ -350,8 +295,9 @@ export const MainHeuristicStrategy: RoutingStrategy = {
   name: 'Heurística mensal de custo e prioridade',
   description: 'Busca econômica seguida de reparo de pendências e priorização clínica sob orçamento de caminhada.',
   solve(context: PlanningContext) {
-    const nearest = NearestBaselineStrategy.solve(context);
-    const economic = improveFromSeed(context, nearest, false, 0);
+    // As visitas com prazo rígido são garantidas antes da busca, que depois só as move dentro do prazo.
+    const { routes, unallocatedVisits } = enforceMandatoryVisits(context, NearestBaselineStrategy.solve(context));
+    const economic = improveFromSeed(context, { routes, unallocatedVisits }, false, 0);
     return improveFromSeed(context, economic, true, MINUTES_PER_PROMPT_PRIORITY_POINT);
   }
 };
