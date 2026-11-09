@@ -63,19 +63,11 @@ O mapa usa blocos do OpenStreetMap com atribuição visível. A interface segue 
 
 Após gerar os cronogramas, o mapa exibe as rotas da estratégia selecionada. A aba **Comparar planos** mostra horas e quilômetros de caminhada, cobertura, atendimento da prioridade clínica, atraso acionável, distribuição dos atrasos, pendências, todos os indicadores do mês e uma tabela por dia. O botão **Ver rotas no mapa** abre o plano escolhido; cada célula diária abre a data correspondente. O backend calcula a matriz OSRM uma vez para as três estratégias e salva os planos da mesma versão do cenário em uma transação. A comparação do mês representa trabalho planejado, não tempo ou custo efetivamente observado em campo.
 
-Para calcular **distâncias e tempos a pé pelas ruas**, o planejamento da interface precisa de uma instância OSRM local preparada com `foot.lua`. Obtenha um arquivo `.osm.pbf` que cubra Porto Alegre e execute em outro terminal:
+Para calcular **distâncias e tempos a pé pelas ruas**, o servidor usa um **roteador de caminhada interno** (`packages/server/src/routing/`), sem Docker. Ele lê a rede de caminhada do OpenStreetMap em `packages/server/map/walk-graph-porto-alegre.bin`, que acompanha o projeto. A matriz é calculada por Dijkstra a partir de cada ponto. Cada ponto é projetado no trecho de via mais próximo, como no OSRM, e um ponto a mais de 1 km de qualquer via gera um erro com o código do paciente. Os filtros de vias seguem o perfil `foot.lua`, com 5 km/h e 2,5 km/h em escadas. Numa comparação com o OSRM em 930 pares do território CF Modelo, a diferença mediana de tempo foi de 1,0% e a de distância de 0,1%, contando apenas os trechos na rede.
 
-```bash
-bash artefato/scripts/start-walking-osrm.sh /caminho/porto-alegre.osm.pbf
-```
+`npm run app`, na raiz, compila tudo e serve interface e API na porta 3001 ([guia](GUIA_EXECUCAO_LOCAL.md)). Para regenerar a rede a partir de um mapa mais recente, use `npm run prepare-map -- --force`: o script baixa o extrato da Região Sul (Geofabrik) e recorta Porto Alegre. O extrato da BBBike usado antes termina na latitude −30,141 e não cobre a Restinga, o extremo sul nem as ilhas.
 
-Esse script requer Docker e prepara o arquivo com o perfil de caminhada; mantenha o processo em execução. Depois, na raiz do repositório:
-
-```bash
-OSRM_BASE_URL=http://127.0.0.1:5000 npm start
-```
-
-O backend consulta a API Table do OSRM para montar a matriz de custo do cronograma e a API Route para desenhar cada trajeto. Sem OSRM configurado, a etapa de gerar cronograma fica indisponível na interface. O núcleo exige uma matriz de custos de caminhada para planejar. O servidor OSRM deve ser operado pelo usuário, pois recebe as coordenadas amostradas.
+O OSRM continua disponível como alternativa. Inicie-o com `bash artefato/scripts/start-walking-osrm.sh <mapa>.osm.pbf` e rode o servidor com `ROUTER=osrm OSRM_BASE_URL=http://127.0.0.1:5000`. Sem o grafo interno, o servidor também recorre ao OSRM quando `OSRM_BASE_URL` está definida. As áreas de risco só são aplicadas pelo roteador interno.
 
 Para conferir cada pacote e executar o exemplo do núcleo:
 
@@ -110,6 +102,13 @@ verifyPlan(scenario: Scenario, plan: Plan): VerificationResult
 | `startDate` | Data inicial em formato `YYYY-MM-DD`. |
 | `planningHorizonDays` | N: quantidade de dias úteis gerados para o plano. |
 | `maxAnticipationDays` | A: máximo de dias corridos antes do vencimento em que se pode atender. |
+| `visitBufferMinutes` | Opcional. Folga reservada após cada visita para imprevistos; conta na jornada, mas o horário de término exibido a exclui. |
+| `deadlineSafetyMarginDays` | Opcional. Planeja cada visita esta quantidade de dias antes do prazo; as métricas continuam usando o prazo real. |
+| `riskAreas` | Opcional. Polígonos que as rotas evitam atravessar (aplicados pelo roteador, não pelo núcleo). |
+
+Campos opcionais de **paciente**: `requiredProfessions` (todas as categorias precisam estar na equipe), `hardDeadline` (prazo rígido; âncora quando igual ao primeiro dia útil), `assignedTeamId` (vínculo com uma equipe), `territoryOverride: 'include'` (pertence à unidade fora do contorno) e `transfer` (transferido para outra unidade: sai do planejamento). Campo opcional de **equipe**: `professions`. Equipes sem esse campo derivam as categorias de `doctorName`, `nurseName` e `socialWorkerName`. O catálogo `PROFESSIONS`, exportado pelo núcleo, lista ACS, enfermagem, técnico de enfermagem, medicina, odontologia, saúde bucal, serviço social, psicologia, fisioterapia e nutrição.
+
+Sem nenhum desses campos, os planos são idênticos aos da versão anterior. Os três estudos da bancada foram reexecutados com as matrizes em cache e reproduziram os resultados linha a linha.
 
 Cada condição registra `conditionId`, `maxIntervalDays`, `priorityWeight` e, quando disponível, `lastVisitDate` ou `initialDueDate`. A duração vem de `defaultVisitDurationMinutes` do paciente; o código usa 30 minutos quando o valor é ausente ou zero. `availableDays: []` significa disponibilidade em todos os dias úteis da janela.
 
@@ -134,6 +133,7 @@ Scenario + PlanOptions
   → 3. Construir matrizes de distância e tempo
   → 4. Selecionar estratégia e montar PlanningContext
   → 5. Construir rotas e listar candidatos não alocados
+  → 5b. Garantir as visitas com prazo rígido (todas as estratégias)
   → 6. Aplicar 1.5-opt em cada rota, quando habilitado
   → 7. Calcular métricas e montar Plan
   → 8. Verificar restrições; retornar Plan ou lançar Error
@@ -246,6 +246,25 @@ Como a heurística usa o baseline geográfico como ponto inicial, ela pode **emp
 
 ## Etapas após a construção
 
+### 5b. Restrições operacionais e prazo rígido
+
+O módulo [`constraints/`](packages/core/src/constraints/index.ts) concentra as regras que valem para as três estratégias. Uma equipe só recebe uma visita se:
+
+- estiver disponível no dia;
+- reunir todas as categorias exigidas pelo paciente;
+- respeitar o vínculo do paciente, quando houver.
+
+A data também precisa ser permitida: até o prazo rígido, quando houver; caso contrário, até A dias antes do prazo de planejamento (`targetDate`, isto é, o prazo menos a margem de segurança).
+
+Depois da estratégia, [`enforceMandatoryVisits`](packages/core/src/constraints/mandatory.ts) garante as visitas cujo prazo rígido vence na janela, em ordem de prazo:
+
+1. Mantém a visita onde está, se a rota for permitida.
+2. Senão, insere-a na rota permitida de menor acréscimo de caminhada.
+3. Se a jornada estiver cheia, retira visitas sem prazo rígido, das menos para as mais prioritárias, e tenta realocá-las em outros dias.
+4. Se nada disso funcionar (nenhuma equipe compatível ou capacidade insuficiente), a visita fica pendente com `mandatory: true`, um motivo explícito e um aviso em `plan.warnings`; o plano não é bloqueado.
+
+A heurística principal aplica essa etapa já na solução inicial e não move nem substitui visitas obrigatórias além do prazo. Um prazo rígido vencido vale para o primeiro dia útil da janela. Uma visita concluída remove o prazo rígido em `applyVisitResults`; uma não realizada o mantém.
+
 ### 6. Melhoria intra-rota 1.5-opt
 
 [`improvement/one-half-opt.ts`](packages/core/src/improvement/one-half-opt.ts) atua separadamente em cada rota com **mais de duas visitas**:
@@ -259,7 +278,7 @@ O custo avaliado soma deslocamentos, atendimentos e retorno ao posto. Como o con
 
 Após a busca, recalculam-se trechos, totais e horários estimados, assumindo saída às **08:00**. Uma passagem testa O(k²) movimentos, cada um com recálculo O(k); o custo total depende de quantas melhorias forem aceitas.
 
-**Particularidade dos horários:** rotas com até duas visitas retornam imediatamente, sem preencher horários. As estratégias constroem `estimatedStartTime` e `estimatedEndTime` vazios; assim, esses campos também ficam vazios quando o 1.5-opt está desligado. Não há uma etapa independente de geração de horários para esses casos.
+**Particularidade dos horários:** rotas com até duas visitas não são reordenadas, mas recebem horários e totais pela mesma reconstrução de rota (`improvement/route-utils.ts`). Com o 1.5-opt desligado, as rotas dos baselines continuam sem horários estimados.
 
 ### 7. Métricas do plano previsto
 
@@ -286,6 +305,8 @@ Cobertura significa **alocação prevista**, não atendimento efetivamente concl
 - Se `totalWorkTimeMinutes` não excede sua jornada diária.
 - Se não há paciente duplicado dentro de uma mesma rota.
 - Se todo paciente visitado pertence ao conjunto territorialmente elegível.
+- Se a equipe reúne as categorias exigidas e respeita o vínculo de cada paciente.
+- Se nenhuma visita com prazo rígido foi agendada depois do prazo. Uma visita obrigatória não alocada gera aviso, não erro.
 
 Se houver erro, `planScenario` lança uma exceção com o diagnóstico em vez de retornar o plano. Uma cobertura inferior a 100% não invalida o plano: é representada por pendências e métricas.
 
@@ -303,7 +324,7 @@ Embora a descrição interna do baseline de urgência mencione ordem cronológic
 
 ## Execução real e replanejamento
 
-`applyVisitResults` recebe `ScenarioState` (`scenario`, `history`, `currentDate`) e uma lista de resultados por paciente e condição:
+`applyVisitResults` recebe `ScenarioState` (`scenario`, `history`, `currentDate`) e uma lista de resultados por paciente e condição. Uma visita concluída também remove o prazo rígido do paciente:
 
 - `completed`: atualiza `lastVisitDate` da condição para a data informada. O próximo prazo será essa data mais `maxIntervalDays`.
 - `missed`: mantém as datas da condição, preservando o prazo da pendência.
@@ -338,7 +359,7 @@ function replan(scenario: Scenario, results: VisitResult[], nextStartDate: strin
 }
 ```
 
-A demanda é regenerada a partir das condições atualizadas, em vez de copiar a lista de pendências do plano anterior. A simulação dinâmica da bancada avança `startDate` a cada dia; o endpoint atual de resultados do backend replaneja com o `startDate` existente, mesmo recebendo `currentDate`.
+A demanda é regenerada a partir das condições atualizadas, em vez de copiar a lista de pendências do plano anterior. A simulação dinâmica da bancada avança `startDate` a cada dia. O endpoint de resultados do backend também avança: o novo plano começa no dia útil seguinte a `currentDate` e a resposta inclui o cenário atualizado.
 
 ## Backend e interface web
 
@@ -355,10 +376,13 @@ O servidor Fastify persiste cenários por `(id, version)` e planos vinculados à
 | `GET /api/plans/:planId` | Obter um plano completo. |
 | `POST /api/scenarios/:id/results` | Aplicar resultados, salvar nova versão e replanejar. |
 | `GET /api/export/csv` e `/api/export/gpx` | Exportar uma rota, usando `scenarioId`, `planId`, `date` e `teamId`. |
+| `GET /api/routing-status` | Roteador ativo (`internal`, `osrm` ou `none`) e se ele aplica áreas de risco. |
+| `GET /api/plans/:planId/road-route` | Traçado pelas ruas de uma rota; `riskAreasCrossed` lista as áreas de risco que ela ainda atravessa por falta de desvio. |
+| `POST /api/transfers`, `GET /api/base-regions/:id/incoming-patients`, `DELETE /api/transfers/:id` | Registrar, consultar e desfazer transferências de pacientes entre unidades (tabela `patient_transfers`). |
 
 O schema inclui `visit_results`, mas o handler atual de resultados não grava nessa tabela nem recupera um histórico completo; ele persiste o cenário atualizado e o novo plano. O histórico retornado por `applyVisitResults` é responsabilidade do consumidor que desejar mantê-lo.
 
-O CSV reúne ordem, posto/paciente, horários, deslocamentos e coordenadas. O GPX contém waypoints e um track ordenado do posto aos pacientes e de volta, sem cálculo de trajeto pelas ruas.
+O CSV reúne ordem, posto/paciente, horários, deslocamentos, coordenadas, folga, prazo rígido e categorias exigidas. O GPX contém waypoints e um track que segue as ruas quando o roteador responde; caso contrário, a trilha liga as paradas em linha reta e registra o motivo na descrição.
 
 A interface React/Vite/Leaflet permite escolher uma região GeoSaúde, amostrar pacientes, gerar e comparar os três métodos, abrir suas rotas no mapa e registrar resultados reais. Sem servidor de caminhada, a geração do plano fica indisponível. Registro de resultados e exportação persistida dependem do servidor.
 

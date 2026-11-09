@@ -20,12 +20,19 @@ Este é o guia único deste diretório, consolidando as instruções anteriormen
 - Preserve a combinação de reinserção de um nó (1-point move) e inversão de subsegmentos (2-opt).
 - Mantenha a opção `enable1_5Opt` e a compatibilidade da opção legada `enable2Opt`.
 
+### Restrições operacionais
+
+- As regras de compatibilidade (disponibilidade, categorias profissionais, vínculo com equipe e janela de datas) ficam em `packages/core/src/constraints/index.ts`. Toda estratégia nova deve usá-las.
+- Visitas com prazo rígido são garantidas por `enforceMandatoryVisits` depois de qualquer estratégia. Nunca substitua nem mova uma visita obrigatória para depois do prazo. Quando for impossível cumprir, registre a pendência com `mandatory: true` e o motivo; não lance erro.
+- Os campos novos de `Scenario`, `Patient` e `Team` são opcionais. Sem eles, os planos devem continuar idênticos aos da bancada experimental.
+
 ### Backend (`packages/server`)
 
 - Use Fastify em ESM (`type: "module"`), na porta 3001.
 - Mantenha o SQLite (`data/routing.db`, relativo ao diretório de execução do servidor) em WAL, com `foreign_keys = ON`.
 - Preserve as tabelas `scenarios`, `plans` e `visit_results`, o versionamento de cenários e as exportações CSV e GPX.
 - Invoque o `@routing/core` nas rotas HTTP; não implemente otimização dentro dos handlers.
+- Calcule matrizes e traçados por `routes/routing-provider.ts`. O roteador interno (`src/routing/`, grafo em `map/walk-graph-porto-alegre.bin`) é o padrão; o OSRM é a alternativa via `ROUTER=osrm` e `OSRM_BASE_URL`. A matriz considera apenas os pacientes elegíveis (`validateScenario`).
 - Retorne erros HTTP padronizados com payload `{ error: string }`.
 
 ### Frontend (`packages/web`)

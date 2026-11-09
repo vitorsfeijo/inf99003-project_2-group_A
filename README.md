@@ -67,6 +67,21 @@ A melhoria intra-rota **1.5-opt** combina reinserção de uma visita e inversão
   <sub>Protótipo na US Vila Ipiranga · 30 pacientes sintéticos · Rota pela rede de caminhada</sub>
 </p>
 
+### Ajustes pedidos pela equipe de saúde (novembro de 2026)
+
+Depois da apresentação aos profissionais da APS, a aplicação passou a incluir:
+
+| Recurso | O que faz |
+|---|---|
+| ⚓ **Âncora e prazo rígido** | Marca um paciente como obrigatório na rota do primeiro dia, ou com prazo máximo (por exemplo, "em até 3 dias úteis"). O prazo rígido fica acima da prioridade. O plano abre espaço retirando visitas menos prioritárias e avisa quando é impossível cumprir. Vale para as três estratégias. |
+| 🩺 **Categorias profissionais** | Cada equipe informa seus profissionais (ACS, enfermagem, medicina, saúde bucal, serviço social, entre outros). Cada paciente pode exigir uma ou mais categorias, e a visita só vai para uma equipe que reúna todas elas. |
+| 🔗 **Vínculo e território** | Um paciente pode ser vinculado a uma equipe. Também pode ser incluído mesmo fora do contorno do GeoSaúde, quando a microárea estiver desenhada incorretamente, ou transferido para outra unidade, que o recebe ao amostrar o próprio território. Também é possível cadastrar pacientes clicando no mapa. |
+| ⚠️ **Áreas de risco** | A equipe desenha no mapa trechos a evitar. As rotas desviam deles sempre que existe outro caminho a pé, e o mapa avisa quando não há desvio viável. |
+| ⏳ **Folgas** | Há uma folga em minutos após cada visita, para imprevistos, e uma margem em dias que planeja cada visita antes do prazo, para que uma ausência ainda possa ser recuperada. |
+| 🖥️ **Modo aplicativo** | Roda sem Docker nem OSRM: o servidor tem um roteador de caminhada próprio, que usa a malha do OpenStreetMap distribuída com o projeto, e entrega a interface na mesma porta. |
+
+Sem esses campos, o núcleo produz exatamente os mesmos planos de antes. Os três estudos foram reexecutados com as matrizes em cache e reproduziram os resultados linha a linha.
+
 ### Como as partes se conectam
 
 ```mermaid
@@ -74,7 +89,8 @@ flowchart LR
     WEB["Interface web<br/>React + Leaflet · porta 3000"] --> API["API<br/>Fastify · porta 3001"]
     API --> CORE["Núcleo de planejamento<br/>TypeScript · @routing/core"]
     API --> DB["SQLite<br/>Cenários, planos e resultados"]
-    API --> OSRM["OSRM a pé<br/>OpenStreetMap · porta 5000"]
+    API --> ROUTER["Roteador a pé interno<br/>OpenStreetMap · sem Docker"]
+    API -.-> OSRM["OSRM a pé (opcional)<br/>porta 5000"]
     EXP["Bancada experimental<br/>Cenários e simulação"] --> CORE
     EXP --> OSRM
 
@@ -82,11 +98,11 @@ flowchart LR
     classDef routing fill:#f0fdfa,stroke:#0d9488,color:#134e4a
     classDef storage fill:#f8fafc,stroke:#64748b,color:#334155
     class WEB,API interface
-    class CORE,OSRM,EXP routing
+    class CORE,ROUTER,OSRM,EXP routing
     class DB storage
 ```
 
-O núcleo recebe cenários e uma matriz de custos, sem depender de navegador, banco ou servidor. A API obtém a matriz no OSRM e persiste os resultados; a interface e a bancada usam o mesmo núcleo.
+O núcleo recebe cenários e uma matriz de custos, sem depender de navegador, banco ou servidor. A API obtém a matriz no roteador interno (ou num OSRM externo, se configurado) e persiste os resultados; a interface e a bancada usam o mesmo núcleo. A bancada continua usando OSRM e matrizes em cache, para preservar a reprodutibilidade dos estudos publicados.
 
 ---
 
@@ -94,70 +110,39 @@ O núcleo recebe cenários e uma matriz de custos, sem depender de navegador, ba
 
 ## 🚀 Executar a aplicação
 
+Requisito único: **Node.js 22 ou superior**. Docker e OSRM não são mais necessários para usar a aplicação.
+
+### Windows: duplo clique
+
+Dê um duplo clique em **`Iniciar-Aplicativo.bat`**, na raiz do repositório. Na primeira vez, ele instala as dependências; depois compila, inicia o servidor e abre o navegador em <http://localhost:3001>. Para encerrar, feche a janela do terminal ou pressione **Ctrl+C**.
+
+### Qualquer sistema: um comando
+
+Na raiz do repositório:
+
+```sh
+npm ci --prefix artefato   # apenas na primeira vez
+npm run app
+```
+
+`npm run app` compila núcleo, servidor e interface, e inicia um único servidor que entrega a interface e a API em <http://localhost:3001>. A rede de caminhada de Porto Alegre já vem em `artefato/packages/server/map/` (veja a [origem e a licença](artefato/packages/server/map/README.md)). Para regenerá-la a partir de um mapa OpenStreetMap mais recente, use `npm run prepare-map -- --force`.
+
 > [!TIP]
-> Primeira execução? O [guia de execução local](artefato/GUIA_EXECUCAO_LOCAL.md) acompanha desde o clone e a obtenção do mapa até a interface.
+> No PowerShell, se aparecer "a execução de scripts foi desabilitada", use `npm.cmd` no lugar de `npm` ou rode `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` uma vez.
 
-Execute os comandos a partir da **raiz do repositório**, onde estão este README e o `package.json` principal.
+### Na interface
 
-### ① Preparar as dependências
-
-Requisitos: **Node.js 22+**, **npm** e, para preparar o servidor de caminhada pelo script fornecido, **Docker** e um ambiente **Bash**. No Windows, o script pode ser executado pelo WSL2 com integração ao Docker Desktop.
-
-```sh
-npm ci --prefix artefato
-```
-
-Para executar também a bancada:
-
-```sh
-npm ci --prefix experimentos
-```
-
-Os pacotes da aplicação são workspaces de `artefato/`; a bancada tem seu próprio arquivo de dependências. Os comandos usam os respectivos `package-lock.json`.
-
-### ② Iniciar o OSRM de caminhada
-
-Use um arquivo **`.osm.pbf` que cubra Porto Alegre**. Em um terminal Bash, na raiz do projeto:
-
-```bash
-bash artefato/scripts/start-walking-osrm.sh /caminho/porto-alegre.osm.pbf
-```
-
-Substitua o caminho pelo arquivo do mapa no ambiente em que o comando será executado. O [script](artefato/scripts/start-walking-osrm.sh) prepara a rede com `foot.lua` e mantém o OSRM na porta **5000**. Deixe esse terminal aberto. O arquivo do mapa e os índices gerados são preparados localmente.
-
-### ③ Abrir a aplicação
-
-Em outro terminal, na raiz do projeto:
-
-**PowerShell:**
-
-```powershell
-$env:OSRM_BASE_URL = 'http://127.0.0.1:5000'
-npm start
-```
+1. Escolha um território GeoSaúde e amostre pacientes.
+2. Na etapa 3, informe as equipes, os **profissionais de cada equipe**, as folgas e, se quiser, desenhe **áreas de risco** no mapa.
+3. Na aba **Pacientes** (ou clicando num paciente no mapa), defina âncoras e prazos rígidos, categorias exigidas, vínculo com equipe, inclusão fora do contorno ou transferência. Também é possível cadastrar pacientes no mapa.
+4. Gere e compare os planos. Em **Execução**, registre as visitas feitas e não realizadas: a agenda é refeita a partir do próximo dia útil.
 
 <details>
-<summary><strong>Linux, macOS ou WSL: iniciar com Bash</strong></summary>
+<summary><strong>Modo de desenvolvimento e OSRM externo (opcional)</strong></summary>
 
-```bash
-OSRM_BASE_URL=http://127.0.0.1:5000 npm start
-```
+`npm start` inicia a API (porta 3001) e o Vite com recarga automática (porta 3000). Para usar um OSRM externo em vez do roteador interno, inicie o servidor com `ROUTER=osrm` e `OSRM_BASE_URL=http://127.0.0.1:5000`; o [script do OSRM](artefato/scripts/start-walking-osrm.sh) continua disponível. Com OSRM, as áreas de risco não são aplicadas.
 
 </details>
-
-`npm start` compila os três pacotes da aplicação pelo script `prestart` e inicia os dois serviços:
-
-| Serviço | Endereço |
-|---|---|
-| Interface web | <http://localhost:3000> |
-| API | <http://localhost:3001/api> |
-| OSRM configurado nos exemplos | <http://127.0.0.1:5000> |
-
-A geração dos planos depende do OSRM configurado e acessível. No PowerShell, defina a variável na sessão que inicia a aplicação ou os experimentos. A instrução de Bash `OSRM_BASE_URL=... comando` tem outra sintaxe.
-
-Na interface, selecione uma unidade, amostre pacientes, gere os planos e abra **Comparar planos**. Depois escolha uma rota no mapa ou registre resultados de visitas. O cronograma da interface cobre um mês; o estudo de 250 pacientes com limite de doze meses é executado pela bancada.
-
-Para encerrar, pressione **Ctrl+C** no terminal da aplicação e no terminal do OSRM.
 
 ---
 
@@ -292,10 +277,12 @@ inf99003-project_2-group_A/
 
 ## 🛠️ Desenvolvimento
 
-Todos os comandos partem da raiz. Para planejar, iniciar o servidor com `OSRM_BASE_URL` definido.
+Todos os comandos partem da raiz. A aplicação planeja com o roteador interno; a bancada de experimentos continua exigindo `OSRM_BASE_URL` quando precisa calcular matrizes que não estão em cache.
 
 | Objetivo | Comando |
 |---|---|
+| Abrir como aplicativo (compila e inicia em uma porta) | `npm run app` |
+| Regenerar a rede de caminhada a partir do OpenStreetMap | `npm run prepare-map -- --force` |
 | Compilar a aplicação | `npm run build` |
 | Compilar a bancada | `npm run build --prefix experimentos` |
 | Testar o núcleo | `npm run test --prefix artefato/packages/core` |

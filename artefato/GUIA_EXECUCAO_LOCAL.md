@@ -1,86 +1,54 @@
 # Como abrir a interface no seu computador
 
-Você não precisa programar em TypeScript. Os comandos abaixo instalam as dependências, compilam o projeto e iniciam os serviços. Execute-os em um terminal macOS, Linux ou WSL2 no Windows. Mantenha os terminais indicados abertos enquanto usar a interface.
+Você não precisa programar nem instalar Docker. Basta o Node.js. A rede de caminhada de Porto Alegre já vem com o projeto, e o servidor calcula as rotas a pé sozinho.
 
-## 1. Prepare o computador
+## 1. Instale o Node.js
 
-Instale **Git**, **Node.js 22 ou 24** e **Docker Desktop**. Abra o Docker Desktop e espere o programa indicar que o motor Docker está ativo. No Windows, abra um terminal **WSL2** com a integração do Docker Desktop habilitada; o script do projeto usa Bash.
+Instale o **Node.js 22 ou superior** em <https://nodejs.org>. No Windows, também dá para usar o terminal:
 
-Confira as instalações:
-
-```bash
-git --version
-node --version
-npm --version
-docker --version
+```powershell
+winget install OpenJS.NodeJS.LTS
 ```
 
-O comando `node --version` deve começar com `v22` ou `v24`.
+Feche e abra o terminal de novo. O comando `node --version` deve mostrar `v22` ou um número maior.
 
-## 2. Baixe o projeto e o mapa de Porto Alegre
+## 2. Abra o aplicativo
 
-No **terminal 1**, copie os comandos, um bloco por vez:
+**Windows:** na pasta do projeto, dê um duplo clique em **`Iniciar-Aplicativo.bat`**.
 
-```bash
-git clone https://github.com/vitorsfeijo/inf99003-project_2-group_A.git
-cd inf99003-project_2-group_A
-mkdir -p osm-data
-curl --fail --location https://download.bbbike.org/osm/bbbike/PortoAlegre/PortoAlegre.osm.pbf --output osm-data/PortoAlegre.osm.pbf
-```
-
-O arquivo `.osm.pbf` contém os caminhos do OpenStreetMap para Porto Alegre. Ele não vem no repositório porque é um arquivo de mapa. A fonte é o [extrato de Porto Alegre da BBBike](https://download.bbbike.org/osm/bbbike/PortoAlegre/). Se o grupo compartilhar o arquivo `PortoAlegre.osm.pbf` usado nos experimentos, você pode colocá-lo em `osm-data/` no lugar do download; assim usará a mesma versão do mapa.
-
-## 3. Inicie o servidor de rotas a pé
-
-Ainda no **terminal 1**, dentro da pasta do projeto:
+**macOS, Linux ou terminal do Windows:** na pasta do projeto, rode:
 
 ```bash
-bash artefato/scripts/start-walking-osrm.sh osm-data/PortoAlegre.osm.pbf
+npm ci --prefix artefato   # só na primeira vez
+npm run app
 ```
 
-O script usa Docker para preparar o mapa com o perfil de caminhada `foot.lua` e, ao final, mantém o OSRM ativo na porta **5000**. A primeira preparação pode demorar alguns minutos. **Deixe este terminal aberto.**
+Na primeira vez, a instalação leva alguns minutos. Depois, o terminal mostra `Aplicativo pronto em http://localhost:3001` e o navegador abre nesse endereço. **Deixe o terminal aberto** enquanto usar o aplicativo. Para encerrar, pressione **Ctrl+C** ou feche a janela.
 
-## 4. Inicie a aplicação
-
-Abra o **terminal 2** e entre na mesma pasta do projeto:
-
-```bash
-cd inf99003-project_2-group_A
-npm ci --prefix artefato
-OSRM_BASE_URL=http://127.0.0.1:5000 npm start
-```
-
-O `npm ci` instala as dependências. O `npm start` compila o código e inicia a API na porta **3001** e a interface na porta **3000**. A variável `OSRM_BASE_URL` precisa estar no mesmo comando que inicia a aplicação; não é um campo para preencher no navegador. **Deixe este terminal aberto.**
-
-Se você abriu o terminal 2 em outra pasta, vá até a pasta clonada antes de executar esses comandos. Uma forma de conferir é rodar `ls`: você deve ver `artefato`, `experimentos` e `README.md`.
-
-## 5. Confira e use a interface
-
-No **terminal 3**, confira a conexão entre a API e o OSRM:
-
-```bash
-curl http://localhost:3001/api/routing-status
-```
-
-O resultado esperado é `{"walkingNetworkConfigured":true}`. Abra **http://localhost:3000** no navegador. Se a página já estava aberta, clique em **Verificar novamente** no aviso da imagem ou recarregue a página.
-
-Na interface:
+## 3. Use a interface
 
 1. Em **Selecionar região real**, escolha um território GeoSaúde, por exemplo **US Restinga**.
-2. Em **Amostrar pacientes**, comece com **15** pacientes e mantenha a semente `20261008`. Clique em **Amostrar no território**.
-3. Em **Gerar e comparar os planos**, escolha a estratégia que deseja exibir e clique em **Gerar e comparar planos**. A aplicação calcula as três estratégias para comparação.
-4. Abra **Comparar planos** para ver os indicadores. Use **Ver rotas no mapa** para ver um plano no mapa.
+2. Em **Amostrar pacientes**, comece com **15 a 30** pacientes e a semente `20261008`.
+3. Em **Equipes, profissionais e folgas**, marque os **profissionais de cada equipe** (por exemplo, ACS + enfermagem, ou cirurgião-dentista + ACS). Você pode criar mais equipes, ajustar a jornada, a folga após cada visita e a margem nos prazos. Se quiser, clique em **Marcar área de risco no mapa** e marque os cantos da área.
+4. Na aba **Pacientes**, ou clicando num paciente no mapa, você pode:
+   - definir uma **âncora** (obrigatório no primeiro dia) ou um **prazo rígido** ("em até N dias úteis");
+   - marcar as **categorias profissionais** que a visita exige;
+   - **vincular** o paciente a uma equipe;
+   - incluir um paciente que está **fora do contorno** do GeoSaúde mas pertence à unidade;
+   - **transferir** o paciente para outra unidade;
+   - **cadastrar** um paciente novo clicando no mapa.
+5. Clique em **Gerar e comparar planos**. Veja as rotas no mapa e compare as estratégias na aba **Comparar planos**.
+6. Na aba **Execução**, marque cada visita como concluída ou não realizada e clique em **Encerrar Dia e Replanejar**. A agenda é refeita a partir do próximo dia útil. Uma âncora não realizada continua obrigatória no dia seguinte.
 
-A interface cria um cronograma de **um mês** com pacientes sintéticos. O estudo de 250 pacientes e 12 meses é executado pela bancada de experimentos, não por essa tela.
+Os pacientes, endereços e condições são simulados. Os territórios, as unidades e as ruas são reais.
 
-## Se aparecer o aviso da imagem
+## Se algo der errado
 
-O aviso significa que a API não conseguiu confirmar o servidor de caminhada.
+- **"A execução de scripts foi desabilitada"** (PowerShell): use `npm.cmd` no lugar de `npm`, ou rode uma vez `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`. O `Iniciar-Aplicativo.bat` não tem esse problema.
+- **"Roteador de caminhada indisponível"**: o arquivo `artefato/packages/server/map/walk-graph-porto-alegre.bin` está faltando. Rode `npm run prepare-map`, que baixa o mapa (cerca de 430 MB) e gera a rede.
+- **"O paciente X está a mais de 1000 m da malha de caminhada"**: o endereço sintético caiu longe de qualquer rua (comum nas ilhas e na zona rural). Remova o paciente na aba Pacientes ou amostre com outra semente.
+- **Porta 3001 ocupada**: feche outra cópia do aplicativo ou inicie com outra porta. No Bash: `PORT=3002 npm run app`. No PowerShell: `$env:PORT=3002; npm.cmd run app`.
 
-- Confira se o Docker Desktop está ativo e se o **terminal 1** chegou à etapa `osrm-routed` sem erro.
-- Confira se o **terminal 2** continua rodando e foi iniciado com `OSRM_BASE_URL=http://127.0.0.1:5000`.
-- Rode novamente `curl http://localhost:3001/api/routing-status`. Se o resultado for `false`, confira o terminal 1. Se você iniciou o terminal 2 sem `OSRM_BASE_URL`, pare a aplicação com **Ctrl+C** e execute novamente o comando completo da etapa 4.
-- Se a API não responder, leia o erro mostrado no terminal 2. Use Node.js 22 ou 24 e rode `npm ci --prefix artefato` dentro da pasta do projeto.
-- Quando o status for `true`, clique em **Verificar novamente** na interface.
+## Para desenvolvedores: OSRM externo (opcional)
 
-Para encerrar, pressione **Ctrl+C** nos terminais 2 e 1.
+O OSRM em Docker continua disponível para quem quiser comparar com o roteador interno ou reproduzir as matrizes da bancada de experimentos. Inicie-o com `bash artefato/scripts/start-walking-osrm.sh <mapa>.osm.pbf`. Depois rode o servidor com `ROUTER=osrm OSRM_BASE_URL=http://127.0.0.1:5000`. Com OSRM, as áreas de risco não são aplicadas.
