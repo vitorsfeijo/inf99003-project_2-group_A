@@ -130,6 +130,20 @@ npm run app
 > [!TIP]
 > No PowerShell, se aparecer "a execução de scripts foi desabilitada", use `npm.cmd` no lugar de `npm` ou rode `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` uma vez.
 
+### Executar com Docker
+
+O [Dockerfile](Dockerfile) instala as dependências e compila os três pacotes durante
+`docker build`. A imagem final já contém o frontend compilado e o grafo de caminhada,
+portanto a execução não baixa dependências, mapa ou OSRM:
+
+```sh
+docker build -t phvd-aps .
+docker run --rm -p 3001:3001 -v phvd-aps-data:/app/artefato/packages/server/data phvd-aps
+```
+
+Abra <http://localhost:3001>. O volume mantém os cenários, planos e resultados SQLite
+entre execuções.
+
 ### Na interface
 
 1. Escolha um território GeoSaúde e amostre pacientes.
