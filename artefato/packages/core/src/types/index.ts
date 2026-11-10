@@ -64,6 +64,7 @@ export interface Patient {
   conditions: PatientCondition[];
   defaultVisitDurationMinutes: number; // Duração estimada do atendimento
   requiredProfessions?: ProfessionId[]; // Todas precisam estar na equipe que fizer a visita
+  requiredStaffCount?: number;   // Profissionais necessários na visita (ex.: 2 para mobilizar acamado); padrão 1
   hardDeadline?: string;         // YYYY-MM-DD: prazo rígido, acima da prioridade (âncora = dia atual)
   assignedTeamId?: string;       // Vínculo: só esta equipe pode visitar o paciente
   territoryOverride?: 'include'; // Pertence à unidade mesmo fora do contorno GeoSaúde
@@ -80,6 +81,7 @@ export interface Team {
   nurseName?: string;
   socialWorkerName?: string;
   professions?: ProfessionId[];  // Categorias presentes na equipe que sai para as visitas
+  professionCounts?: Partial<Record<ProfessionId, number>>; // Profissionais por categoria (padrão 1 cada)
   dailyWorkMinutes: number;    // Minutos disponíveis para atendimento + deslocamento por dia
   availableDays: string[];     // Datas YYYY-MM-DD em que a equipe está disponível
 }
@@ -126,6 +128,7 @@ export interface VisitCandidate {
   bufferMinutes?: number;        // Parte de durationMinutes reservada como folga
   hardDeadline?: string;         // Prazo rígido efetivo (nunca anterior ao primeiro dia útil)
   requiredProfessions?: ProfessionId[];
+  requiredStaffCount?: number;   // Presente só quando maior que 1
   assignedTeamId?: string;
   isConditional: boolean;        // Se depende do cumprimento de uma visita anterior na mesma janela
   dependsOnVisitId?: string;

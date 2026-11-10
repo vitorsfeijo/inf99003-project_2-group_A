@@ -106,7 +106,7 @@ verifyPlan(scenario: Scenario, plan: Plan): VerificationResult
 | `deadlineSafetyMarginDays` | Opcional. Planeja cada visita esta quantidade de dias antes do prazo; as métricas continuam usando o prazo real. |
 | `riskAreas` | Opcional. Polígonos que as rotas evitam atravessar (aplicados pelo roteador, não pelo núcleo). |
 
-Campos opcionais de **paciente**: `requiredProfessions` (todas as categorias precisam estar na equipe), `hardDeadline` (prazo rígido; âncora quando igual ao primeiro dia útil), `assignedTeamId` (vínculo com uma equipe), `territoryOverride: 'include'` (pertence à unidade fora do contorno) e `transfer` (transferido para outra unidade: sai do planejamento). Campo opcional de **equipe**: `professions`. Equipes sem esse campo derivam as categorias de `doctorName`, `nurseName` e `socialWorkerName`. O catálogo `PROFESSIONS`, exportado pelo núcleo, lista ACS, enfermagem, técnico de enfermagem, medicina, odontologia, saúde bucal, serviço social, psicologia, fisioterapia e nutrição.
+Campos opcionais de **paciente**: `requiredProfessions` (todas as categorias precisam estar na equipe), `requiredStaffCount` (profissionais necessários na visita, padrão 1), `hardDeadline` (prazo rígido; âncora quando igual ao primeiro dia útil), `assignedTeamId` (vínculo com uma equipe), `territoryOverride: 'include'` (pertence à unidade fora do contorno) e `transfer` (transferido para outra unidade: sai do planejamento). Campos opcionais de **equipe**: `professions` e `professionCounts` (profissionais por categoria, padrão 1; o total da equipe é a soma). Equipes sem esse campo derivam as categorias de `doctorName`, `nurseName` e `socialWorkerName`. O catálogo `PROFESSIONS`, exportado pelo núcleo, lista ACS, enfermagem, técnico de enfermagem, medicina, odontologia, saúde bucal, serviço social, psicologia, fisioterapia e nutrição.
 
 Sem nenhum desses campos, os planos são idênticos aos da versão anterior. Os três estudos da bancada foram reexecutados com as matrizes em cache e reproduziram os resultados linha a linha.
 
@@ -252,6 +252,7 @@ O módulo [`constraints/`](packages/core/src/constraints/index.ts) concentra as 
 
 - estiver disponível no dia;
 - reunir todas as categorias exigidas pelo paciente;
+- ter pelo menos o número de profissionais que o paciente exige;
 - respeitar o vínculo do paciente, quando houver.
 
 A data também precisa ser permitida: até o prazo rígido, quando houver; caso contrário, até A dias antes do prazo de planejamento (`targetDate`, isto é, o prazo menos a margem de segurança).
@@ -305,7 +306,7 @@ Cobertura significa **alocação prevista**, não atendimento efetivamente concl
 - Se `totalWorkTimeMinutes` não excede sua jornada diária.
 - Se não há paciente duplicado dentro de uma mesma rota.
 - Se todo paciente visitado pertence ao conjunto territorialmente elegível.
-- Se a equipe reúne as categorias exigidas e respeita o vínculo de cada paciente.
+- Se a equipe reúne as categorias exigidas, tem profissionais suficientes e respeita o vínculo de cada paciente.
 - Se nenhuma visita com prazo rígido foi agendada depois do prazo. Uma visita obrigatória não alocada gera aviso, não erro.
 
 Se houver erro, `planScenario` lança uma exceção com o diagnóstico em vez de retornar o plano. Uma cobertura inferior a 100% não invalida o plano: é representada por pendências e métricas.
@@ -382,7 +383,7 @@ O servidor Fastify persiste cenários por `(id, version)` e planos vinculados à
 
 O schema inclui `visit_results`, mas o handler atual de resultados não grava nessa tabela nem recupera um histórico completo; ele persiste o cenário atualizado e o novo plano. O histórico retornado por `applyVisitResults` é responsabilidade do consumidor que desejar mantê-lo.
 
-O CSV reúne ordem, posto/paciente, horários, deslocamentos, coordenadas, folga, prazo rígido e categorias exigidas. O GPX contém waypoints e um track que segue as ruas quando o roteador responde; caso contrário, a trilha liga as paradas em linha reta e registra o motivo na descrição.
+O CSV reúne ordem, posto/paciente, horários, deslocamentos, coordenadas, folga, prazo rígido, categorias exigidas e profissionais necessários. O GPX contém waypoints e um track que segue as ruas quando o roteador responde; caso contrário, a trilha liga as paradas em linha reta e registra o motivo na descrição.
 
 A interface React/Vite/Leaflet permite escolher uma região GeoSaúde, amostrar pacientes, gerar e comparar os três métodos, abrir suas rotas no mapa e registrar resultados reais. Sem servidor de caminhada, a geração do plano fica indisponível. Registro de resultados e exportação persistida dependem do servidor.
 

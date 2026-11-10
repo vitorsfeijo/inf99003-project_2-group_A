@@ -162,7 +162,7 @@ export function enforceMandatoryVisits(context: PlanningContext, solution: Route
 
     const anyTeam = scenario.teams.some(team => teamCanServe(team, candidate));
     const reason = !anyTeam
-      ? 'Prazo rígido sem equipe compatível (categorias exigidas ou vínculo)'
+      ? 'Prazo rígido sem equipe compatível (categorias exigidas, número de profissionais ou vínculo)'
       : !allowed.length
         ? `Prazo rígido até ${candidate.hardDeadline} sem equipe disponível nesses dias`
         : `Prazo rígido até ${candidate.hardDeadline} não cabe na jornada, mesmo retirando visitas sem prazo rígido`;

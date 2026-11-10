@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Plan, Scenario, VisitResult, DailyTeamRoute, PlannedVisit, Patient, professionLabel, teamProfessions } from '@routing/core';
+import { Plan, Scenario, VisitResult, DailyTeamRoute, PlannedVisit, Patient, professionCount, professionLabel, teamProfessions } from '@routing/core';
 import { AlertTriangle } from 'lucide-react';
 import { PatientPanel } from './PatientPanel';
 import { BaseRegionSummary } from '../services/api';
@@ -142,7 +142,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       </div>
                       <span style={{ fontSize: '0.75rem', color: '#64748b' }}>{route.totalWorkTimeMinutes} min ({route.totalDistanceKm} km)</span>
                     </div>
-                    {team && <p style={{ fontSize: '0.72rem', color: '#64748b', marginBottom: '0.5rem' }}>{teamProfessions(team).map(professionLabel).join(' · ') || 'Sem categorias cadastradas'}</p>}
+                    {team && <p style={{ fontSize: '0.72rem', color: '#64748b', marginBottom: '0.5rem' }}>{teamProfessions(team).map(profession => `${professionCount(team, profession) > 1 ? `${professionCount(team, profession)}× ` : ''}${professionLabel(profession)}`).join(' · ') || 'Sem categorias cadastradas'}</p>}
 
                     {route.visits.length === 0 ? (
                       <p style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Sem visitas atribuídas para esta equipe hoje.</p>

@@ -1,7 +1,7 @@
 export * from './types/index.js';
 export { sampleTerritoryPatients } from './sampling/territory.js';
 export { countWorkingDaysInNextMonth, getWorkingDaysHorizon, addCalendarDays } from './demand/dates.js';
-export { PROFESSIONS, professionLabel, teamProfessions, teamCanServe } from './constraints/index.js';
+export { PROFESSIONS, professionLabel, teamProfessions, teamCanServe, professionCount, teamStaffCount, requiredStaffCount } from './constraints/index.js';
 export { isPointInPolygon, isPointInAnyPolygon } from './validation/polygon.js';
 export { validateScenario } from './validation/scenario.js';
 
@@ -22,6 +22,9 @@ import { calculatePlanMetrics } from './metrics/index.js';
 import { verifyPlan as verifyPlanInternal } from './verification/index.js';
 import { apply1Point5Opt } from './improvement/one-half-opt.js';
 import { enforceMandatoryVisits } from './constraints/mandatory.js';
+import { teamCanServe as canTeamServe } from './constraints/index.js';
+
+export const NO_COMPATIBLE_TEAM_REASON = 'Nenhuma equipe compatível (categorias exigidas, número de profissionais ou vínculo)';
 
 import { UrgencyBaselineStrategy } from './strategies/baseline-urgency.js';
 import { NearestBaselineStrategy } from './strategies/baseline-nearest.js';
@@ -75,7 +78,13 @@ export function planScenario(scenario: Scenario, options: PlanOptions): Plan {
   //    que valem para todas as estratégias.
   const enforced = enforceMandatoryVisits(context, strategy.solve(context));
   let { routes } = enforced;
-  const { unallocatedVisits } = enforced;
+  // Pendências sem nenhuma equipe compatível recebem o motivo real, em vez de "falta de capacidade".
+  const candidateById = new Map(candidates.map(candidate => [candidate.id, candidate]));
+  const unallocatedVisits = enforced.unallocatedVisits.map(item => {
+    const candidate = candidateById.get(item.visitCandidateId);
+    if (item.mandatory || !candidate || scenario.teams.some(team => canTeamServe(team, candidate))) return item;
+    return { ...item, reason: NO_COMPATIBLE_TEAM_REASON };
+  });
 
   // 6. Aplicar 1.5-Opt intra-rota se ativado (padrão: ativado)
   const enable1_5Opt = options?.enable1_5Opt !== false && options?.enable2Opt !== false;

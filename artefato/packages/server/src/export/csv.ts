@@ -1,4 +1,4 @@
-import { DailyTeamRoute, Scenario, Patient, Team, PlannedVisit, professionLabel } from '@routing/core';
+import { DailyTeamRoute, Scenario, Patient, Team, PlannedVisit, professionLabel, requiredStaffCount } from '@routing/core';
 
 /**
  * Gerador de CSV para uma Rota Diária de Equipe
@@ -23,7 +23,8 @@ export function generateRouteCsv(scenario: Scenario, route: DailyTeamRoute): str
     'data_atendimento',
     'folga_min',
     'prazo_rigido',
-    'categorias_exigidas'
+    'categorias_exigidas',
+    'profissionais_necessarios'
   ].join(',');
 
   const rows: string[] = [];
@@ -46,7 +47,8 @@ export function generateRouteCsv(scenario: Scenario, route: DailyTeamRoute): str
     `"${route.date}"`,
     0,
     '""',
-    '""'
+    '""',
+    ''
   ].join(','));
 
   // Atendimentos em Ordem
@@ -74,7 +76,8 @@ export function generateRouteCsv(scenario: Scenario, route: DailyTeamRoute): str
       `"${route.date}"`,
       visit.bufferMinutes ?? 0,
       `"${patient?.hardDeadline ?? ''}"`,
-      `"${(patient?.requiredProfessions ?? []).map(professionLabel).join('; ')}"`
+      `"${(patient?.requiredProfessions ?? []).map(professionLabel).join('; ')}"`,
+      patient ? requiredStaffCount(patient) : 1
     ].join(','));
   });
 
@@ -96,7 +99,8 @@ export function generateRouteCsv(scenario: Scenario, route: DailyTeamRoute): str
     `"${route.date}"`,
     0,
     '""',
-    '""'
+    '""',
+    ''
   ].join(','));
 
   return `${header}\n${rows.join('\n')}`;

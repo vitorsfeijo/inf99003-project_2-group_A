@@ -1,5 +1,5 @@
 import React from 'react';
-import { PROFESSIONS, Scenario, Team, teamProfessions } from '@routing/core';
+import { PROFESSIONS, ProfessionId, Scenario, Team, professionCount, professionLabel, teamProfessions, teamStaffCount } from '@routing/core';
 import { chip, dangerLink, hint, input, label, secondaryButton } from './styles';
 
 interface TeamEditorProps {
@@ -12,6 +12,17 @@ interface TeamEditorProps {
 
 function toggle(list: string[], item: string): string[] {
   return list.includes(item) ? list.filter(value => value !== item) : [...list, item];
+}
+
+/** Guarda só as contagens acima de 1 e das categorias presentes; o padrão é 1 por categoria. */
+function withCount(team: Team, profession: ProfessionId, count: number | null): Partial<Team> {
+  const professions = teamProfessions(team);
+  const counts: Partial<Record<ProfessionId, number>> = {};
+  for (const [id, value] of Object.entries(team.professionCounts ?? {})) {
+    if (id !== profession && professions.includes(id) && value && value > 1) counts[id] = value;
+  }
+  if (count && count > 1 && professions.includes(profession)) counts[profession] = count;
+  return { professionCounts: Object.keys(counts).length ? counts : undefined };
 }
 
 /** Equipes que saem para as visitas, suas categorias profissionais e as folgas do planejamento. */
@@ -48,11 +59,26 @@ export const TeamEditor: React.FC<TeamEditorProps> = ({ scenario, disabled, onCh
               {PROFESSIONS.map(profession => (
                 <button key={profession.id} type="button" aria-pressed={professions.includes(profession.id)}
                   style={chip(professions.includes(profession.id))}
-                  onClick={() => updateTeam(team.id, current => ({ professions: toggle(teamProfessions(current), profession.id) }))}>
+                  onClick={() => updateTeam(team.id, current => {
+                    const next = { ...current, professions: toggle(teamProfessions(current), profession.id) };
+                    return { professions: next.professions, ...withCount(next, profession.id, professionCount(current, profession.id) || null) };
+                  })}>
                   {profession.label}
                 </button>
               ))}
             </div>
+            {professions.length > 0 && <div style={{ display: 'grid', gap: 5 }}>
+              <span style={{ ...label, marginBottom: 0 }}>Quantos profissionais de cada categoria</span>
+              {professions.map(profession => (
+                <div key={profession} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <label htmlFor={`team-count-${team.id}-${profession}`} style={{ flex: 1, fontSize: 12, color: '#334155' }}>{professionLabel(profession)}</label>
+                  <input id={`team-count-${team.id}-${profession}`} style={{ ...input, width: 68, minHeight: 32, padding: '4px 8px' }} type="number" min={1} max={20} step={1}
+                    value={professionCount(team, profession)}
+                    onChange={event => { const count = Math.min(20, Math.max(1, Math.floor(Number(event.target.value)) || 1)); updateTeam(team.id, current => withCount(current, profession, count)); }} />
+                </div>
+              ))}
+              <p style={{ ...hint, marginTop: 0 }}>{teamStaffCount(team)} profissional(is) saem juntos nesta equipe. Pacientes que exigem mais pessoas não são atribuídos a ela.</p>
+            </div>}
             {!professions.length && <p style={{ ...hint, color: '#92400e' }}>Sem categorias: a equipe só recebe visitas sem exigência profissional.</p>}
             {scenario.teams.length > 1 && <button type="button" style={{ ...dangerLink, justifySelf: 'start' }} onClick={() => removeTeam(team.id)}>Remover equipe</button>}
           </fieldset>

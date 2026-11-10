@@ -74,7 +74,7 @@ Depois da apresentação aos profissionais da APS, a aplicação passou a inclui
 | Recurso | O que faz |
 |---|---|
 | ⚓ **Âncora e prazo rígido** | Marca um paciente como obrigatório na rota do primeiro dia, ou com prazo máximo (por exemplo, "em até 3 dias úteis"). O prazo rígido fica acima da prioridade. O plano abre espaço retirando visitas menos prioritárias e avisa quando é impossível cumprir. Vale para as três estratégias. |
-| 🩺 **Categorias profissionais** | Cada equipe informa seus profissionais (ACS, enfermagem, medicina, saúde bucal, serviço social, entre outros). Cada paciente pode exigir uma ou mais categorias, e a visita só vai para uma equipe que reúna todas elas. |
+| 🩺 **Categorias profissionais** | Cada equipe informa seus profissionais (ACS, enfermagem, medicina, saúde bucal, serviço social, entre outros). A equipe também informa quantos profissionais tem de cada categoria (padrão 1). Cada paciente pode exigir uma ou mais categorias e um número mínimo de profissionais na visita (padrão 1; por exemplo, 2 para mobilizar um acamado). A visita só vai para uma equipe que reúna todas as categorias e pessoas suficientes. |
 | 🔗 **Vínculo e território** | Um paciente pode ser vinculado a uma equipe. Também pode ser incluído mesmo fora do contorno do GeoSaúde, quando a microárea estiver desenhada incorretamente, ou transferido para outra unidade, que o recebe ao amostrar o próprio território. Também é possível cadastrar pacientes clicando no mapa. |
 | ⚠️ **Áreas de risco** | A equipe desenha no mapa trechos a evitar. As rotas desviam deles sempre que existe outro caminho a pé, e o mapa avisa quando não há desvio viável. |
 | ⏳ **Folgas** | Há uma folga em minutos após cada visita, para imprevistos, e uma margem em dias que planeja cada visita antes do prazo, para que uma ausência ainda possa ser recuperada. |
@@ -148,7 +148,7 @@ entre execuções.
 
 1. Escolha um território GeoSaúde e amostre pacientes.
 2. Na etapa 3, informe as equipes, os **profissionais de cada equipe**, as folgas e, se quiser, desenhe **áreas de risco** no mapa.
-3. Na aba **Pacientes** (ou clicando num paciente no mapa), defina âncoras e prazos rígidos, categorias exigidas, vínculo com equipe, inclusão fora do contorno ou transferência. Também é possível cadastrar pacientes no mapa.
+3. Na aba **Pacientes** (ou clicando num paciente no mapa), defina âncoras e prazos rígidos, categorias exigidas, número de profissionais necessários, vínculo com equipe, inclusão fora do contorno ou transferência. Também é possível cadastrar pacientes no mapa.
 4. Gere e compare os planos. Em **Execução**, registre as visitas feitas e não realizadas: a agenda é refeita a partir do próximo dia útil.
 
 <details>

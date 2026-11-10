@@ -89,6 +89,33 @@ test('categoria exigida só é atendida por equipe que a reúne; combinação au
   assert.equal(verifyPlan(scenario, tampered).isValid, false);
 });
 
+test('paciente que exige dois profissionais só vai para equipe com pessoas suficientes', () => {
+  // A dupla tem 2 ACS (contagem por categoria); a equipe solo tem um enfermeiro.
+  const scenario = lineScenario([
+    { id: 'acamado', extra: { requiredStaffCount: 2 } },
+    { id: 'geral' },
+    { id: 'tres', extra: { requiredStaffCount: 3 } }
+  ], {
+    teams: [
+      { id: 'solo', name: 'Solo', professions: ['enfermagem'], dailyWorkMinutes: 200, availableDays: [] },
+      { id: 'dupla', name: 'Dupla', professions: ['acs'], professionCounts: { acs: 2 }, dailyWorkMinutes: 200, availableDays: [] }
+    ]
+  });
+  for (const strategyId of STRATEGIES) {
+    const plan = planScenario(scenario, { strategyId, costMatrix: lineMatrix(scenario) });
+    assert.equal(teamOf(plan, 'acamado'), 'dupla', strategyId);
+    assert.ok(dayOf(plan, 'geral'), strategyId);
+    assert.equal(dayOf(plan, 'tres'), undefined, strategyId);
+    assert.match(plan.unallocatedVisits.find(item => item.patientId === 'tres').reason, /número de profissionais/, strategyId);
+    assert.equal(verifyPlan(scenario, plan).isValid, true, strategyId);
+  }
+  const plan = planScenario(scenario, { strategyId: 'main-heuristic', costMatrix: lineMatrix(scenario) });
+  const tampered = { ...plan, routes: plan.routes.map(route => ({ ...route, teamId: 'solo' })) };
+  const check = verifyPlan(scenario, tampered);
+  assert.equal(check.isValid, false);
+  assert.ok(check.errors.some(error => /exige 2/.test(error)));
+});
+
 test('prazo rígido sem equipe compatível não bloqueia o plano e gera aviso', () => {
   const scenario = lineScenario([
     { id: 'a' },

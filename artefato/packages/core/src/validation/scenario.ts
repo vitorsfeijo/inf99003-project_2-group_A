@@ -1,4 +1,5 @@
 import { Scenario, Patient } from '../types/index.js';
+import { teamCanServe } from '../constraints/index.js';
 import { isPointInAnyPolygon } from './polygon.js';
 
 export interface ValidationDiagnostics {
@@ -90,6 +91,20 @@ export function validateScenario(scenario: Scenario): ValidationDiagnostics {
     if (patient.assignedTeamId && !teamIds.has(patient.assignedTeamId)) {
       errors.push(`O paciente ${patient.code || patient.id} está vinculado a uma equipe inexistente (${patient.assignedTeamId}).`);
     }
+    if (patient.requiredStaffCount !== undefined && (!Number.isInteger(patient.requiredStaffCount) || patient.requiredStaffCount < 1)) {
+      errors.push(`O paciente ${patient.code || patient.id} exige um número inválido de profissionais (${patient.requiredStaffCount}); use um inteiro a partir de 1.`);
+    }
+  }
+  for (const team of scenario.teams ?? []) {
+    for (const [profession, count] of Object.entries(team.professionCounts ?? {})) {
+      if (count !== undefined && (!Number.isInteger(count) || count < 1)) {
+        errors.push(`A equipe ${team.name} tem quantidade inválida de ${profession} (${count}); use um inteiro a partir de 1.`);
+      }
+    }
+  }
+  const unservable = eligiblePatients.filter(patient => !(scenario.teams ?? []).some(team => teamCanServe(team, patient)));
+  if (unservable.length > 0 && (scenario.teams ?? []).length > 0) {
+    warnings.push(`${unservable.length} paciente(s) não podem ser atendidos por nenhuma equipe (categorias exigidas, número de profissionais ou vínculo): ${unservable.map(patient => patient.code || patient.id).join(', ')}.`);
   }
 
   (scenario.riskAreas ?? []).forEach((area, index) => {

@@ -1,4 +1,4 @@
-import { DailyTeamRoute, ProfessionId, Scenario, Team, VisitCandidate } from '../types/index.js';
+import { DailyTeamRoute, Patient, ProfessionId, Scenario, Team, VisitCandidate } from '../types/index.js';
 import { differenceInCalendarDays } from '../demand/dates.js';
 
 /**
@@ -33,13 +33,32 @@ export function teamProfessions(team: Team): ProfessionId[] {
   return derived;
 }
 
+/** Profissionais de uma categoria na equipe (0 se a categoria não está presente). */
+export function professionCount(team: Team, profession: ProfessionId): number {
+  if (!teamProfessions(team).includes(profession)) return 0;
+  const count = team.professionCounts?.[profession];
+  return count !== undefined && Number.isFinite(count) && count >= 1 ? Math.floor(count) : 1;
+}
+
+/** Total de profissionais que saem juntos na equipe; toda equipe tem ao menos uma pessoa. */
+export function teamStaffCount(team: Team): number {
+  return Math.max(1, teamProfessions(team).reduce((sum, profession) => sum + professionCount(team, profession), 0));
+}
+
+/** Profissionais exigidos pela visita (padrão 1). */
+export function requiredStaffCount(item: Pick<Patient, 'requiredStaffCount'>): number {
+  const count = item.requiredStaffCount;
+  return count !== undefined && Number.isFinite(count) && count > 1 ? Math.floor(count) : 1;
+}
+
 export function isTeamAvailable(team: Team, date: string): boolean {
   return !team.availableDays || team.availableDays.length === 0 || team.availableDays.includes(date);
 }
 
-/** A equipe tem todas as categorias exigidas e respeita o vínculo do paciente. */
-export function teamCanServe(team: Team, candidate: Pick<VisitCandidate, 'requiredProfessions' | 'assignedTeamId'>): boolean {
+/** A equipe tem todas as categorias exigidas, profissionais suficientes e respeita o vínculo do paciente. */
+export function teamCanServe(team: Team, candidate: Pick<VisitCandidate, 'requiredProfessions' | 'requiredStaffCount' | 'assignedTeamId'>): boolean {
   if (candidate.assignedTeamId && candidate.assignedTeamId !== team.id) return false;
+  if (teamStaffCount(team) < requiredStaffCount(candidate)) return false;
   const required = candidate.requiredProfessions ?? [];
   if (!required.length) return true;
   const available = new Set(teamProfessions(team));

@@ -1,5 +1,6 @@
 import { Patient, VisitCandidate, Scenario } from '../types/index.js';
 import { addCalendarDays, differenceInCalendarDays, getWorkingDaysHorizon } from './dates.js';
+import { requiredStaffCount } from '../constraints/index.js';
 
 export interface DemandGenerationResult {
   candidates: VisitCandidate[];
@@ -96,6 +97,7 @@ export function generateDemandCandidates(
         ...(bufferMinutes ? { bufferMinutes } : {}),
         ...(hardDeadline ? { hardDeadline } : {}),
         ...(patient.requiredProfessions?.length ? { requiredProfessions: [...patient.requiredProfessions] } : {}),
+        ...(requiredStaffCount(patient) > 1 ? { requiredStaffCount: requiredStaffCount(patient) } : {}),
         ...(patient.assignedTeamId ? { assignedTeamId: patient.assignedTeamId } : {}),
         isConditional: false
       });

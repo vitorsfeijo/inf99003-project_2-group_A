@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Patient, PROFESSIONS, Scenario, getWorkingDaysHorizon, isPointInAnyPolygon, professionLabel, teamCanServe } from '@routing/core';
+import { Patient, PROFESSIONS, Scenario, getWorkingDaysHorizon, isPointInAnyPolygon, professionLabel, requiredStaffCount, teamCanServe, teamStaffCount } from '@routing/core';
 import { BaseRegionSummary } from '../services/api';
 import { badge, chip, dangerLink, hint, input, label, linkButton, secondaryButton } from './styles';
 
@@ -34,6 +34,9 @@ export function patientBadges(patient: Patient, scenario: Scenario): { text: str
   for (const profession of patient.requiredProfessions ?? []) {
     items.push({ text: professionLabel(profession).replace(/ \(.*\)$/, ''), style: badge('#1e3a8a', '#dbeafe'), title: 'Categoria exigida' });
   }
+  if (requiredStaffCount(patient) > 1) {
+    items.push({ text: `👥 ${requiredStaffCount(patient)} profissionais`, style: badge('#1e3a8a', '#dbeafe'), title: 'Profissionais necessários na visita (ex.: mobilizar paciente acamado)' });
+  }
   if (patient.assignedTeamId) {
     const team = scenario.teams.find(item => item.id === patient.assignedTeamId);
     items.push({ text: `Vínculo: ${team?.name ?? patient.assignedTeamId}`, style: badge('#166534', '#dcfce7'), title: 'Só esta equipe visita o paciente' });
@@ -58,7 +61,7 @@ export const PatientPanel: React.FC<PatientPanelProps> = props => {
   const [onlyRestricted, setOnlyRestricted] = useState(false);
   const patients = useMemo(() => (scenario?.patients ?? []).filter(patient => {
     const matches = !filter || patient.code.toLowerCase().includes(filter.toLowerCase());
-    const restricted = Boolean(patient.hardDeadline || patient.requiredProfessions?.length || patient.assignedTeamId
+    const restricted = Boolean(patient.hardDeadline || patient.requiredProfessions?.length || requiredStaffCount(patient) > 1 || patient.assignedTeamId
       || patient.transfer || patient.territoryOverride);
     return matches && (!onlyRestricted || restricted);
   }), [scenario, filter, onlyRestricted]);
@@ -115,7 +118,12 @@ const PatientEditor: React.FC<PatientPanelProps & { patient: Patient; scenario: 
   const condition = patient.conditions[0];
   const inside = isPointInAnyPolygon(patient.location, scenario.polygons);
   const required = patient.requiredProfessions ?? [];
-  const compatibleTeams = scenario.teams.filter(team => teamCanServe(team, { requiredProfessions: required }));
+  const staff = requiredStaffCount(patient);
+  const compatibleTeams = scenario.teams.filter(team => teamCanServe(team, { requiredProfessions: required, requiredStaffCount: staff }));
+  const restrictsTeams = required.length > 0 || staff > 1;
+  const setStaff = (value: number) => value > 1
+    ? props.onUpdatePatient(patient.id, { requiredStaffCount: value })
+    : props.onClearPatientFields(patient.id, ['requiredStaffCount']);
 
   const setDeadline = (next: DeadlineMode, value?: string) => {
     setMode(next);
@@ -196,9 +204,16 @@ const PatientEditor: React.FC<PatientPanelProps & { patient: Patient; scenario: 
           {PROFESSIONS.map(profession => <button key={profession.id} type="button" aria-pressed={required.includes(profession.id)}
             style={chip(required.includes(profession.id))} onClick={() => toggleProfession(profession.id)}>{profession.label}</button>)}
         </div>
-        <p style={hint}>{required.length
-          ? `A equipe da visita precisa reunir todas as categorias marcadas. ${compatibleTeams.length ? `Compatíveis: ${compatibleTeams.map(team => team.name).join(', ')}.` : 'Nenhuma equipe atual reúne todas — ajuste as equipes na etapa 3.'}`
-          : 'Sem exigência: qualquer equipe (inclusive só com ACS) pode fazer a visita.'}</p>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8 }}>
+          <label htmlFor="patient-staff" style={{ ...label, marginBottom: 0, flex: 1 }}>Profissionais necessários na visita</label>
+          <input id="patient-staff" style={{ ...input, width: 72 }} type="number" min={1} max={10} step={1} value={staff}
+            onChange={event => setStaff(Math.min(10, Math.max(1, Math.floor(Number(event.target.value)) || 1)))} />
+        </div>
+        <p style={hint}>{restrictsTeams
+          ? `A equipe da visita precisa ${[required.length ? 'reunir todas as categorias marcadas' : '', staff > 1 ? `ter pelo menos ${staff} profissionais` : ''].filter(Boolean).join(' e ')}. ${compatibleTeams.length
+            ? `Compatíveis: ${compatibleTeams.map(team => `${team.name} (${teamStaffCount(team)})`).join(', ')}.`
+            : 'Nenhuma equipe atual atende — ajuste as equipes na etapa 3.'}`
+          : 'Sem exigência: qualquer equipe (inclusive um ACS sozinho) pode fazer a visita. Use 2 ou mais profissionais para, por exemplo, mobilizar um paciente acamado.'}</p>
       </div>
 
       <div>

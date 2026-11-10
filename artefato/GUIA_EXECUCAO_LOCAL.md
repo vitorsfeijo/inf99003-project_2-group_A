@@ -29,10 +29,11 @@ Na primeira vez, a instalação leva alguns minutos. Depois, o terminal mostra `
 
 1. Em **Selecionar região real**, escolha um território GeoSaúde, por exemplo **US Restinga**.
 2. Em **Amostrar pacientes**, comece com **15 a 30** pacientes e a semente `20261008`.
-3. Em **Equipes, profissionais e folgas**, marque os **profissionais de cada equipe** (por exemplo, ACS + enfermagem, ou cirurgião-dentista + ACS). Você pode criar mais equipes, ajustar a jornada, a folga após cada visita e a margem nos prazos. Se quiser, clique em **Marcar área de risco no mapa** e marque os cantos da área.
+3. Em **Equipes, profissionais e folgas**, marque os **profissionais de cada equipe** (por exemplo, ACS + enfermagem, ou cirurgião-dentista + ACS) e quantos há de cada categoria (padrão 1). Você pode criar mais equipes, ajustar a jornada, a folga após cada visita e a margem nos prazos. Se quiser, clique em **Marcar área de risco no mapa** e marque os cantos da área.
 4. Na aba **Pacientes**, ou clicando num paciente no mapa, você pode:
    - definir uma **âncora** (obrigatório no primeiro dia) ou um **prazo rígido** ("em até N dias úteis");
    - marcar as **categorias profissionais** que a visita exige;
+   - informar quantos **profissionais** a visita exige (padrão 1; por exemplo, 2 para mobilizar um acamado);
    - **vincular** o paciente a uma equipe;
    - incluir um paciente que está **fora do contorno** do GeoSaúde mas pertence à unidade;
    - **transferir** o paciente para outra unidade;
