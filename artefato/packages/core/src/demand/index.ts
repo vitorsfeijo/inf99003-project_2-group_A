@@ -1,6 +1,6 @@
 import { Patient, VisitCandidate, Scenario } from '../types/index.js';
 import { addCalendarDays, differenceInCalendarDays, getWorkingDaysHorizon } from './dates.js';
-import { requiredStaffCount } from '../constraints/index.js';
+import { effectiveVisitTimes, requiredProfessionIds, requiredStaffCount } from '../constraints/index.js';
 
 export interface DemandGenerationResult {
   candidates: VisitCandidate[];
@@ -86,6 +86,10 @@ export function generateDemandCandidates(
     const isWithinAnticipationLimit = differenceInCalendarDays(targetDate, maxAnticipatedDate) <= 0;
 
     if (daysUntilDue <= 0 || isWithinAnticipationLimit || hardDeadline) {
+      // Duração e folga: ajuste da próxima visita > valor do paciente > folga geral do cenário.
+      const times = effectiveVisitTimes(patient, bufferMinutes);
+      const professionCounts = Object.fromEntries(Object.entries(patient.requiredProfessionCounts ?? {})
+        .filter(([, count]) => count !== undefined && count > 1));
       candidates.push({
         id: `cand_${patient.id}_${primaryCondition.conditionId}`,
         patientId: patient.id,
@@ -93,12 +97,14 @@ export function generateDemandCandidates(
         dueDate: primaryCondition.dueDate,
         targetDate,
         priorityScore: primaryCondition.priorityScore,
-        durationMinutes: (patient.defaultVisitDurationMinutes || 30) + bufferMinutes,
-        ...(bufferMinutes ? { bufferMinutes } : {}),
+        durationMinutes: times.durationMinutes + times.bufferMinutes,
+        ...(times.bufferMinutes ? { bufferMinutes: times.bufferMinutes } : {}),
         ...(hardDeadline ? { hardDeadline } : {}),
-        ...(patient.requiredProfessions?.length ? { requiredProfessions: [...patient.requiredProfessions] } : {}),
+        ...(requiredProfessionIds(patient).length ? { requiredProfessions: requiredProfessionIds(patient) } : {}),
+        ...(Object.keys(professionCounts).length ? { requiredProfessionCounts: professionCounts } : {}),
         ...(requiredStaffCount(patient) > 1 ? { requiredStaffCount: requiredStaffCount(patient) } : {}),
         ...(patient.assignedTeamId ? { assignedTeamId: patient.assignedTeamId } : {}),
+        ...(patient.unavailablePeriods?.length ? { unavailablePeriods: patient.unavailablePeriods.map(period => ({ ...period })) } : {}),
         isConditional: false
       });
     }

@@ -55,6 +55,26 @@ export interface PatientTransfer {
 }
 
 /**
+  Período em que o paciente não pode ser visitado (datas inclusivas). Cobre ausências
+  programadas (férias, viagem, internação) e o aviso de um dia ("estarei fora hoje").
+ */
+export interface UnavailablePeriod {
+  start: string;                 // YYYY-MM-DD primeiro dia sem visita
+  end: string;                   // YYYY-MM-DD último dia sem visita
+  reason?: string;
+  kind?: 'timeout' | 'skip';     // 'skip' = retirado de uma rota já planejada
+}
+
+/**
+  Ajuste que vale só para a próxima visita do paciente; é descartado quando ela é concluída.
+ */
+export interface NextVisitAdjustment {
+  durationMinutes?: number;      // Duração do atendimento nesta visita
+  bufferMinutes?: number;        // Folga após esta visita
+  reason?: string;
+}
+
+/**
   Paciente cadastrado no cenário
  */
 export interface Patient {
@@ -63,12 +83,16 @@ export interface Patient {
   location: Coordinates;
   conditions: PatientCondition[];
   defaultVisitDurationMinutes: number; // Duração estimada do atendimento
+  visitBufferMinutes?: number;   // Folga própria do paciente, no lugar da folga geral do cenário
+  nextVisit?: NextVisitAdjustment; // Duração ou folga só da próxima visita
   requiredProfessions?: ProfessionId[]; // Todas precisam estar na equipe que fizer a visita
+  requiredProfessionCounts?: Partial<Record<ProfessionId, number>>; // Mínimo por categoria (ex.: 2 técnicos de enfermagem)
   requiredStaffCount?: number;   // Profissionais necessários na visita (ex.: 2 para mobilizar acamado); padrão 1
   hardDeadline?: string;         // YYYY-MM-DD: prazo rígido, acima da prioridade (âncora = dia atual)
   assignedTeamId?: string;       // Vínculo: só esta equipe pode visitar o paciente
   territoryOverride?: 'include'; // Pertence à unidade mesmo fora do contorno GeoSaúde
   transfer?: PatientTransfer;    // Transferido para outra unidade: fora do planejamento
+  unavailablePeriods?: UnavailablePeriod[]; // Dias em que o paciente não pode ser visitado
 }
 
 /**
@@ -128,8 +152,10 @@ export interface VisitCandidate {
   bufferMinutes?: number;        // Parte de durationMinutes reservada como folga
   hardDeadline?: string;         // Prazo rígido efetivo (nunca anterior ao primeiro dia útil)
   requiredProfessions?: ProfessionId[];
+  requiredProfessionCounts?: Partial<Record<ProfessionId, number>>; // Presente só com alguma categoria acima de 1
   requiredStaffCount?: number;   // Presente só quando maior que 1
   assignedTeamId?: string;
+  unavailablePeriods?: UnavailablePeriod[]; // Dias em que o paciente não pode ser visitado
   isConditional: boolean;        // Se depende do cumprimento de uma visita anterior na mesma janela
   dependsOnVisitId?: string;
 }
@@ -233,6 +259,7 @@ export interface VisitResult {
   date: string;                         // YYYY-MM-DD em que a tentativa ocorreu
   status: 'completed' | 'missed';       // Concluída ou Não Realizada
   reason?: string;
+  teamId?: string;                      // Equipe que fez (ou tentou fazer) a visita
 }
 
 /**

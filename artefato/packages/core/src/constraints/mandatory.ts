@@ -1,6 +1,6 @@
 import { DailyTeamRoute, PlannedVisit, PlanningContext, RoutingStrategy, Team, UnallocatedVisit, VisitCandidate } from '../types/index.js';
 import { differenceInCalendarDays } from '../demand/dates.js';
-import { canVisitOnRoute, teamCanServe } from './index.js';
+import { canVisitOnRoute, isPatientAvailable, teamCanServe } from './index.js';
 import { nodeIndexByPatient, rebuildRoute, routeServiceMinutes, routeTravelMinutes, toPlannedVisit } from '../improvement/route-utils.js';
 
 type RouteSolution = ReturnType<RoutingStrategy['solve']>;
@@ -161,11 +161,16 @@ export function enforceMandatoryVisits(context: PlanningContext, solution: Route
     }
 
     const anyTeam = scenario.teams.some(team => teamCanServe(team, candidate));
+    const patientAway = !allowed.length && workingDays
+      .filter(day => day <= (candidate.hardDeadline ?? day))
+      .every(day => !isPatientAvailable(candidate, day));
     const reason = !anyTeam
       ? 'Prazo rígido sem equipe compatível (categorias exigidas, número de profissionais ou vínculo)'
-      : !allowed.length
-        ? `Prazo rígido até ${candidate.hardDeadline} sem equipe disponível nesses dias`
-        : `Prazo rígido até ${candidate.hardDeadline} não cabe na jornada, mesmo retirando visitas sem prazo rígido`;
+      : patientAway
+        ? `Prazo rígido até ${candidate.hardDeadline}, mas o paciente está indisponível em todos os dias até lá`
+        : !allowed.length
+          ? `Prazo rígido até ${candidate.hardDeadline} sem equipe disponível nesses dias`
+          : `Prazo rígido até ${candidate.hardDeadline} não cabe na jornada, mesmo retirando visitas sem prazo rígido`;
     pending.push({ visitCandidateId: candidate.id, patientId: candidate.patientId, conditionId: candidate.conditionId,
       reason, mandatory: true });
     warnings.push(`Paciente ${patientCode(candidate.patientId)}: ${reason}.`);

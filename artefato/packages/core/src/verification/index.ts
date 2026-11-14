@@ -1,7 +1,7 @@
 import { Scenario, Plan, VerificationResult } from '../types/index.js';
 import { validateScenario } from '../validation/scenario.js';
 import { differenceInCalendarDays, getWorkingDaysHorizon } from '../demand/dates.js';
-import { isTeamAvailable, professionLabel, requiredStaffCount, teamCanServe, teamStaffCount } from '../constraints/index.js';
+import { isTeamAvailable, requiredStaffCount, teamCanServe, teamServiceGap, teamStaffCount, unavailablePeriodOn } from '../constraints/index.js';
 
 /**
  * Verificador Formal de Restrições (Etapa 5 do Pipeline)
@@ -54,15 +54,20 @@ export function verifyPlan(scenario: Scenario, plan: Plan): VerificationResult {
       // 4. Categorias profissionais exigidas e vínculo com equipe
       const patient = patientById.get(visit.patientId);
       if (patient && !teamCanServe(team, patient)) {
-        const required = (patient.requiredProfessions ?? []).map(professionLabel).join(', ');
         errors.push(patient.assignedTeamId && patient.assignedTeamId !== team.id
           ? `O paciente ${patient.code} é vinculado à equipe ${patient.assignedTeamId}, mas foi visitado pela equipe ${team.name} em ${route.date}.`
           : teamStaffCount(team) < requiredStaffCount(patient)
             ? `A equipe ${team.name} tem ${teamStaffCount(team)} profissional(is), mas o paciente ${patient.code} exige ${requiredStaffCount(patient)} em ${route.date}.`
-            : `A equipe ${team.name} não reúne as categorias exigidas pelo paciente ${patient.code} (${required}) em ${route.date}.`);
+            : `A equipe ${team.name} não reúne as categorias exigidas pelo paciente ${patient.code} em ${route.date}: ${teamServiceGap(team, patient)}.`);
       }
 
-      // 5. Prazo rígido: um prazo já vencido vale para o primeiro dia útil da janela
+      // 5. O paciente não pode estar ausente (férias, viagem, aviso de que estaria fora)
+      const away = patient ? unavailablePeriodOn(patient, route.date) : undefined;
+      if (patient && away) {
+        errors.push(`O paciente ${patient.code} está indisponível em ${route.date}${away.reason ? ` (${away.reason})` : ''}, mas foi agendado pela equipe ${team.name}.`);
+      }
+
+      // 6. Prazo rígido: um prazo já vencido vale para o primeiro dia útil da janela
       if (patient?.hardDeadline) {
         const deadline = patient.hardDeadline < firstWorkingDay ? firstWorkingDay : patient.hardDeadline;
         visitedMandatory.add(patient.id);

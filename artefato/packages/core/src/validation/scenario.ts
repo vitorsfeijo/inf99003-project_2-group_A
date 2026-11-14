@@ -11,6 +11,10 @@ export interface ValidationDiagnostics {
   warnings: string[];
 }
 
+function isIsoDate(value: unknown): boolean {
+  return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(`${value}T00:00:00Z`));
+}
+
 /**
  * Valida o cenário de entrada conforme os requisitos do pipeline:
  * 1. Conferir identificadores, datas, coordenadas, polígonos, intervalos e jornadas.
@@ -91,8 +95,30 @@ export function validateScenario(scenario: Scenario): ValidationDiagnostics {
     if (patient.assignedTeamId && !teamIds.has(patient.assignedTeamId)) {
       errors.push(`O paciente ${patient.code || patient.id} está vinculado a uma equipe inexistente (${patient.assignedTeamId}).`);
     }
+    const name = patient.code || patient.id;
     if (patient.requiredStaffCount !== undefined && (!Number.isInteger(patient.requiredStaffCount) || patient.requiredStaffCount < 1)) {
-      errors.push(`O paciente ${patient.code || patient.id} exige um número inválido de profissionais (${patient.requiredStaffCount}); use um inteiro a partir de 1.`);
+      errors.push(`O paciente ${name} exige um número inválido de profissionais (${patient.requiredStaffCount}); use um inteiro a partir de 1.`);
+    }
+    for (const [profession, count] of Object.entries(patient.requiredProfessionCounts ?? {})) {
+      if (count !== undefined && (!Number.isInteger(count) || count < 1)) {
+        errors.push(`O paciente ${name} exige quantidade inválida de ${profession} (${count}); use um inteiro a partir de 1.`);
+      }
+    }
+    const minutes: [string, number | undefined, number][] = [
+      ['duração da visita', patient.defaultVisitDurationMinutes, 0], // 0 usa o padrão de 30 min
+      ['folga própria', patient.visitBufferMinutes, 0],
+      ['duração da próxima visita', patient.nextVisit?.durationMinutes, 1],
+      ['folga da próxima visita', patient.nextVisit?.bufferMinutes, 0]
+    ];
+    for (const [label, value, minimum] of minutes) {
+      if (value !== undefined && (!Number.isFinite(value) || value < minimum)) {
+        errors.push(`O paciente ${name} tem ${label} inválida (${value} min).`);
+      }
+    }
+    for (const period of patient.unavailablePeriods ?? []) {
+      if (!isIsoDate(period.start) || !isIsoDate(period.end) || period.end < period.start) {
+        errors.push(`O paciente ${name} tem um período de ausência inválido (${period.start} a ${period.end}); informe datas AAAA-MM-DD com o fim depois do início.`);
+      }
     }
   }
   for (const team of scenario.teams ?? []) {

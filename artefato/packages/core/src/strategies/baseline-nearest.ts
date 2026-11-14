@@ -1,6 +1,6 @@
 import { RoutingStrategy, PlanningContext, DailyTeamRoute, UnallocatedVisit, PlannedVisit } from '../types/index.js';
 import { differenceInCalendarDays } from '../demand/dates.js';
-import { isTeamAvailable, teamCanServe } from '../constraints/index.js';
+import { isPatientAvailable, isTeamAvailable, teamCanServe } from '../constraints/index.js';
 import { toPlannedVisit } from '../improvement/route-utils.js';
 
 /**
@@ -36,7 +36,7 @@ export const NearestBaselineStrategy: RoutingStrategy = {
         while (building) {
           // Candidatos pendentes elegíveis
           const eligibleNow = unassignedCandidates.filter(c =>
-            !allocatedCandidateIds.has(c.id) && differenceInCalendarDays(c.targetDate, day) <= 0 && teamCanServe(team, c)
+            !allocatedCandidateIds.has(c.id) && differenceInCalendarDays(c.targetDate, day) <= 0 && teamCanServe(team, c) && isPatientAvailable(c, day)
           );
 
           if (eligibleNow.length === 0) {

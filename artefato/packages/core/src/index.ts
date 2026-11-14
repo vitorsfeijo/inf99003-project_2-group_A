@@ -1,7 +1,10 @@
 export * from './types/index.js';
 export { sampleTerritoryPatients } from './sampling/territory.js';
 export { countWorkingDaysInNextMonth, getWorkingDaysHorizon, addCalendarDays } from './demand/dates.js';
-export { PROFESSIONS, professionLabel, teamProfessions, teamCanServe, professionCount, teamStaffCount, requiredStaffCount } from './constraints/index.js';
+export { PROFESSIONS, professionLabel, teamProfessions, teamCanServe, teamServiceGap, professionCount, teamStaffCount, requiredStaffCount,
+  requiredProfessionCount, requiredProfessionIds, isPatientAvailable, unavailablePeriodOn, effectiveVisitTimes } from './constraints/index.js';
+export { calculateUsageStatistics, isoWeekKey, periodKey } from './statistics/index.js';
+export type { UsageStatistics, UsageStatisticsInput, StatisticsPeriod } from './statistics/index.js';
 export { isPointInPolygon, isPointInAnyPolygon } from './validation/polygon.js';
 export { validateScenario } from './validation/scenario.js';
 
@@ -13,7 +16,9 @@ import {
   VisitResult,
   VerificationResult,
   RoutingStrategy,
-  PlanningContext
+  PlanningContext,
+  UnallocatedVisit,
+  UnavailablePeriod
 } from './types/index.js';
 
 import { validateScenario } from './validation/scenario.js';
@@ -22,9 +27,13 @@ import { calculatePlanMetrics } from './metrics/index.js';
 import { verifyPlan as verifyPlanInternal } from './verification/index.js';
 import { apply1Point5Opt } from './improvement/one-half-opt.js';
 import { enforceMandatoryVisits } from './constraints/mandatory.js';
-import { teamCanServe as canTeamServe } from './constraints/index.js';
+import { teamCanServe as canTeamServe, isPatientAvailable, unavailablePeriodOn } from './constraints/index.js';
+import { nodeIndexByPatient, rebuildRoute } from './improvement/route-utils.js';
+import { CostMatrix } from './types/index.js';
 
 export const NO_COMPATIBLE_TEAM_REASON = 'Nenhuma equipe compatível (categorias exigidas, número de profissionais ou vínculo)';
+export const PATIENT_AWAY_REASON = 'Paciente indisponível durante toda a janela';
+export const REMOVED_FROM_ROUTE_REASON = 'Retirado da rota';
 
 import { UrgencyBaselineStrategy } from './strategies/baseline-urgency.js';
 import { NearestBaselineStrategy } from './strategies/baseline-nearest.js';
@@ -82,8 +91,14 @@ export function planScenario(scenario: Scenario, options: PlanOptions): Plan {
   const candidateById = new Map(candidates.map(candidate => [candidate.id, candidate]));
   const unallocatedVisits = enforced.unallocatedVisits.map(item => {
     const candidate = candidateById.get(item.visitCandidateId);
-    if (item.mandatory || !candidate || scenario.teams.some(team => canTeamServe(team, candidate))) return item;
-    return { ...item, reason: NO_COMPATIBLE_TEAM_REASON };
+    if (item.mandatory || !candidate) return item;
+    if (!scenario.teams.some(team => canTeamServe(team, candidate))) return { ...item, reason: NO_COMPATIBLE_TEAM_REASON };
+    // Paciente ausente durante toda a janela (férias, viagem): a pendência diz isso, não "falta de capacidade".
+    if (workingDays.every(day => !isPatientAvailable(candidate, day))) {
+      const period = unavailablePeriodOn(candidate, workingDays[workingDays.length - 1]) ?? unavailablePeriodOn(candidate, workingDays[0]);
+      return { ...item, reason: `${PATIENT_AWAY_REASON}${period?.reason ? ` (${period.reason})` : ''}` };
+    }
+    return item;
   });
 
   // 6. Aplicar 1.5-Opt intra-rota se ativado (padrão: ativado)
@@ -136,9 +151,10 @@ export function applyVisitResults(state: ScenarioState, results: VisitResult[]):
       return cond;
     });
 
-    // Uma visita concluída cumpre o prazo rígido; uma não realizada o mantém (vale no próximo dia útil se vencer).
+    // Uma visita concluída cumpre o prazo rígido e consome o ajuste de duração/folga da próxima visita;
+    // uma não realizada mantém os dois (o prazo vale no próximo dia útil se vencer).
     const completed = patientResults.some(result => result.status === 'completed');
-    const { hardDeadline, ...rest } = patient;
+    const { hardDeadline, nextVisit, ...rest } = patient;
     return {
       ...(completed ? rest : patient),
       conditions: updatedConditions
@@ -154,6 +170,68 @@ export function applyVisitResults(state: ScenarioState, results: VisitResult[]):
     },
     history: [...state.history, ...results]
   };
+}
+
+/** Visita a retirar de uma rota já planejada (ex.: o paciente avisou que estaria fora). */
+export interface RouteVisitRemoval {
+  date: string;
+  teamId: string;
+  patientId: string;
+  reason?: string;
+}
+
+/**
+ * Marca o paciente como indisponível no dia da rota. O planejador e o verificador passam a
+ * respeitar o aviso, e a visita continua pendente com o prazo original.
+ */
+export function markPatientUnavailable(scenario: Scenario, patientId: string, period: UnavailablePeriod): Scenario {
+  if (!scenario.patients.some(patient => patient.id === patientId)) throw new Error(`Paciente ${patientId} não encontrado no cenário.`);
+  return {
+    ...scenario,
+    patients: scenario.patients.map(patient => patient.id === patientId
+      ? { ...patient, unavailablePeriods: [...(patient.unavailablePeriods ?? []), period] }
+      : patient)
+  };
+}
+
+/**
+ * "Só pular": retira a visita da rota sem replanejar o restante. Os demais pacientes mantêm a ordem;
+ * os horários e a caminhada são recalculados, e a visita retirada volta para as pendências.
+ * Use um cenário que já registre o paciente como indisponível na data (markPatientUnavailable).
+ */
+export function removeVisitFromPlan(scenario: Scenario, plan: Plan, removal: RouteVisitRemoval, costMatrix: CostMatrix): Plan {
+  const routeIndex = plan.routes.findIndex(route => route.date === removal.date && route.teamId === removal.teamId);
+  if (routeIndex < 0) throw new Error(`Rota da equipe ${removal.teamId} em ${removal.date} não encontrada no plano.`);
+  const route = plan.routes[routeIndex];
+  const removed = route.visits.find(visit => visit.patientId === removal.patientId);
+  if (!removed) throw new Error(`O paciente ${removal.patientId} não está na rota da equipe ${removal.teamId} em ${removal.date}.`);
+
+  const validation = validateScenario(scenario);
+  if (!validation.isValid) throw new Error(`Cenário inválido:\n${validation.errors.join('\n')}`);
+  const { candidates } = generateDemandCandidates(scenario, validation.eligiblePatients);
+  const nodeByPatient = nodeIndexByPatient(costMatrix);
+  const routes = plan.routes.map((item, index) => index === routeIndex
+    ? rebuildRoute(item, item.visits.filter(visit => visit !== removed), costMatrix, nodeByPatient)
+    : item);
+  const unallocatedVisits: UnallocatedVisit[] = [...plan.unallocatedVisits, {
+    visitCandidateId: removed.visitCandidateId, patientId: removed.patientId, conditionId: removed.conditionId,
+    reason: `${REMOVED_FROM_ROUTE_REASON} de ${removal.date}${removal.reason ? `: ${removal.reason}` : ''}`,
+    ...(removed.mandatory ? { mandatory: true } : {})
+  }];
+  const updated: Plan = {
+    ...plan,
+    id: `plan_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`,
+    scenarioVersion: scenario.version,
+    generatedAt: new Date().toISOString(),
+    routes,
+    unallocatedVisits,
+    metrics: calculatePlanMetrics(scenario, routes, unallocatedVisits, candidates)
+  };
+  delete updated.warnings;
+  const verification = verifyPlanInternal(scenario, updated);
+  if (!verification.isValid) throw new Error(`Plano inválido após retirar a visita:\n${verification.errors.join('\n')}`);
+  if (verification.warnings.length) updated.warnings = verification.warnings;
+  return updated;
 }
 
 /**
