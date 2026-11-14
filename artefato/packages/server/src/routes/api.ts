@@ -1,5 +1,5 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { db } from '../db/database.js';
+import { db, regionOfScenario } from '../db/database.js';
 import { planScenario, applyVisitResults, Scenario, Plan, VisitResult, PlanOptions, DailyTeamRoute, Patient,
   addCalendarDays, getWorkingDaysHorizon } from '@routing/core';
 import { generateRouteCsv } from '../export/csv.js';
@@ -348,11 +348,11 @@ export async function registerApiRoutes(fastify: FastifyInstance) {
         db.prepare(`INSERT INTO scenarios (id, version, name, data_json, created_at) VALUES (?, ?, ?, ?, ?)`)
           .run(id, newVersion, currentScenario.healthCenter.name, JSON.stringify(newState.scenario), createdAt);
         const insertResult = db.prepare(`INSERT INTO visit_results
-          (id, scenario_id, patient_id, condition_id, visit_date, status, reason, created_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`);
+          (id, scenario_id, patient_id, condition_id, visit_date, status, reason, created_at, team_id, region_id)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
         for (const result of results) {
           insertResult.run(randomUUID(), id, result.patientId, result.conditionId, result.date,
-            result.status, result.reason || null, createdAt);
+            result.status, result.reason || null, createdAt, result.teamId ?? null, regionOfScenario(id));
         }
         db.prepare(`INSERT INTO plans (id, scenario_id, scenario_version, strategy_id, plan_json, created_at)
           VALUES (?, ?, ?, ?, ?, ?)`)

@@ -56,5 +56,40 @@ export function initDatabase() {
       reason TEXT,
       created_at TEXT NOT NULL
     );
+
+    -- Edições em andamento: o cenário de trabalho de cada unidade fica salvo no servidor
+    -- a cada alteração, para que recarregar a página não perca o que foi feito.
+    CREATE TABLE IF NOT EXISTS scenario_drafts (
+      region_id TEXT PRIMARY KEY,
+      scenario_id TEXT NOT NULL,
+      scenario_json TEXT NOT NULL,
+      strategy_id TEXT,
+      selected_date TEXT,
+      updated_at TEXT NOT NULL
+    );
+
+    -- Visitas retiradas de uma rota já planejada (o paciente avisou que estaria fora).
+    CREATE TABLE IF NOT EXISTS route_removals (
+      id TEXT PRIMARY KEY,
+      scenario_id TEXT NOT NULL,
+      region_id TEXT NOT NULL,
+      plan_id TEXT NOT NULL,
+      patient_id TEXT NOT NULL,
+      team_id TEXT NOT NULL,
+      visit_date TEXT NOT NULL,
+      mode TEXT NOT NULL,
+      reason TEXT,
+      created_at TEXT NOT NULL
+    );
   `);
+  // Bancos criados antes desta versão não têm a equipe nem a unidade em visit_results.
+  const columns = (db.prepare('PRAGMA table_info(visit_results)').all() as { name: string }[]).map(column => column.name);
+  if (!columns.includes('team_id')) db.exec('ALTER TABLE visit_results ADD COLUMN team_id TEXT');
+  if (!columns.includes('region_id')) db.exec('ALTER TABLE visit_results ADD COLUMN region_id TEXT');
+}
+
+/** Território GeoSaúde de origem de um cenário amostrado (`<região>_amostra_<semente>_...`). */
+export function regionOfScenario(scenarioId: string): string {
+  const index = scenarioId.indexOf('_amostra_');
+  return index > 0 ? scenarioId.slice(0, index) : scenarioId;
 }

@@ -1,4 +1,5 @@
-import { DailyTeamRoute, Scenario, Patient, Team, PlannedVisit, professionLabel, requiredStaffCount } from '@routing/core';
+import { DailyTeamRoute, Scenario, Patient, Team, PlannedVisit, requiredStaffCount } from '@routing/core';
+import { requirements } from './workbooks.js';
 
 /**
  * Gerador de CSV para uma Rota Diária de Equipe
@@ -76,7 +77,7 @@ export function generateRouteCsv(scenario: Scenario, route: DailyTeamRoute): str
       `"${route.date}"`,
       visit.bufferMinutes ?? 0,
       `"${patient?.hardDeadline ?? ''}"`,
-      `"${(patient?.requiredProfessions ?? []).map(professionLabel).join('; ')}"`,
+      `"${requirements(patient)}"`,
       patient ? requiredStaffCount(patient) : 1
     ].join(','));
   });

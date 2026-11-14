@@ -2,6 +2,7 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import { initDatabase } from './db/database.js';
 import { registerApiRoutes } from './routes/api.js';
+import { registerFieldRoutes } from './routes/field-api.js';
 import { registerWebApp } from './routes/web-app.js';
 import { initWalkRouter } from './routes/routing-provider.js';
 
@@ -23,6 +24,7 @@ initWalkRouter(message => fastify.log.info(message));
 
 // Registrar rotas da API
 await registerApiRoutes(fastify);
+await registerFieldRoutes(fastify);
 
 // Interface compilada servida na mesma porta (modo aplicativo); em desenvolvimento, o Vite usa a porta 3000
 const webAppServed = registerWebApp(fastify);
