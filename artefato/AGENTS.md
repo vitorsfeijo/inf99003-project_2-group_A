@@ -25,6 +25,10 @@ Este é o guia único deste diretório, consolidando as instruções anteriormen
 - As regras de compatibilidade (disponibilidade, categorias profissionais, número de profissionais, vínculo com equipe e janela de datas) ficam em `packages/core/src/constraints/index.ts`. Toda estratégia nova deve usá-las.
 - Visitas com prazo rígido são garantidas por `enforceMandatoryVisits` depois de qualquer estratégia. Nunca substitua nem mova uma visita obrigatória para depois do prazo. Quando for impossível cumprir, registre a pendência com `mandatory: true` e o motivo; não lance erro.
 - Os campos novos de `Scenario`, `Patient` e `Team` são opcionais. Sem eles, os planos devem continuar idênticos aos da bancada experimental.
+- Dias em que o paciente está indisponível (`unavailablePeriods`: ausência programada ou retirada da rota) entram em `isDateAllowed` e no filtro das estratégias por `isPatientAvailable`; o verificador recusa visitas nesses dias.
+- Duração e folga de cada visita vêm de `effectiveVisitTimes`: ajuste da próxima visita (`nextVisit`, descartado ao concluir) > valor do paciente > folga geral do cenário.
+- Quantidade mínima por categoria (`requiredProfessionCounts`) é conferida por `teamCanServe`; use `teamServiceGap` para explicar a incompatibilidade.
+- Rode `npm test --prefix artefato/packages/core`; o teste aleatório de `limits.test.mjs` deve continuar passando em todas as sementes.
 
 ### Backend (`packages/server`)
 

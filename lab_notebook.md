@@ -39,3 +39,9 @@
 
 ### 10-11-2026
 - Cada paciente pode exigir um número mínimo de profissionais na visita (padrão 1), por exemplo 2 para mobilizar um acamado. Cada equipe informa quantos profissionais tem por categoria (padrão 1). A visita só vai para uma equipe cujo total de profissionais alcança o exigido. Quando nenhuma equipe atende, a pendência informa o motivo.
+
+### 13-11-2026
+- Implementamos os próximos focos do checkpoint do ciclo 3: quantidade mínima por categoria (ex.: 2 técnicos de enfermagem) e edições do cenário guardadas no servidor, com a opção de retomar ao reabrir o aplicativo.
+- Novas funcionalidades de uso em campo: duração e folga por paciente (só na próxima visita ou sempre), ausência programada (férias, viagem), retirar um paciente da rota do dia (só pular ou recalcular), estatísticas de uso por unidade e exportação para Excel (rota, plano completo e estatísticas).
+- Os testes do núcleo passaram de 18 para 36. Os novos tentam forçar falhas do planejamento, incluindo 300 cenários aleatórios com semente fixa nas três estratégias. Para confirmar que os testes pegam erros, desativamos de propósito a regra de ausência e a de quantidade por categoria: os testes falharam nos dois casos.
+- Sem os campos novos, os três estudos reexecutados com as matrizes em cache continuam idênticos aos resultados anteriores.
