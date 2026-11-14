@@ -1,4 +1,4 @@
-import { Scenario, Plan, VisitResult, PlanOptions, Patient } from '@routing/core';
+import { Scenario, Plan, VisitResult, PlanOptions, Patient, UsageStatistics, StatisticsPeriod } from '@routing/core';
 
 // Em desenvolvimento o Vite (porta 3000) consulta a API na porta 3001; no modo aplicativo,
 // a própria API entrega a interface, então o caminho é relativo.
@@ -184,4 +184,85 @@ export async function createTransfer(transfer: { fromScenarioId: string; fromReg
     throw new Error(body.error || 'Falha ao registrar a transferência.');
   }
   return res.json();
+}
+
+async function errorFrom(res: Response, fallback: string): Promise<Error> {
+  try {
+    const body = await res.json() as { error?: string };
+    return new Error(body.error || fallback);
+  } catch {
+    return new Error(`${fallback} (HTTP ${res.status})`);
+  }
+}
+
+export function getExportXlsxUrl(planId: string, date: string, teamId: string): string {
+  return `${API_BASE_URL}/export/xlsx?${new URLSearchParams({ planId, date, teamId })}`;
+}
+
+export function getExportPlanXlsxUrl(planId: string): string {
+  return `${API_BASE_URL}/export/plan-xlsx?${new URLSearchParams({ planId })}`;
+}
+
+// --- Edições em andamento guardadas no servidor ---
+
+export interface SavedDraft {
+  regionId: string;
+  scenario: Scenario;
+  strategyId?: string;
+  selectedDate?: string;
+  updatedAt: string;
+  plans: Plan[];
+}
+
+export async function saveDraft(regionId: string, draft: { scenario: Scenario; strategyId?: string; selectedDate?: string }): Promise<{ savedAt: string }> {
+  const res = await fetch(`${API_BASE_URL}/drafts/${encodeURIComponent(regionId)}`, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(draft)
+  });
+  if (!res.ok) throw await errorFrom(res, 'Falha ao salvar as edições no servidor.');
+  return res.json();
+}
+
+/** Última edição salva; null quando não há nenhuma. */
+export async function fetchLatestDraft(): Promise<SavedDraft | null> {
+  const res = await fetch(`${API_BASE_URL}/drafts/latest`);
+  if (res.status === 404) return null;
+  if (!res.ok) throw await errorFrom(res, 'Falha ao consultar as edições salvas.');
+  return res.json();
+}
+
+export async function discardDraft(regionId: string): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/drafts/${encodeURIComponent(regionId)}`, { method: 'DELETE' });
+  if (!res.ok) throw await errorFrom(res, 'Falha ao descartar as edições salvas.');
+}
+
+// --- Retirar uma visita de uma rota planejada ---
+
+export async function removeVisitFromRoute(planId: string, removal: { date: string; teamId: string; patientId: string; reason?: string;
+  mode: 'skip' | 'replan' }): Promise<{ scenario: Scenario; plan: Plan }> {
+  const res = await fetch(`${API_BASE_URL}/plans/${encodeURIComponent(planId)}/remove-visit`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(removal)
+  });
+  if (!res.ok) throw await errorFrom(res, 'Falha ao retirar a visita da rota.');
+  return res.json();
+}
+
+// --- Estatísticas de uso ---
+
+export interface StatisticsQuery { regionId: string; period: StatisticsPeriod; from?: string; to?: string }
+
+function statisticsParams(query: StatisticsQuery): URLSearchParams {
+  const params = new URLSearchParams({ regionId: query.regionId, period: query.period });
+  if (query.from) params.set('from', query.from);
+  if (query.to) params.set('to', query.to);
+  return params;
+}
+
+export async function fetchStatistics(query: StatisticsQuery): Promise<UsageStatistics> {
+  const res = await fetch(`${API_BASE_URL}/statistics?${statisticsParams(query)}`);
+  if (!res.ok) throw await errorFrom(res, 'Falha ao calcular as estatísticas.');
+  return res.json();
+}
+
+export function getStatisticsXlsxUrl(query: StatisticsQuery): string {
+  return `${API_BASE_URL}/export/statistics-xlsx?${statisticsParams(query)}`;
 }

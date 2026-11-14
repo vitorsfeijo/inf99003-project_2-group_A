@@ -14,8 +14,13 @@ interface SidebarProps {
   activeTab: SidebarTab;
   onChangeTab: (tab: SidebarTab) => void;
   onRegisterResults: (results: VisitResult[]) => Promise<boolean>;
+  onRemoveVisit: (removal: { date: string; teamId: string; patientId: string; reason?: string; mode: 'skip' | 'replan' }) => Promise<boolean>;
   patientPanel: Omit<React.ComponentProps<typeof PatientPanel>, 'scenario' | 'regions'> & { regions: BaseRegionSummary[] };
 }
+
+/** Motivos mais comuns, para que as estatísticas agrupem as respostas. */
+const REMOVAL_REASONS = ['Paciente avisou que estaria fora', 'Paciente internado', 'Paciente pediu para remarcar', 'Equipe precisou mudar a agenda'];
+const MISSED_REASONS = ['Paciente ausente', 'Paciente recusou a visita', 'Endereço não encontrado', 'Falta de tempo na jornada', 'Condições do tempo', 'Área insegura no dia'];
 
 const TEAM_COLORS = ['#2563eb', '#059669', '#d97706', '#dc2626', '#7c3aed'];
 const TABS: { id: SidebarTab; label: string }[] = [
@@ -30,15 +35,28 @@ export const Sidebar: React.FC<SidebarProps> = ({
   activeTab,
   onChangeTab,
   onRegisterResults,
+  onRemoveVisit,
   patientPanel
 }) => {
-  const [executionState, setExecutionState] = useState<Record<string, { status: 'completed' | 'missed'; reason?: string }>>({});
+  const [executionState, setExecutionState] = useState<Record<string, { status: 'completed' | 'missed'; reason?: string; custom?: boolean }>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [removing, setRemoving] = useState<string | null>(null);
+  const [removalReason, setRemovalReason] = useState(REMOVAL_REASONS[0]);
+  const [isRemoving, setIsRemoving] = useState(false);
 
   const dailyRoutes = plan ? plan.routes.filter(r => r.date === selectedDate) : [];
   const patientCode = (patientId: string) => scenario?.patients.find(patient => patient.id === patientId)?.code ?? patientId;
 
-  useEffect(() => setExecutionState({}), [scenario?.id, scenario?.version, plan?.id, selectedDate]);
+  useEffect(() => { setExecutionState({}); setRemoving(null); }, [scenario?.id, scenario?.version, plan?.id, selectedDate]);
+
+  const submitRemoval = async (teamId: string, patientId: string, mode: 'skip' | 'replan') => {
+    setIsRemoving(true);
+    try {
+      if (await onRemoveVisit({ date: selectedDate, teamId, patientId, reason: removalReason, mode })) setRemoving(null);
+    } finally {
+      setIsRemoving(false);
+    }
+  };
 
   const handleStatusChange = (patientId: string, conditionId: string, status: 'completed' | 'missed') => {
     const key = JSON.stringify([patientId, conditionId]);
@@ -52,21 +70,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
     const key = JSON.stringify([patientId, conditionId]);
     setExecutionState(prev => ({
       ...prev,
-      [key]: { status: prev[key]?.status || 'missed', reason }
+      [key]: { status: prev[key]?.status || 'missed', reason, custom: prev[key]?.custom }
     }));
   };
 
   const handleSubmitExecution = async () => {
     if (isSubmitting) return;
     const results: VisitResult[] = [];
-    const visits = dailyRoutes.flatMap(route => route.visits);
+    const visits = dailyRoutes.flatMap(route => route.visits.map(visit => ({ ...visit, teamId: route.teamId })));
     if (visits.some(visit => !executionState[JSON.stringify([visit.patientId, visit.conditionId])])) {
       alert('Marque cada visita planejada como concluída ou não realizada.');
       return;
     }
     visits.forEach(visit => {
       const value = executionState[JSON.stringify([visit.patientId, visit.conditionId])];
-      results.push({ patientId: visit.patientId, conditionId: visit.conditionId, date: selectedDate, status: value.status, reason: value.reason });
+      results.push({ patientId: visit.patientId, conditionId: visit.conditionId, date: selectedDate, status: value.status,
+        teamId: visit.teamId, ...(value.status === 'missed' && value.reason?.trim() ? { reason: value.reason.trim() } : {}) });
     });
 
     if (results.length === 0) {
@@ -148,7 +167,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       <p style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Sem visitas atribuídas para esta equipe hoje.</p>
                     ) : (
                       <ol style={{ paddingLeft: '1.25rem', fontSize: '0.85rem' }}>
-                        {route.visits.map((v, idx) => (
+                        {route.visits.map((v, idx) => {
+                          const removalKey = JSON.stringify([route.teamId, v.patientId]);
+                          return (
                           <li key={idx} style={{ marginBottom: '0.5rem' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 6 }}>
                               <span>
@@ -160,8 +181,31 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
                               Deslocamento: {v.travelDistanceKmFromPrevious} km ({v.travelTimeMinutesFromPrevious} min) | Duração: {(v.durationMinutes ?? 0) - (v.bufferMinutes ?? 0)} min{v.bufferMinutes ? ` + ${v.bufferMinutes} min de folga` : ''}
                             </div>
+                            {removing === removalKey ? (
+                              <div aria-label={`Retirar ${patientCode(v.patientId)} da rota`} style={{ border: '1px dashed #f59e0b', background: '#fffbeb', borderRadius: 8, padding: 8, marginTop: 6, display: 'grid', gap: 6 }}>
+                                <select aria-label="Motivo da retirada" value={removalReason} onChange={event => setRemovalReason(event.target.value)}
+                                  style={{ padding: '0.35rem', fontSize: '0.75rem', border: '1px solid #cbd5e1', borderRadius: 6 }}>
+                                  {REMOVAL_REASONS.map(reason => <option key={reason}>{reason}</option>)}
+                                </select>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                                  <button type="button" disabled={isRemoving} onClick={() => void submitRemoval(route.teamId, v.patientId, 'skip')}
+                                    title="Os demais pacientes mantêm a ordem; só os horários são refeitos"
+                                    style={{ minHeight: 34, border: '1px solid #d97706', background: 'white', color: '#92400e', borderRadius: 6, fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}>Só pular</button>
+                                  <button type="button" disabled={isRemoving} onClick={() => void submitRemoval(route.teamId, v.patientId, 'replan')}
+                                    title="Refaz o plano sem esse paciente neste dia"
+                                    style={{ minHeight: 34, border: 'none', background: '#d97706', color: 'white', borderRadius: 6, fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}>Recalcular plano</button>
+                                </div>
+                                <button type="button" onClick={() => setRemoving(null)} style={{ border: 'none', background: 'transparent', color: '#475569', fontSize: '0.72rem', cursor: 'pointer' }}>Cancelar</button>
+                              </div>
+                            ) : (
+                              <button type="button" onClick={() => { setRemoving(removalKey); setRemovalReason(REMOVAL_REASONS[0]); }}
+                                style={{ border: 'none', background: 'transparent', color: '#b45309', fontSize: '0.72rem', fontWeight: 700, padding: '2px 0', cursor: 'pointer' }}>
+                                Retirar da rota
+                              </button>
+                            )}
                           </li>
-                        ))}
+                          );
+                        })}
                       </ol>
                     )}
                   </div>
@@ -249,15 +293,27 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       </button>
                     </div>
 
-                    {currentStatus === 'missed' && (
-                      <input
-                        type="text"
-                        placeholder="Motivo (ex: ausente, recusou)"
-                        value={executionState[key]?.reason || ''}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleReasonChange(visit.patientId, visit.conditionId, e.target.value)}
-                        style={{ width: '100%', padding: '0.4rem', fontSize: '0.75rem', border: '1px solid #cbd5e1', borderRadius: '0.25rem' }}
-                      />
-                    )}
+                    {currentStatus === 'missed' && (() => {
+                      const reason = executionState[key]?.reason ?? '';
+                      const custom = executionState[key]?.custom ?? false;
+                      return (
+                        <div style={{ display: 'grid', gap: 6 }}>
+                          <select aria-label={`Motivo de ${patient ? patient.code : visit.patientId} não ter sido visitado`}
+                            value={custom ? 'outro' : reason}
+                            onChange={event => event.target.value === 'outro'
+                              ? setExecutionState(prev => ({ ...prev, [key]: { status: 'missed', reason: '', custom: true } }))
+                              : setExecutionState(prev => ({ ...prev, [key]: { status: 'missed', reason: event.target.value, custom: false } }))}
+                            style={{ width: '100%', padding: '0.4rem', fontSize: '0.75rem', border: '1px solid #cbd5e1', borderRadius: '0.25rem' }}>
+                            <option value="">Motivo (opcional)</option>
+                            {MISSED_REASONS.map(item => <option key={item} value={item}>{item}</option>)}
+                            <option value="outro">Outro motivo…</option>
+                          </select>
+                          {custom && <input type="text" placeholder="Descreva o motivo" value={reason}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleReasonChange(visit.patientId, visit.conditionId, e.target.value)}
+                            style={{ width: '100%', padding: '0.4rem', fontSize: '0.75rem', border: '1px solid #cbd5e1', borderRadius: '0.25rem' }} />}
+                        </div>
+                      );
+                    })()}
                   </div>
                 );
               })

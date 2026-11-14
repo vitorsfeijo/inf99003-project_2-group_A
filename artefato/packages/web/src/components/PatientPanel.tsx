@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Patient, PROFESSIONS, Scenario, getWorkingDaysHorizon, isPointInAnyPolygon, professionLabel, requiredStaffCount, teamCanServe, teamStaffCount } from '@routing/core';
+import { Patient, PROFESSIONS, Scenario, getWorkingDaysHorizon, isPointInAnyPolygon, professionLabel, requiredProfessionCount,
+  requiredProfessionIds, requiredStaffCount, teamCanServe, teamStaffCount, unavailablePeriodOn } from '@routing/core';
+import { AbsenceEditor, VisitTimesEditor } from './PatientScheduleEditors';
 import { BaseRegionSummary } from '../services/api';
 import { badge, chip, dangerLink, hint, input, label, linkButton, secondaryButton } from './styles';
 
@@ -31,8 +33,21 @@ export function patientBadges(patient: Patient, scenario: Scenario): { text: str
     items.push({ text: anchor ? '⚓ Âncora' : `⏱ até ${formatDate(patient.hardDeadline)}`, style: badge('#9a3412', '#ffedd5'),
       title: anchor ? 'Deve entrar na rota do primeiro dia' : 'Prazo rígido' });
   }
-  for (const profession of patient.requiredProfessions ?? []) {
-    items.push({ text: professionLabel(profession).replace(/ \(.*\)$/, ''), style: badge('#1e3a8a', '#dbeafe'), title: 'Categoria exigida' });
+  for (const profession of requiredProfessionIds(patient)) {
+    const count = requiredProfessionCount(patient, profession);
+    items.push({ text: `${count > 1 ? `${count}× ` : ''}${professionLabel(profession).replace(/ \(.*\)$/, '')}`, style: badge('#1e3a8a', '#dbeafe'), title: 'Categoria exigida' });
+  }
+  const away = (patient.unavailablePeriods ?? []).find(period => period.kind !== 'skip' && period.end >= scenario.startDate);
+  if (away) {
+    const now = unavailablePeriodOn(patient, scenario.startDate);
+    items.push({ text: now ? `🧳 fora até ${formatDate(away.end)}` : `🧳 ${formatDate(away.start)}–${formatDate(away.end)}`,
+      style: badge('#854d0e', '#fef9c3'), title: `Ausência programada${away.reason ? `: ${away.reason}` : ''}` });
+  }
+  if (patient.nextVisit) {
+    items.push({ text: '⏱ ajuste na próxima visita', style: badge('#854d0e', '#fef9c3'), title: 'Duração ou folga só da próxima visita' });
+  }
+  if (patient.visitBufferMinutes !== undefined) {
+    items.push({ text: `folga ${patient.visitBufferMinutes} min`, style: badge('#334155', '#e2e8f0'), title: 'Folga própria do paciente' });
   }
   if (requiredStaffCount(patient) > 1) {
     items.push({ text: `👥 ${requiredStaffCount(patient)} profissionais`, style: badge('#1e3a8a', '#dbeafe'), title: 'Profissionais necessários na visita (ex.: mobilizar paciente acamado)' });
@@ -61,8 +76,8 @@ export const PatientPanel: React.FC<PatientPanelProps> = props => {
   const [onlyRestricted, setOnlyRestricted] = useState(false);
   const patients = useMemo(() => (scenario?.patients ?? []).filter(patient => {
     const matches = !filter || patient.code.toLowerCase().includes(filter.toLowerCase());
-    const restricted = Boolean(patient.hardDeadline || patient.requiredProfessions?.length || requiredStaffCount(patient) > 1 || patient.assignedTeamId
-      || patient.transfer || patient.territoryOverride);
+    const restricted = Boolean(patient.hardDeadline || requiredProfessionIds(patient).length || requiredStaffCount(patient) > 1 || patient.assignedTeamId
+      || patient.transfer || patient.territoryOverride || patient.unavailablePeriods?.length || patient.nextVisit || patient.visitBufferMinutes !== undefined);
     return matches && (!onlyRestricted || restricted);
   }), [scenario, filter, onlyRestricted]);
 
@@ -117,13 +132,19 @@ const PatientEditor: React.FC<PatientPanelProps & { patient: Patient; scenario: 
 
   const condition = patient.conditions[0];
   const inside = isPointInAnyPolygon(patient.location, scenario.polygons);
-  const required = patient.requiredProfessions ?? [];
+  const required = requiredProfessionIds(patient);
   const staff = requiredStaffCount(patient);
-  const compatibleTeams = scenario.teams.filter(team => teamCanServe(team, { requiredProfessions: required, requiredStaffCount: staff }));
+  const compatibleTeams = scenario.teams.filter(team => teamCanServe(team, patient));
   const restrictsTeams = required.length > 0 || staff > 1;
   const setStaff = (value: number) => value > 1
     ? props.onUpdatePatient(patient.id, { requiredStaffCount: value })
     : props.onClearPatientFields(patient.id, ['requiredStaffCount']);
+  const setProfessionCount = (profession: string, value: number) => props.onUpdatePatient(patient.id, current => {
+    const counts = { ...(current.requiredProfessionCounts ?? {}) };
+    if (value > 1) counts[profession] = value;
+    else delete counts[profession];
+    return { requiredProfessionCounts: Object.keys(counts).length ? counts : undefined };
+  });
 
   const setDeadline = (next: DeadlineMode, value?: string) => {
     setMode(next);
@@ -133,9 +154,12 @@ const PatientEditor: React.FC<PatientPanelProps & { patient: Patient; scenario: 
     else if (value) props.onUpdatePatient(patient.id, { hardDeadline: value });
   };
   const toggleProfession = (profession: string) => props.onUpdatePatient(patient.id, current => {
-    const list = current.requiredProfessions ?? [];
-    const next = list.includes(profession) ? list.filter(item => item !== profession) : [...list, profession];
-    return { requiredProfessions: next.length ? next : undefined };
+    const list = requiredProfessionIds(current);
+    const removing = list.includes(profession);
+    const next = removing ? list.filter(item => item !== profession) : [...list, profession];
+    const counts = { ...(current.requiredProfessionCounts ?? {}) };
+    if (removing) delete counts[profession];
+    return { requiredProfessions: next.length ? next : undefined, requiredProfessionCounts: Object.keys(counts).length ? counts : undefined };
   });
   const updateCondition = (patch: Partial<typeof condition>) => props.onUpdatePatient(patient.id, current => ({
     conditions: current.conditions.map((item, index) => index === 0 ? { ...item, ...patch } : item)
@@ -168,17 +192,16 @@ const PatientEditor: React.FC<PatientPanelProps & { patient: Patient; scenario: 
         <button type="button" style={linkButton} onClick={() => props.onSelectPatient(null)}>Fechar</button>
       </div>
 
-      {condition && <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6 }}>
+      {condition && <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
         <div><label style={label} htmlFor="patient-weight">Prioridade (1–5)</label>
           <input id="patient-weight" style={input} type="number" min={1} max={5} value={condition.priorityWeight}
             onChange={event => updateCondition({ priorityWeight: Math.min(5, Math.max(1, Number(event.target.value) || 1)) })} /></div>
         <div><label style={label} htmlFor="patient-interval">Intervalo (dias)</label>
           <input id="patient-interval" style={input} type="number" min={1} max={365} value={condition.maxIntervalDays}
             onChange={event => updateCondition({ maxIntervalDays: Math.max(1, Number(event.target.value) || 1) })} /></div>
-        <div><label style={label} htmlFor="patient-duration">Visita (min)</label>
-          <input id="patient-duration" style={input} type="number" min={5} max={240} step={5} value={patient.defaultVisitDurationMinutes}
-            onChange={event => props.onUpdatePatient(patient.id, { defaultVisitDurationMinutes: Math.max(5, Number(event.target.value) || 30) })} /></div>
       </div>}
+
+      <VisitTimesEditor {...props} />
 
       <div>
         <label style={label} htmlFor="patient-deadline">Prazo rígido (acima da prioridade)</label>
@@ -204,13 +227,24 @@ const PatientEditor: React.FC<PatientPanelProps & { patient: Patient; scenario: 
           {PROFESSIONS.map(profession => <button key={profession.id} type="button" aria-pressed={required.includes(profession.id)}
             style={chip(required.includes(profession.id))} onClick={() => toggleProfession(profession.id)}>{profession.label}</button>)}
         </div>
+        {required.length > 0 && <div style={{ display: 'grid', gap: 5, marginTop: 8 }}>
+          <span style={{ ...label, marginBottom: 0 }}>Quantos de cada categoria</span>
+          {required.map(profession => (
+            <div key={profession} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <label htmlFor={`patient-count-${profession}`} style={{ flex: 1, fontSize: 12, color: '#334155' }}>{professionLabel(profession)}</label>
+              <input id={`patient-count-${profession}`} style={{ ...input, width: 68, minHeight: 32, padding: '4px 8px' }} type="number" min={1} max={10} step={1}
+                value={requiredProfessionCount(patient, profession)}
+                onChange={event => setProfessionCount(profession, Math.min(10, Math.max(1, Math.floor(Number(event.target.value)) || 1)))} />
+            </div>
+          ))}
+        </div>}
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8 }}>
-          <label htmlFor="patient-staff" style={{ ...label, marginBottom: 0, flex: 1 }}>Profissionais necessários na visita</label>
+          <label htmlFor="patient-staff" style={{ ...label, marginBottom: 0, flex: 1 }}>Profissionais necessários na visita (total)</label>
           <input id="patient-staff" style={{ ...input, width: 72 }} type="number" min={1} max={10} step={1} value={staff}
             onChange={event => setStaff(Math.min(10, Math.max(1, Math.floor(Number(event.target.value)) || 1)))} />
         </div>
         <p style={hint}>{restrictsTeams
-          ? `A equipe da visita precisa ${[required.length ? 'reunir todas as categorias marcadas' : '', staff > 1 ? `ter pelo menos ${staff} profissionais` : ''].filter(Boolean).join(' e ')}. ${compatibleTeams.length
+          ? `A equipe da visita precisa ${[required.length ? `reunir ${required.map(profession => `${requiredProfessionCount(patient, profession) > 1 ? `${requiredProfessionCount(patient, profession)}× ` : ''}${professionLabel(profession).replace(/ \(.*\)$/, '')}`).join(', ')}` : '', staff > 1 ? `ter pelo menos ${staff} profissionais no total` : ''].filter(Boolean).join(' e ')}. ${compatibleTeams.length
             ? `Compatíveis: ${compatibleTeams.map(team => `${team.name} (${teamStaffCount(team)})`).join(', ')}.`
             : 'Nenhuma equipe atual atende — ajuste as equipes na etapa 3.'}`
           : 'Sem exigência: qualquer equipe (inclusive um ACS sozinho) pode fazer a visita. Use 2 ou mais profissionais para, por exemplo, mobilizar um paciente acamado.'}</p>
@@ -224,6 +258,8 @@ const PatientEditor: React.FC<PatientPanelProps & { patient: Patient; scenario: 
           {scenario.teams.map(team => <option key={team.id} value={team.id}>Sempre {team.name}</option>)}
         </select>
       </div>
+
+      <AbsenceEditor {...props} workingDays={workingDays} />
 
       {!inside && <label style={{ display: 'flex', gap: 6, fontSize: 12, alignItems: 'flex-start' }}>
         <input type="checkbox" checked={patient.territoryOverride === 'include'}

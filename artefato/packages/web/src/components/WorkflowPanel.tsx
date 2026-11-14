@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Coordinates, Plan, Scenario, Team, countWorkingDaysInNextMonth } from '@routing/core';
 import { BaseRegionSummary, RoutingStatus } from '../services/api';
 import { card, input, label } from './styles';
@@ -44,6 +44,8 @@ const ROUTER_LABEL: Record<string, string> = {
 export const WorkflowPanel: React.FC<WorkflowPanelProps> = props => {
   // O painel é remontado ao voltar da comparação; o território carregado vem do App.
   const [regionId, setRegionId] = useState(props.baseScenario?.id ?? '');
+  // Ao retomar edições salvas, o território é escolhido pelo App.
+  useEffect(() => { if (props.baseScenario?.id) setRegionId(props.baseScenario.id); }, [props.baseScenario?.id]);
   const [count, setCount] = useState(30);
   const [seed, setSeed] = useState(20261008);
   const walkingNetworkConfigured = props.routingStatus.walkingNetworkConfigured;

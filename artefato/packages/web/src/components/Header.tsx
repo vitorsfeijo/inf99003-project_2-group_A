@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Map, Calendar, FileText } from 'lucide-react';
 import { Plan, Scenario } from '@routing/core';
-import { getExportCsvUrl, getExportGpxUrl } from '../services/api';
+import { getExportCsvUrl, getExportGpxUrl, getExportPlanXlsxUrl, getExportXlsxUrl } from '../services/api';
 
 interface HeaderProps {
   scenario: Scenario | null;
@@ -10,6 +10,7 @@ interface HeaderProps {
   setSelectedDate: (date: string) => void;
   showRouteControls?: boolean;
   canExport?: boolean;
+  saveStatus?: string;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -19,6 +20,7 @@ export const Header: React.FC<HeaderProps> = ({
   setSelectedDate,
   showRouteControls = true,
   canExport = true,
+  saveStatus = '',
 }) => {
   // Lista de datas disponíveis no plano ou no horizonte
   const dates = plan
@@ -52,6 +54,7 @@ export const Header: React.FC<HeaderProps> = ({
           <h1 style={{ fontSize: '1.1rem', fontWeight: 600 }}>Planejamento de Visitas Domiciliares</h1>
           <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
             {scenario ? `${scenario.healthCenter.name} (Versão ${scenario.version})` : 'Nenhum cenário selecionado'}
+            {saveStatus && <span style={{ color: saveStatus.startsWith('edições NÃO') ? '#fca5a5' : '#86efac' }}> · {saveStatus}</span>}
           </span>
         </div>
       </div>
@@ -115,6 +118,14 @@ export const Header: React.FC<HeaderProps> = ({
               }}
             >
               <FileText size={14} /> GPX
+            </a>
+            <a href={getExportXlsxUrl(plan.id, selectedDate, exportRoute.teamId)} download title="Rota do dia desta equipe em planilha do Excel"
+              style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', background: '#15803d', color: 'white', padding: '0.5rem 0.75rem', borderRadius: '0.375rem', textDecoration: 'none', fontSize: '0.8rem', fontWeight: 600 }}>
+              <FileText size={14} /> Excel
+            </a>
+            <a href={getExportPlanXlsxUrl(plan.id)} download title="Todas as rotas da janela, as pendências e as métricas"
+              style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', background: '#1e293b', color: 'white', padding: '0.5rem 0.75rem', borderRadius: '0.375rem', textDecoration: 'none', fontSize: '0.8rem', fontWeight: 600, whiteSpace: 'nowrap' }}>
+              <FileText size={14} /> Plano completo (Excel)
             </a>
           </div>
         )}
