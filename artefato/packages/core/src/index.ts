@@ -5,6 +5,9 @@ export { PROFESSIONS, professionLabel, teamProfessions, teamCanServe, teamServic
   requiredProfessionCount, requiredProfessionIds, isPatientAvailable, unavailablePeriodOn, effectiveVisitTimes } from './constraints/index.js';
 export { calculateUsageStatistics, isoWeekKey, periodKey } from './statistics/index.js';
 export type { UsageStatistics, UsageStatisticsInput, StatisticsPeriod } from './statistics/index.js';
+export { PATIENT_IMPORT_COLUMNS, parseCsv, parseImportDate, patientsFromTable, patientsFromJson, mergeImportedPatients,
+  patientImportTemplate } from './import/index.js';
+export type { TableCell, ImportIssue, ImportColumn, PatientImportContext, PatientImportResult, PatientImportMode, PatientMergeResult } from './import/index.js';
 export { isPointInPolygon, isPointInAnyPolygon } from './validation/polygon.js';
 export { validateScenario } from './validation/scenario.js';
 
