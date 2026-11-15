@@ -81,7 +81,7 @@ export const PatientPanel: React.FC<PatientPanelProps> = props => {
     return matches && (!onlyRestricted || restricted);
   }), [scenario, filter, onlyRestricted]);
 
-  if (!scenario) return <p style={{ color: '#64748b', textAlign: 'center', marginTop: '2rem' }}>Amostre pacientes para editar o cadastro.</p>;
+  if (!scenario) return <p style={{ color: '#64748b', textAlign: 'center', marginTop: '2rem' }}>Amostre ou importe pacientes para editar o cadastro.</p>;
   const selected = scenario.patients.find(patient => patient.id === props.selectedPatientId) ?? null;
 
   return (

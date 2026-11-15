@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Coordinates, Plan, Scenario, Team, countWorkingDaysInNextMonth } from '@routing/core';
+import { Coordinates, Patient, PatientImportMode, Plan, Scenario, Team, countWorkingDaysInNextMonth } from '@routing/core';
 import { BaseRegionSummary, RoutingStatus } from '../services/api';
 import { card, input, label } from './styles';
 import { TeamEditor } from './TeamEditor';
 import { RiskAreaPanel } from './RiskAreaPanel';
+import { PatientImport } from './PatientImport';
 
 interface WorkflowPanelProps {
   regions: BaseRegionSummary[];
@@ -17,6 +18,7 @@ interface WorkflowPanelProps {
   setSelectedStrategy: (strategy: string) => void;
   onSelectRegion: (id: string) => void;
   onSample: (count: number, seed: number) => void;
+  onImportPatients: (patients: Patient[], mode: PatientImportMode, fileName: string) => void;
   onGeneratePlan: () => void;
   planningError: string;
   isGenerating: boolean;
@@ -59,7 +61,7 @@ export const WorkflowPanel: React.FC<WorkflowPanelProps> = props => {
     <div style={{ padding: 16, background: '#f8fafc', display: 'grid', gap: 12, WebkitFontSmoothing: 'antialiased', fontVariantNumeric: 'tabular-nums' }}>
       <div>
         <h2 style={{ fontSize: 17, lineHeight: 1.25, textWrap: 'balance' }}>Montar cronograma</h2>
-        <p style={{ fontSize: 12, color: '#64748b', marginTop: 4, lineHeight: 1.4 }}>Contornos e unidade do GeoSaúde · pacientes simulados</p>
+        <p style={{ fontSize: 12, color: '#64748b', marginTop: 4, lineHeight: 1.4 }}>Contornos e unidade do GeoSaúde · pacientes simulados ou importados</p>
       </div>
       <section style={card} aria-label="Etapa 1: selecionar região">
         {step(1, 'Selecionar região real', Boolean(props.baseScenario))}
@@ -75,14 +77,15 @@ export const WorkflowPanel: React.FC<WorkflowPanelProps> = props => {
         {props.isLoadingRegion && <p style={{ color: '#64748b', fontSize: 12, marginTop: 8 }}>Carregando contorno…</p>}
         {props.baseScenario && <p style={{ color: '#475569', fontSize: 12, marginTop: 8 }}>{props.baseScenario.polygons.length} polígono(s) reais · {props.baseScenario.healthCenter.name}</p>}
       </section>
-      <section style={{ ...card, opacity: props.baseScenario ? 1 : .65 }} aria-label="Etapa 2: amostrar pacientes">
-        {step(2, 'Amostrar pacientes', Boolean(props.scenario))}
+      <section style={{ ...card, opacity: props.baseScenario ? 1 : .65 }} aria-label="Etapa 2: pacientes">
+        {step(2, 'Pacientes: amostrar ou importar', Boolean(props.scenario))}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           <div><label htmlFor="sample-count" style={label}>Quantidade</label><input id="sample-count" type="number" min={1} max={1000} step={1} value={count} disabled={!props.baseScenario} onChange={event => setCount(Number(event.target.value))} style={input} /></div>
           <div><label htmlFor="sample-seed" style={label}>Semente</label><input id="sample-seed" type="number" min={0} max={4294967295} step={1} value={seed} disabled={!props.baseScenario} onChange={event => setSeed(Number(event.target.value))} style={input} /></div>
         </div>
         <button type="button" disabled={!props.baseScenario || !Number.isInteger(count) || count < 1 || count > 1000 || !Number.isSafeInteger(seed) || seed < 0 || seed > 4294967295} onClick={() => props.onSample(count, seed)} style={{ ...input, marginTop: 10, background: '#e0e7ff', border: 'none', color: '#1e40af', fontWeight: 700, cursor: props.baseScenario ? 'pointer' : 'not-allowed' }}>Amostrar no território</button>
-        <p style={{ fontSize: 11, lineHeight: 1.4, color: '#64748b', marginTop: 8 }}>Endereços e perfis clínicos são sintéticos. A mesma semente reproduz a amostra. Edite pacientes na aba “Pacientes”.</p>
+        <p style={{ fontSize: 11, lineHeight: 1.4, color: '#64748b', marginTop: 8 }}>Na amostra, endereços e perfis clínicos são sintéticos; a mesma semente reproduz a amostra. Edite pacientes na aba “Pacientes”.</p>
+        <PatientImport baseScenario={props.baseScenario} scenario={props.scenario} disabled={props.isGenerating} onImport={props.onImportPatients} />
         {props.baseScenario && <p style={{ fontSize: 12, color: '#334155', marginTop: 7 }}>Janela: 1 mês a partir de {props.baseScenario.startDate} · {countWorkingDaysInNextMonth(props.baseScenario.startDate)} dias úteis</p>}
         {props.scenario && <p style={{ fontSize: 12, color: '#166534', marginTop: 7 }}>{props.scenario.patients.length} pacientes no cenário</p>}
         {props.sampleNotice && <p role="status" style={{ fontSize: 12, color: '#6b21a8', marginTop: 7 }}>{props.sampleNotice}</p>}
@@ -91,7 +94,7 @@ export const WorkflowPanel: React.FC<WorkflowPanelProps> = props => {
         {step(3, 'Equipes, profissionais e folgas', false)}
         {props.scenario
           ? <TeamEditor scenario={props.scenario} disabled={props.isGenerating} onChangeTeams={props.onChangeTeams} onChangeRules={props.onChangeRules} />
-          : <p style={{ fontSize: 12, color: '#64748b' }}>Amostre pacientes para configurar as equipes.</p>}
+          : <p style={{ fontSize: 12, color: '#64748b' }}>Amostre ou importe pacientes para configurar as equipes.</p>}
         {props.scenario && <div style={{ marginTop: 14 }}>
           <span style={label}>Áreas de risco</span>
           <RiskAreaPanel riskAreas={props.scenario.riskAreas ?? []} isDrawing={props.isDrawingRisk} draftPoints={props.draftRiskPoints}

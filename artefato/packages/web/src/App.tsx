@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Scenario, Plan, VisitResult, Patient, Team, Coordinates, sampleTerritoryPatients, countWorkingDaysInNextMonth, isPointInAnyPolygon } from '@routing/core';
+import { Scenario, Plan, VisitResult, Patient, PatientImportMode, Team, Coordinates, sampleTerritoryPatients, countWorkingDaysInNextMonth, isPointInAnyPolygon,
+  mergeImportedPatients } from '@routing/core';
 import { Header } from './components/Header';
 import { Sidebar, SidebarTab } from './components/Sidebar';
 import { MapMode, MapView } from './components/MapView';
@@ -185,6 +186,40 @@ export const App: React.FC = () => {
     }
   };
 
+  /** Pacientes de uma planilha ou JSON: somam-se aos atuais ou os substituem; sem cenário, criam um a partir da região. */
+  const handleImportPatients = async (imported: Patient[], mode: PatientImportMode, fileName: string) => {
+    if (scenario) {
+      const merged = mergeImportedPatients(scenario.patients, imported, mode);
+      editScenario(current => ({ ...current, patients: mergeImportedPatients(current.patients, imported, mode).patients }));
+      setSelectedPatientId(null);
+      setSampleNotice(`${fileName}: ${merged.added} novo(s), ${merged.updated} atualizado(s)${merged.removed ? `, ${merged.removed} removido(s)` : ''}.`);
+      return;
+    }
+    if (!baseScenario) return;
+    const created: Scenario = {
+      ...baseScenario,
+      id: `${baseScenario.id}_amostra_importacao_${Date.now().toString(36)}`, version: 1,
+      planningHorizonDays: countWorkingDaysInNextMonth(baseScenario.startDate),
+      patients: imported,
+      teams: baseScenario.teams.map(team => ({ ...team, availableDays: [...team.availableDays] }))
+    };
+    resetPlans();
+    setStaleNotice('');
+    setResumeOffer(null);
+    setSelectedPatientId(null);
+    setSelectedDate(created.startDate);
+    try {
+      const incoming = await fetchIncomingPatients(baseScenario.id);
+      const codes = new Set(imported.map(patient => patient.code.trim().toLowerCase()));
+      const extra = incoming.filter(item => !codes.has(item.patient.code.trim().toLowerCase()));
+      setScenario({ ...created, patients: [...imported, ...extra.map(item => item.patient)] });
+      setSampleNotice(`${fileName}: ${imported.length} paciente(s) importado(s)${extra.length ? `, mais ${extra.length} recebido(s) por transferência` : ''}.`);
+    } catch (error) {
+      setScenario(created);
+      setSampleNotice(`${fileName}: ${imported.length} paciente(s) importado(s). Não foi possível consultar transferências recebidas: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  };
+
   const handleGeneratePlan = async () => {
     if (!scenario || isGenerating || !routingStatus.walkingNetworkConfigured) return;
     setIsGenerating(true);
@@ -367,7 +402,7 @@ export const App: React.FC = () => {
               regions={regions} regionsError={regionsError} isLoadingRegions={isLoadingRegions}
               isLoadingRegion={isLoadingRegion} baseScenario={baseScenario} scenario={scenario} plan={plan}
               selectedStrategy={selectedStrategy} setSelectedStrategy={handleSelectStrategy}
-              onSelectRegion={handleSelectRegion} onSample={handleSample}
+              onSelectRegion={handleSelectRegion} onSample={handleSample} onImportPatients={handleImportPatients}
               onGeneratePlan={handleGeneratePlan} isGenerating={isGenerating}
               planningError={planningError}
               routingStatus={routingStatus}

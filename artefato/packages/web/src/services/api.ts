@@ -266,3 +266,36 @@ export async function fetchStatistics(query: StatisticsQuery): Promise<UsageStat
 export function getStatisticsXlsxUrl(query: StatisticsQuery): string {
   return `${API_BASE_URL}/export/statistics-xlsx?${statisticsParams(query)}`;
 }
+
+// --- Importação de pacientes ---
+
+export interface SpreadsheetTable {
+  sheetName: string;
+  rows: (string | number | boolean | null)[][];
+}
+
+function toBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  for (let index = 0; index < bytes.length; index += 0x8000) {
+    binary += String.fromCharCode(...bytes.subarray(index, index + 0x8000));
+  }
+  return btoa(binary);
+}
+
+/** O .xlsx é aberto no servidor (é um ZIP); CSV e JSON são lidos no próprio navegador. */
+export async function readSpreadsheet(file: File): Promise<SpreadsheetTable> {
+  const res = await fetch(`${API_BASE_URL}/import/table`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fileName: file.name, contentBase64: toBase64(await file.arrayBuffer()) })
+  });
+  if (!res.ok) throw await errorFrom(res, 'Falha ao ler a planilha no servidor.');
+  return res.json();
+}
+
+export function getImportTemplateUrl(format: 'xlsx' | 'csv', scenario?: Scenario | null): string {
+  const params = scenario
+    ? new URLSearchParams({ lat: String(scenario.healthCenter.location.lat), lng: String(scenario.healthCenter.location.lng), startDate: scenario.startDate })
+    : new URLSearchParams();
+  return `${API_BASE_URL}/import/template.${format}?${params}`;
+}
