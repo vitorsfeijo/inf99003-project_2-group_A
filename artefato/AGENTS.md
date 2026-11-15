@@ -26,6 +26,7 @@ Este é o guia único deste diretório, consolidando as instruções anteriormen
 - Visitas com prazo rígido são garantidas por `enforceMandatoryVisits` depois de qualquer estratégia. Nunca substitua nem mova uma visita obrigatória para depois do prazo. Quando for impossível cumprir, registre a pendência com `mandatory: true` e o motivo; não lance erro.
 - Os campos novos de `Scenario`, `Patient` e `Team` são opcionais. Sem eles, os planos devem continuar idênticos aos da bancada experimental.
 - Dias em que o paciente está indisponível (`unavailablePeriods`: ausência programada ou retirada da rota) entram em `isDateAllowed` e no filtro das estratégias por `isPatientAvailable`; o verificador recusa visitas nesses dias.
+- A importação de pacientes (`core/src/import`) só interpreta valores; ler arquivos fica com quem chama (o .xlsx no servidor, CSV e JSON no navegador). Cada linha com problema é recusada com o motivo, nunca corrigida em silêncio, e todo paciente importado passa por `validateScenario`. Coluna nova em `PATIENT_IMPORT_COLUMNS` precisa de teste em `patient-import.test.mjs`.
 - Duração e folga de cada visita vêm de `effectiveVisitTimes`: ajuste da próxima visita (`nextVisit`, descartado ao concluir) > valor do paciente > folga geral do cenário.
 - Quantidade mínima por categoria (`requiredProfessionCounts`) é conferida por `teamCanServe`; use `teamServiceGap` para explicar a incompatibilidade.
 - Rode `npm test --prefix artefato/packages/core`; o teste aleatório de `limits.test.mjs` deve continuar passando em todas as sementes.

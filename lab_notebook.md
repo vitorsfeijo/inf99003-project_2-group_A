@@ -45,3 +45,8 @@
 - Novas funcionalidades de uso em campo: duração e folga por paciente (só na próxima visita ou sempre), ausência programada (férias, viagem), retirar um paciente da rota do dia (só pular ou recalcular), estatísticas de uso por unidade e exportação para Excel (rota, plano completo e estatísticas).
 - Os testes do núcleo passaram de 18 para 36. Os novos tentam forçar falhas do planejamento, incluindo 300 cenários aleatórios com semente fixa nas três estratégias. Para confirmar que os testes pegam erros, desativamos de propósito a regra de ausência e a de quantidade por categoria: os testes falharam nos dois casos.
 - Sem os campos novos, os três estudos reexecutados com as matrizes em cache continuam idênticos aos resultados anteriores.
+
+### 14-11-2026
+- Importação de pacientes: a unidade pode carregar o próprio cadastro de uma planilha Excel (.xlsx), de um CSV (inclusive o salvo pelo Excel em português) ou de um JSON, em vez da amostra sintética. Há um modelo para baixar, com instruções por coluna. Antes de importar, o aplicativo mostra quantos pacientes estão prontos e, linha a linha, o que precisa ser corrigido (data inexistente, coordenadas trocadas, categoria ou equipe desconhecida). Os pacientes podem somar-se aos atuais (o mesmo código atualiza o cadastro) ou substituí-los.
+- Testes: 11 novos no núcleo (47 no total) e 3 do leitor de .xlsx no servidor. No navegador, importamos um .xlsx feito no openpyxl, um CSV em Windows-1252 e um JSON, e geramos os planos com os pacientes importados.
+- Nos slides finais, a capa e o encerramento passaram a citar também o grupo do ciclo 2 (Fabio Cieslak, Tobias Marion e Vitor Feijo).

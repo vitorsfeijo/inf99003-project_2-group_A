@@ -383,17 +383,19 @@ O servidor Fastify persiste cenários por `(id, version)` e planos vinculados à
 | `PUT /api/drafts/:regionId`, `GET /api/drafts/latest`, `DELETE /api/drafts/:regionId` | Edições em andamento: a interface salva o cenário de trabalho a cada alteração (tabela `scenario_drafts`); `latest` devolve também os planos já gerados para aquela versão. |
 | `POST /api/plans/:planId/remove-visit` | Retirar um paciente da rota de um dia (`date`, `teamId`, `patientId`, `reason`, `mode`). `skip` mantém a ordem dos demais (`removeVisitFromPlan`); `replan` refaz o plano. Nos dois casos o paciente fica indisponível naquele dia e a retirada é registrada em `route_removals`. |
 | `GET /api/statistics?regionId=&period=week\|month\|year&from=&to=` | Estatísticas de uso da unidade (`calculateUsageStatistics`), a partir de `visit_results` (com a equipe), `route_removals`, `patient_transfers` e do cadastro mais recente. |
+| `POST /api/import/table` | Lê a primeira aba visível de um .xlsx (`{ fileName, contentBase64 }`) e devolve as linhas na numeração do Excel; células de data viram AAAA-MM-DD. Leitor sem dependências (`src/import/xlsx-reader.ts`, ZIP pelo `zlib` do Node). A interpretação dos pacientes fica no núcleo (`patientsFromTable`); CSV e JSON são lidos no navegador. |
+| `GET /api/import/template.xlsx`, `/api/import/template.csv` (`?lat=&lng=&startDate=`) | Modelo de planilha de pacientes, com exemplos perto do posto, instruções por coluna e códigos das categorias. |
 | `GET /api/export/xlsx`, `/api/export/plan-xlsx`, `/api/export/statistics-xlsx` | Planilhas Excel (.xlsx) da rota de um dia, do plano completo (rotas, pendências, métricas) e das estatísticas. Geradas sem dependências externas (`src/export/xlsx.ts`). |
 
 O schema inclui `visit_results`, mas o handler atual de resultados não grava nessa tabela nem recupera um histórico completo; ele persiste o cenário atualizado e o novo plano. O histórico retornado por `applyVisitResults` é responsabilidade do consumidor que desejar mantê-lo.
 
 O CSV reúne ordem, posto/paciente, horários, deslocamentos, coordenadas, folga, prazo rígido, categorias exigidas e profissionais necessários. O GPX contém waypoints e um track que segue as ruas quando o roteador responde; caso contrário, a trilha liga as paradas em linha reta e registra o motivo na descrição.
 
-A interface React/Vite/Leaflet permite escolher uma região GeoSaúde, amostrar pacientes, gerar e comparar os três métodos, abrir suas rotas no mapa e registrar resultados reais. Sem servidor de caminhada, a geração do plano fica indisponível. Registro de resultados e exportação persistida dependem do servidor.
+A interface React/Vite/Leaflet permite escolher uma região GeoSaúde, amostrar ou importar pacientes, gerar e comparar os três métodos, abrir suas rotas no mapa e registrar resultados reais. Sem servidor de caminhada, a geração do plano fica indisponível. Registro de resultados e exportação persistida dependem do servidor.
 
 ## Testes automatizados
 
-`npm test --prefix artefato/packages/core` compila o núcleo e executa 36 testes (`node:test`):
+`npm test --prefix artefato/packages/core` compila o núcleo e executa 47 testes (`node:test`):
 
 | Arquivo | O que verifica |
 |---|---|
@@ -403,6 +405,9 @@ A interface React/Vite/Leaflet permite escolher uma região GeoSaúde, amostrar 
 | `stakeholder-constraints.test.mjs` (9) | Âncora, prazo máximo, categorias, número de profissionais, vínculo, transferência, inclusão fora do contorno, folga, margem e prazo rígido após visita não realizada. |
 | `limits.test.mjs` (12) | Tenta forçar falhas: mais âncoras do que cabem na jornada, âncora longe demais, equipe de folga no dia, visita maior que a jornada, cenário sem equipes, quantidade por categoria, ausências, dados inválidos e planos adulterados. Inclui um teste aleatório com 300 cenários sorteados (semente fixa) × 3 estratégias que confere todas as regras em cada plano. |
 | `field-operations.test.mjs` (6) | Duração e folga da próxima visita, folga própria do paciente, retirar da rota (pular e recalcular), semana ISO e estatísticas de uso. |
+| `patient-import.test.mjs` (11) | Importação de pacientes: CSV do Excel em português (";", vírgula decimal, BOM, aspas), datas em vários formatos e número de série do Excel, várias condições por paciente, recusa linha a linha com o motivo, categorias por código ou nome, inclusão fora do contorno, JSON em três formatos, junção com o cadastro atual e planos válidos a partir do modelo. |
+
+`npm test --prefix artefato/packages/server` compila o servidor e executa 3 testes do leitor de .xlsx: uma planilha real do openpyxl (`test/fixtures/`, gerada por `make-fixtures.py`), ida e volta com o gerador do servidor, com e sem compressão, e mensagens para .xls antigo, arquivo que não é planilha e ZIP truncado.
 
 ## Bancada experimental e manutenção
 
