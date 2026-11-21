@@ -100,3 +100,13 @@ lerna-debug.log*
 Thumbs.db
 ehthumbs.db
 desktop.ini
+
+# ---------------------------------------------------------------------------
+# RELATÓRIO FINAL — auxiliares do LaTeX (gerados na compilação)
+# ---------------------------------------------------------------------------
+relatorio_final/**/*.aux
+relatorio_final/**/*.log
+relatorio_final/**/*.out
+relatorio_final/**/*.bbl
+relatorio_final/**/*.blg
+relatorio_final/**/*.synctex.gz

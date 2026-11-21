@@ -50,3 +50,6 @@
 - Importação de pacientes: a unidade pode carregar o próprio cadastro de uma planilha Excel (.xlsx), de um CSV (inclusive o salvo pelo Excel em português) ou de um JSON, em vez da amostra sintética. Há um modelo para baixar, com instruções por coluna. Antes de importar, o aplicativo mostra quantos pacientes estão prontos e, linha a linha, o que precisa ser corrigido (data inexistente, coordenadas trocadas, categoria ou equipe desconhecida). Os pacientes podem somar-se aos atuais (o mesmo código atualiza o cadastro) ou substituí-los.
 - Testes: 11 novos no núcleo (47 no total) e 3 do leitor de .xlsx no servidor. No navegador, importamos um .xlsx feito no openpyxl, um CSV em Windows-1252 e um JSON, e geramos os planos com os pacientes importados.
 - Nos slides finais, a capa e o encerramento passaram a citar também o grupo do ciclo 2 (Fabio Cieslak, Tobias Marion e Vitor Feijo).
+
+### 21-11-2026
+- Relatório final em LaTeX, em duas versões (`relatorio_final/`): o relatório técnico de inovação pedido pelos professores, atualizado com a importação de pacientes e os 50 testes, e um artigo científico em formato IEEE, com formulação do problema, pseudocódigo da busca mensal, questões de pesquisa, resultados dos três estudos e ameaças à validade.

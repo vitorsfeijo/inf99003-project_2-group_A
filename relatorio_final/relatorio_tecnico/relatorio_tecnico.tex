@@ -1,0 +1,269 @@
+% Relatório técnico de inovação do PHVD-APS (INF99003).
+% Compilar nesta pasta: pdflatex relatorio_tecnico && bibtex relatorio_tecnico && pdflatex relatorio_tecnico && pdflatex relatorio_tecnico
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[brazilian]{babel}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage[a4paper,margin=2.4cm]{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage[table]{xcolor}
+\usepackage{enumitem}
+\usepackage{caption}
+\usepackage{placeins}
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta,calc}
+\usepackage[hidelinks]{hyperref}
+\usepackage[alf,abnt-emphasize=bf]{abntex2cite}
+
+\graphicspath{{../figuras/}}
+
+\definecolor{tinta}{HTML}{1F2A2E}
+\definecolor{destaque}{HTML}{1D4ED8}
+\definecolor{fundo}{HTML}{EEF3F8}
+\definecolor{verde}{HTML}{166534}
+
+\setlist{itemsep=2pt,topsep=4pt}
+\captionsetup{font=small,labelfont=bf}
+\renewcommand{\arraystretch}{1.25}
+\newcolumntype{L}{>{\raggedright\arraybackslash}X}
+
+% Caixa de destaque sem pacotes extras
+\newcommand{\destaque}[2]{%
+  \par\noindent\colorbox{fundo}{\begin{minipage}{\dimexpr\linewidth-2\fboxsep\relax}
+  \vspace{4pt}{\color{destaque}\bfseries #1}\par\smallskip #2\vspace{4pt}\end{minipage}}\par\medskip}
+
+\title{%
+  \vspace{-1.5cm}
+  {\normalsize\color{destaque}\textsc{INF99003 · Relatório técnico de inovação}}\\[6pt]
+  \textbf{PHVD-APS: o plano mensal de visitas domiciliares da Atenção Primária, a pé, refeito sempre que algo muda em campo}}
+\author{%
+  Gabriel P. Knopp \and Matheus M. Cezar \and Thiago N. da Fontoura\\[4pt]
+  {\small Instituto de Informática, Universidade Federal do Rio Grande do Sul (UFRGS)}\\[2pt]
+  {\small Primeira versão do artefato (ciclo 2): Fabio Cieslak, Tobias Marion e Vitor Feijo}}
+\date{\small Versão para a prévia de 27/11/2026 · apresentação final em 04/12/2026}
+
+\begin{document}
+\maketitle
+
+\destaque{Em resumo}{%
+O PHVD-APS calcula o plano mensal de visitas domiciliares das equipes da Atenção Primária à Saúde, a pé, sobre os territórios reais do GeoSaúde de Porto Alegre, e o refaz sempre que algo muda em campo. Depois de ouvir agentes de saúde em 06/11, o planejador passou a respeitar prazos obrigatórios, profissionais exigidos, vínculo com equipe, áreas de risco, folgas e ausências dos pacientes; quando uma visita não cabe, o plano explica por quê. O aplicativo abre sem Docker, importa o cadastro da unidade de uma planilha, guarda as edições no servidor e gera estatísticas de uso e planilhas para a gestão.
+
+Em experimentos com pacientes sintéticos, a busca mensal atendeu \textbf{34,6\%} dos pontos de prioridade a tempo em 131 territórios, contra \textbf{28,2\%} da regra do vizinho mais próximo. Os 50 testes automáticos, que incluem 900 planos aleatórios, não encontraram nenhuma regra violada.}
+
+\section{Problema e contexto}
+
+As equipes da Atenção Primária à Saúde (APS) visitam em casa os pacientes que não conseguem ir à unidade~\cite{pnab2017,conass2021}. Hoje, montam essa agenda à mão. Em cada território, a equipe precisa decidir quem visitar, em que dia e em que ordem, a pé, dentro de uma jornada de algumas horas. A falta de sistemas que acompanhem pendências e intervalos entre visitas é uma fragilidade conhecida da APS~\cite{rodrigues2014}, e o uso de tecnologia da informação nas unidades ainda é desigual~\cite{bender2021}.
+
+A decisão é difícil por quatro motivos:
+\begin{itemize}
+  \item \textbf{Prazos diferentes por paciente.} Cada condição tem um intervalo máximo entre visitas e uma prioridade clínica, e alguns pacientes precisam ser vistos num dia específico.
+  \item \textbf{Equipes diferentes.} Uma visita pode exigir um profissional específico (dentista, enfermagem) ou mais de uma pessoa, como no caso de um paciente acamado.
+  \item \textbf{Território real.} As microáreas do GeoSaúde nem sempre coincidem com quem a unidade atende~\cite{faria2020}, e há trechos onde não é seguro passar.
+  \item \textbf{Imprevistos.} Um paciente ausente volta para a fila, com o mesmo prazo, e a agenda dos dias seguintes precisa mudar.
+\end{itemize}
+
+O projeto usa os 132 territórios de unidades de saúde de Porto Alegre do GeoSaúde e a rede de ruas do OpenStreetMap~\cite{haklay2008}. Nos experimentos, os pacientes, as condições e as ausências são sintéticos, gerados com semente para que todo resultado possa ser reproduzido.
+
+\section{A inovação}
+
+O PHVD-APS transforma a agenda de visitas domiciliares de uma tarefa manual num plano mensal calculado, que a própria equipe ajusta e que se refaz sozinho quando algo muda. \textbf{A equipe continua decidindo; o sistema faz a conta.}
+
+\begin{table}[!htbp]
+\centering
+\caption{O que muda para a equipe de saúde.}
+\label{tab:muda}
+\begin{tabularx}{\linewidth}{LL}
+\toprule
+\textbf{O que a equipe faz hoje} & \textbf{O que o PHVD-APS oferece} \\
+\midrule
+Monta a lista do dia de memória ou em planilha & Plano de um mês inteiro, dia a dia e equipe a equipe, com a ordem das visitas \\
+Mantém o cadastro em planilhas próprias & Importação da planilha da unidade (Excel ou CSV) ou de um JSON, com checagem linha a linha \\
+Estima a caminhada & Trajeto a pé pelas ruas reais, desviando de áreas de risco marcadas pela equipe \\
+Remarca à mão quando o paciente não está & Registro do dia e replanejamento automático, mantendo o prazo original de quem faltou \\
+Confere de cabeça quem pode atender quem & Regras explícitas: categorias, número de profissionais, vínculo, prazo rígido \\
+Não tem histórico consolidado & Estatísticas de uso: visitas por equipe, motivos de falta, transferências, âncoras por área \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Três escolhas diferenciam o projeto:
+\begin{itemize}
+  \item \textbf{Funciona sem infraestrutura.} O aplicativo precisa só do Node.js; o roteador de caminhada vem embutido, sem Docker nem servidor de mapas.
+  \item \textbf{Cada regra pedida pelos agentes é opcional e verificável.} Sem nenhuma marcação, o plano é igual ao dos experimentos; com elas, todo plano passa por um verificador antes de chegar à tela.
+  \item \textbf{Transparência.} Quando uma visita não cabe, o plano diz por quê, em vez de escondê-la.
+\end{itemize}
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=\linewidth]{mapa-rotas.jpg}
+\caption{Tela \emph{Mapa e rotas} da US Vila Ipiranga: território do GeoSaúde, pacientes numerados, as rotas a pé das equipes A e B no dia 20/10 e a agenda do dia na lateral, com horários, deslocamentos e o botão para retirar um paciente da rota. Pacientes sintéticos.}
+\label{fig:mapa}
+\end{figure}
+
+\section{Escuta dos stakeholders}
+
+A versão atual nasceu da conversa com agentes de saúde em 06/11: cada pedido virou uma regra opcional do planejador, verificada em todo plano. A Tabela~\ref{tab:escuta} liga o que ouvimos ao que foi construído.
+
+\begin{table}[!htbp]
+\centering
+\small
+\caption{Necessidades ouvidas e o que foi construído.}
+\label{tab:escuta}
+\begin{tabularx}{\linewidth}{>{\hsize=.9\hsize}L>{\hsize=1.3\hsize}L>{\hsize=.4\hsize}L>{\hsize=.4\hsize}L}
+\toprule
+\textbf{Necessidade} & \textbf{O que o PHVD-APS faz} & \textbf{Origem} & \textbf{Quando} \\
+\midrule
+Alguns pacientes precisam ser vistos hoje ou até uma data & Âncora e prazo rígido, acima da prioridade; se não couber, o plano explica por quê & Agentes (06/11) & Até o checkpoint \\
+Certas visitas exigem um profissional específico & Categorias profissionais por equipe e por paciente & Agentes (06/11) & Até o checkpoint \\
+Acamados precisam de mais de uma pessoa & Número mínimo de profissionais; depois, quantidade mínima por categoria (ex.: 2 técnicos de enfermagem) & Agentes (06/11) & Até e depois do checkpoint \\
+Microáreas desenhadas errado; pacientes sempre do mesmo agente & Vínculo com equipe, inclusão fora do contorno e transferência entre unidades & Agentes (06/11) & Até o checkpoint \\
+Lugares onde não é seguro passar & Áreas de risco desenhadas no mapa; a rota desvia sempre que há outro caminho & Agentes (06/11) & Até o checkpoint \\
+Planos em cima da hora não absorvem imprevistos & Folga após cada visita e margem nos prazos & Agentes (06/11) & Até o checkpoint \\
+Alguns pacientes sempre demoram mais & Duração e folga próprias, só na próxima visita ou sempre & Grupo & Depois do checkpoint \\
+Pacientes viajam ou avisam que não estarão em casa & Ausência programada e retirar da rota do dia, só pulando ou recalculando & Grupo & Depois do checkpoint \\
+A gestão precisa acompanhar o trabalho & Estatísticas de uso e exportação para Excel & Grupo & Depois do checkpoint \\
+A unidade já tem o cadastro em planilha & Importação de Excel, CSV ou JSON, com prévia e erros por linha & Grupo & Depois do checkpoint \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+``Grupo'' marca o que propusemos a partir da rotina descrita pelos agentes; a próxima rodada com eles deve confirmar se esses recursos resolvem o problema. Duas mudanças vieram do uso do próprio grupo: o aplicativo passou a rodar sem Docker, para que uma unidade possa instalá-lo, e as edições passaram a ser guardadas no servidor, porque recarregar a página as perdia.
+
+\section{Como funciona}
+
+O PHVD-APS tem três partes: um núcleo de planejamento em TypeScript sem dependências, um servidor local (Fastify e SQLite) com roteador de caminhada próprio, e uma interface web com mapa (React e Leaflet). Tudo roda num computador comum com Node.js; o Docker é opcional. A Figura~\ref{fig:ciclo} mostra o ciclo de uso.
+
+\begin{figure}[!htbp]
+\centering
+\begin{tikzpicture}[
+  node distance=6mm and 9mm,
+  passo/.style={draw=destaque, fill=fundo, rounded corners=3pt, align=center, font=\small, minimum width=27mm, minimum height=11mm, text width=26mm},
+  seta/.style={-{Stealth[length=2.2mm]}, thick, color=tinta}]
+  \node[passo] (cad) {\textbf{Cadastrar}\\ou importar pacientes};
+  \node[passo, right=of cad] (plan) {\textbf{Planejar}\\o mês};
+  \node[passo, right=of plan] (vis) {\textbf{Visitar}\\a pé};
+  \node[passo, right=of vis] (reg) {\textbf{Registrar}\\o dia};
+  \node[passo, below=of reg, fill=white] (est) {\textbf{Estatísticas}\\e planilhas};
+  \draw[seta] (cad) -- (plan);
+  \draw[seta] (plan) -- (vis);
+  \draw[seta] (vis) -- (reg);
+  \draw[seta] (reg) -- (est);
+  \draw[seta] (reg.north) -- ++(0,6mm) -| node[pos=0.25, above, font=\footnotesize] {replanejar a partir do próximo dia útil; quem faltou mantém o prazo} (plan.north);
+\end{tikzpicture}
+\caption{Ciclo de uso. O plano mensal é refeito sempre que algo muda em campo; nada do que não aconteceu é dado como feito.}
+\label{fig:ciclo}
+\end{figure}
+
+Cada plano segue o mesmo caminho:
+\begin{enumerate}
+  \item \textbf{Demanda.} Para cada paciente do território, calcula o prazo de cada condição, a prioridade, a duração e a folga da próxima visita e os dias em que ele está ausente.
+  \item \textbf{Caminhada.} Monta a matriz de tempo e distância a pé entre a unidade e os pacientes, pela rede de ruas do OpenStreetMap, encarecendo 25 vezes as ruas que tocam áreas de risco.
+  \item \textbf{Estratégia.} Distribui as visitas pelos dias e equipes. Há três estratégias comparáveis: prioridade clínica, vizinho mais próximo e a busca mensal, que troca visitas entre dias para reduzir caminhada e atraso.
+  \item \textbf{Prazo rígido.} Garante as visitas obrigatórias depois de qualquer estratégia, retirando visitas menos prioritárias quando preciso.
+  \item \textbf{Melhoria da rota.} Reordena cada rota com 1.5-opt (reinserção de uma visita e inversão de trechos).
+  \item \textbf{Verificação.} Um verificador formal recusa o plano se alguma regra for violada: jornada, equipe compatível, ausência do paciente, prazo rígido, território.
+\end{enumerate}
+
+No fim do dia, a equipe marca cada visita como concluída ou não realizada. Uma visita não realizada nunca é dada como feita: ela volta para a fila com o prazo original, e o plano é refeito a partir do próximo dia útil. Se um paciente avisa antes que não estará em casa, a equipe o retira da rota e escolhe entre só pular ou recalcular o plano (Figura~\ref{fig:campo}).
+
+O cadastro pode vir de uma amostra sintética, de cliques no mapa ou da planilha da própria unidade. A importação aceita Excel (.xlsx), CSV (inclusive o salvo pelo Excel em português) e JSON, oferece um modelo para baixar e mostra, antes de aplicar, quantos pacientes estão prontos e o que precisa ser corrigido em cada linha recusada, como uma data inexistente ou coordenadas trocadas.
+
+\begin{figure}[!htbp]
+\centering
+\begin{minipage}[b]{0.36\linewidth}\centering
+  \includegraphics[width=\linewidth]{retirar-rota.png}\\[-2pt]
+  {\small (a) Retirar da rota}
+\end{minipage}\hfill
+\begin{minipage}[b]{0.6\linewidth}\centering
+  \includegraphics[width=0.9\linewidth]{duracao-folga.png}\\[-2pt]
+  {\small (b) Duração e folga só da próxima visita}\\[8pt]
+  \includegraphics[width=0.75\linewidth]{importacao.png}\\[-2pt]
+  {\small (c) Prévia da importação de uma planilha}
+\end{minipage}
+\caption{Recursos de uso em campo. (a) Um paciente avisou que estaria fora: a equipe escolhe entre só pular, mantendo a ordem dos demais, ou recalcular o plano. (b) Ajuste de duração e folga só para a próxima visita, descartado quando ela é concluída. (c) Prévia da importação: 6 pacientes prontos e 2 linhas recusadas, cada uma com o motivo.}
+\label{fig:campo}
+\end{figure}
+
+Todas as alterações ficam no servidor: cada versão do cenário, cada plano, cada resultado de visita e cada retirada. Desse histórico saem as estatísticas de uso (Figura~\ref{fig:gestao}) e as planilhas para a gestão.
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=0.92\linewidth]{estatisticas.jpg}
+\caption{Estatísticas de uso da US Vila Ipiranga: visitas registradas, percentual não realizado e motivos, retiradas da rota, transferências e pacientes atendidos por equipe e semana. Os números vêm de duas semanas de uso \emph{simulado}.}
+\label{fig:gestao}
+\end{figure}
+
+\section{Avaliação}
+
+A busca mensal atende mais prioridade a tempo que as alternativas simples, e nenhum plano gerado nos testes viola uma regra. As duas afirmações vêm de experimentos reproduzíveis (semente fixa) e de testes automáticos.
+
+\subsection{Experimentos}
+
+Todos os métodos recebem a mesma demanda e a mesma matriz de caminhada em cada comparação. Pacientes, prazos e ausências são sintéticos: os números medem a eficiência do algoritmo, não benefício clínico. A métrica principal, \emph{prioridade atendida a tempo}, soma os pesos clínicos das visitas feitas até o prazo e divide pela soma dos pesos de toda a demanda inicial.
+
+\begin{table}[!htbp]
+\centering
+\small
+\caption{Estudos e resultado da busca mensal frente ao vizinho mais próximo.}
+\label{tab:experimentos}
+\begin{tabularx}{\linewidth}{>{\hsize=.6\hsize}L>{\hsize=1.1\hsize}L>{\hsize=1.3\hsize}L}
+\toprule
+\textbf{Estudo} & \textbf{Desenho} & \textbf{Resultado} \\
+\midrule
+Cidade inteira & 131 territórios, 30 pacientes cada, 22 dias úteis, ausência de 0\%, 5\% e 10\% & Prioridade a tempo de 34,63\% contra 28,18\% (+6,45 p.p.); distância 1,1\% menor; venceu 307 de 393 pares, empatou 58, perdeu 28 \\
+Fatorial (Restinga) & 324 cenários variando pacientes, área, horizonte e atraso inicial; 972 pares & +9,65 p.p. de prioridade a tempo; venceu 899 pares, empatou 64, perdeu 9; caminhada 3,03\% maior \\
+250 pacientes (Restinga) & 3 sementes $\times$ 3 taxas de ausência, até concluir todas as visitas & Concluiu em 88,1 dias úteis contra 93,7; caminhada 13,0\% menor \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Os estudos da Restinga usaram o mapa antigo, que não cobria o bairro: a comparação entre métodos vale, mas os quilômetros absolutos não representam o território.
+
+\subsection{Testes e verificação}
+
+\begin{itemize}
+  \item \textbf{47 testes automáticos do núcleo.} Dezoito cobrem métricas, a busca mensal, a amostragem do território e as regras pedidas pelos agentes. Outros dezoito tentam forçar falhas: mais âncoras do que cabem na jornada, âncora longe demais, equipe de folga, cenário sem equipes, quantidade por categoria, ausências, dados inválidos e planos adulterados. Onze cobrem a importação de pacientes.
+  \item \textbf{3 testes do servidor} conferem a leitura de planilhas .xlsx, inclusive uma gerada por outra ferramenta (openpyxl), e as mensagens para arquivos inválidos.
+  \item \textbf{Teste aleatório.} 300 cenários sorteados com restrições combinadas, nas três estratégias (900 planos): nenhum erro, nenhuma regra violada, todo prazo rígido agendado a tempo ou pendente com motivo.
+  \item \textbf{Os testes pegam erros.} Desativamos de propósito a regra de ausência e, depois, a de quantidade por categoria; os testes falharam nos dois casos.
+  \item \textbf{Verificador formal.} Todo plano passa por ele antes de ser entregue; ele recusa jornada excedida, equipe incompatível, visita em dia de ausência, prazo rígido vencido e paciente fora do território.
+  \item \textbf{Sem regressão.} Sem as regras novas, os estudos reexecutados com as matrizes em cache reproduzem os resultados anteriores linha a linha (5.103 linhas, nenhuma diferença).
+  \item \textbf{Ponta a ponta.} Scripts conduzem a API e o navegador por todo o fluxo: importar planilhas, retomar edições salvas, retirar da rota, encerrar o dia, estatísticas e planilhas Excel, sem erros no console.
+\end{itemize}
+
+\section{Limitações e riscos}
+
+O PHVD-APS ainda não foi usado por uma equipe real; os resultados valem para dados sintéticos sobre territórios e ruas reais.
+\begin{itemize}
+  \item \textbf{Dados sintéticos.} Pacientes, condições, prazos e ausências são sorteados com semente. Nenhum dado de paciente real foi usado.
+  \item \textbf{Tempos estimados.} A caminhada vem da rede do OpenStreetMap (diferença mediana de 1,0\% em relação ao OSRM em 930 pares de pontos), e a duração das visitas é informada pela equipe.
+  \item \textbf{Mapa dos estudos antigos.} O mapa usado nos experimentos não cobria a Restinga; os quilômetros e minutos daquele território precisam ser recalculados com o mapa novo, que cobre 129 dos 132 territórios.
+  \item \textbf{Prazo rígido guloso.} A garantia das visitas obrigatórias não muda de equipe ou de dia uma âncora já colocada; em casos raros, diz que não cabe quando um arranjo melhor existiria. O plano sai do mesmo jeito, com o aviso.
+  \item \textbf{Microáreas.} O GeoSaúde fornece o contorno da unidade, não o das microáreas; as estatísticas por área usam os polígonos disponíveis.
+  \item \textbf{Uso local.} O servidor roda num computador da unidade, sem contas de usuário; um uso em produção, com o cadastro real importado, exigiria controle de acesso e proteção dos dados de saúde.
+\end{itemize}
+
+\section{Caminho de adoção e próximos passos}
+
+O próximo passo decisivo é colocar o aplicativo nas mãos de agentes de uma unidade e medir se ele economiza tempo de planejamento e caminhada.
+\begin{enumerate}
+  \item \textbf{27/11: prévia.} Apresentação e este relatório para avaliação dos professores.
+  \item \textbf{04/12: apresentação final.} Vinte minutos: uma parte para o público leigo, sobre a inovação, e uma parte técnica.
+  \item \textbf{Teste com agentes.} Se possível, uma rodada com uma unidade, importando o cadastro dela, para confirmar se as funcionalidades resolvem os pedidos de 06/11 e colher novos.
+  \item \textbf{Refazer os estudos da Restinga} com o mapa da Região Sul e rodar os experimentos com o roteador interno.
+  \item \textbf{Para uso real:} contas de usuário e proteção dos dados de saúde.
+\end{enumerate}
+
+\paragraph{Disponibilidade.} Código, experimentos e diário de bordo: \url{https://github.com/vitorsfeijo/inf99003-project_2-group_A}. Dados: territórios e unidades do GeoSaúde da Prefeitura de Porto Alegre; ruas do OpenStreetMap (extrato da Região Sul, Geofabrik).
+
+\FloatBarrier
+\nocite{barros2022,pinto2024,randriamihaja2024}
+\bibliography{../referencias}
+
+\end{document}
