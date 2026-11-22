@@ -53,3 +53,9 @@
 
 ### 21-11-2026
 - Relatório final em LaTeX, em duas versões (`relatorio_final/`): o relatório técnico de inovação pedido pelos professores, atualizado com a importação de pacientes e os 50 testes, e um artigo científico em formato IEEE, com formulação do problema, pseudocódigo da busca mensal, questões de pesquisa, resultados dos três estudos e ameaças à validade.
+
+### 22-11-2026
+- O relatório técnico foi refeito no modelo de P&D enviado pela professora. Hipóteses explícitas: H1, prioridade e atraso, confirmada; H2, não caminhar mais que o vizinho, confirmada só em E1 e E3; H3, plano mensal abaixo de 1 s com até 90 pacientes, confirmada. Também foram incluídas a análise de complexidade por etapa, a comparação com a complexidade empírica, a seção de impacto (LGPD) e o guia de reprodutibilidade.
+- Reexecutamos a grade fatorial com as matrizes em cache (AMD Ryzen 7 5700X3D, 32 GB, Windows 11, Node.js 26.13). As 972 linhas estáticas e as 2.916 dinâmicas bateram com as anteriores. Só mudaram os tempos de cálculo.
+- O tempo do plano inicial da busca mensal cresce com inclinação de cerca de 1,6 em escala log-log, de 15 para 90 pacientes: 6,5 ms em média com 15 pacientes e 118 ms com 90, com pior caso de 571 ms. O vizinho mais próximo cresce com inclinação de 1,4 e a urgência com 1,0.
+- Correção no artigo: no estudo de 250 pacientes, os replanejamentos de uma execução somaram de 22 a 179 s, não de 22 a 152 s. Cada replanejamento levou de 5 a 22 s.

@@ -312,7 +312,7 @@ O ganho frente ao vizinho cai pouco com a taxa de faltas (Fig.~\ref{fig:faltas})
 
 \subsection{QP3: acúmulo de 250 pacientes}
 
-Com quatro meses, a busca mensal colocou 249 a 250 das 250 visitas no plano inicial, contra 241 a 243 do vizinho e 246 a 248 da urgência. Com o limite de 12 meses, as 27 execuções concluíram todas as visitas (Tabela~\ref{tab:longo}). Nos 9 pares, a busca mensal terminou em 88,11 dias úteis, contra 93,67 do vizinho ($-5,56$), e caminhou 13,03\% menos; a vantagem em dias cresce com as faltas, de 3,67 para 8,33 dias úteis. O custo computacional somado de todos os replanejamentos de uma execução foi de 22 a 152~s, contra menos de 0,2~s das referências.
+Com quatro meses, a busca mensal colocou 249 a 250 das 250 visitas no plano inicial, contra 241 a 243 do vizinho e 246 a 248 da urgência. Com o limite de 12 meses, as 27 execuções concluíram todas as visitas (Tabela~\ref{tab:longo}). Nos 9 pares, a busca mensal terminou em 88,11 dias úteis, contra 93,67 do vizinho ($-5,56$), e caminhou 13,03\% menos; a vantagem em dias cresce com as faltas, de 3,67 para 8,33 dias úteis. O custo computacional somado de todos os replanejamentos de uma execução foi de 22 a 179~s (de 5 a 22~s por replanejamento, com horizonte de até 261 dias úteis), contra menos de 0,2~s das referências.
 
 \begin{table}[t]
 \centering
@@ -343,7 +343,7 @@ Os resultados apoiam a hipótese quanto à prioridade e ao atraso: nos três est
 
 A regra de urgência mostra o risco de priorizar sem olhar o mapa: atende os mais urgentes primeiro, mas cruza o território e esgota a jornada, perdendo em prioridade a tempo e em distância. O vizinho economiza caminhada mas ignora prazos. A busca mensal combina os dois ao mover visitas entre dias, o que nenhuma das referências faz.
 
-O custo computacional é o principal preço: cerca de 0,13~s por mês simulado em E1 e até 152~s somados num acúmulo de 250 pacientes replanejado ao longo de cerca de 88 dias úteis, isto é, da ordem de segundos por replanejamento, o que ainda é compatível com uso interativo.
+O custo computacional é o principal preço: cerca de 0,13~s por mês simulado em E1, e menos de 1~s por plano mensal em toda a grade fatorial, com até 90 pacientes. Num acúmulo de 250 pacientes com horizonte de 261 dias úteis, porém, cada replanejamento levou de 5 a 22~s, e os replanejamentos de uma execução somaram até 179~s; horizontes longos pedem uma busca incremental.
 
 \section{Ameaças à validade}
 
