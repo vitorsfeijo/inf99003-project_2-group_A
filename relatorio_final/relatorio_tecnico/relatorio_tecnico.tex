@@ -5,7 +5,7 @@
 % --- Pacotes Fundamentais ---
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
-\usepackage[brazil]{babel}
+\usepackage[brazilian]{babel}
 \usepackage{lmodern}
 \usepackage[top=2.5cm, bottom=2.5cm, left=2.5cm, right=2.5cm]{geometry}
 \usepackage{amsmath,amssymb}
@@ -96,9 +96,9 @@
 }
 
 \author{
-    \textbf{Gabriel P. Knopp} (Cartão: \preencher{000000}) -- \texttt{gabriel.knopp@inf.ufrgs.br}\\
-    \textbf{Matheus M. Cezar} (Cartão: \preencher{000000}) -- \texttt{\preencher{e-mail}}\\
-    \textbf{Thiago N. da Fontoura} (Cartão: \preencher{000000}) -- \texttt{\preencher{e-mail}}\\[0.3cm]
+    \textbf{Gabriel P. Knopp} (Cartão: 00594975) -- \texttt{gabriel.knopp@inf.ufrgs.br}\\
+    \textbf{Matheus M. Cezar} (Cartão: 00597894) -- \texttt{mmcezar@inf.ufrgs.br}\\
+    \textbf{Thiago N. da Fontoura} (Cartão: {00601238}) -- \texttt{tnfontoura@inf.ufrgs.br}\\[0.3cm]
     \normalsize Instituto de Informática -- Universidade Federal do Rio Grande do Sul (UFRGS)\\
     \normalsize Disciplina: Projeto em Ciência e Inovação (2026/2)\\
     \small Primeira versão do artefato (ciclo 2): Fabio Cieslak, Tobias Marion e Vitor Feijo\\
@@ -118,7 +118,7 @@
 \begin{abstract}
 \noindent
 \textbf{Resumo.}
-As equipes da Atenção Primária à Saúde (APS) montam à mão a agenda de visitas domiciliares: quem visitar, em que dia, com que equipe e em que ordem, a pé, com jornada limitada e prazos clínicos diferentes por paciente. Modelamos o problema como roteamento periódico com seleção de visitas, prazos ponderados pela prioridade clínica e restrições levantadas com agentes de saúde. A hipótese central é que uma busca local sobre o mês inteiro, que realoca e troca visitas entre dias e equipes sob um orçamento de caminhada, atende mais prioridade clínica a tempo do que regras simples, sem caminhar mais. A solução foi implementada em TypeScript: um grafo de caminhada do OpenStreetMap em lista de adjacência compacta, matrizes de custo por Dijkstra com heap binário, a busca mensal, melhoria 1.5-opt em cada rota e um verificador formal que recusa planos inválidos. Avaliamos o método em pacientes sintéticos sobre os territórios reais do GeoSaúde de Porto Alegre, em comparações pareadas com os mesmos sorteios de faltas. Em 131 territórios, a busca atendeu a tempo 34,63\% dos pontos de prioridade, contra 28,18\% do vizinho mais próximo, com 1,1\% menos caminhada; numa grade de 324 cenários, venceu 899 de 972 pares, mas caminhou 3,03\% mais; com 250 pacientes, concluiu as visitas 5,6 dias úteis antes. A hipótese de prioridade foi confirmada, a de deslocamento foi confirmada só em parte, e 900 planos aleatórios não violaram nenhuma restrição.
+As equipes da Atenção Primária à Saúde montam à mão a agenda de visitas domiciliares: quem visitar, em que dia, com que equipe e em que ordem, a pé, com jornada limitada e prazos clínicos diferentes por paciente. Modelamos o problema como roteamento periódico com seleção de visitas, prazos ponderados pela prioridade clínica e restrições levantadas com agentes de saúde. A hipótese central é que uma busca local sobre o mês inteiro, que realoca e troca visitas entre dias e equipes sob um orçamento de caminhada, atende mais prioridade clínica a tempo do que regras simples, sem caminhar mais. A solução calcula as caminhadas com Dijkstra no OpenStreetMap, melhora cada rota com 1.5-opt e recusa planos inválidos num verificador formal. Comparamos os métodos em pares, com pacientes sintéticos nos territórios do GeoSaúde de Porto Alegre e os mesmos sorteios de faltas. Em 131 territórios, a busca atendeu a tempo 34,63\% dos pontos de prioridade, contra 28,18\% do vizinho mais próximo, com 1,1\% menos caminhada; numa grade de 324 cenários, venceu 899 de 972 pares, mas caminhou 3,03\% mais; com 250 pacientes, concluiu as visitas 5,6 dias úteis antes do vizinho. A hipótese de prioridade foi sustentada nos três estudos, a de deslocamento foi refutada na grade, e nenhum dos 900 planos aleatórios violou as restrições checadas. Os resultados são descritivos e, como o mapa dos estudos não cobre o extremo sul da cidade, os da grade e dos 250 pacientes são provisórios e os dos 131 territórios pedem cautela.
 \\[0.3cm]
 \textbf{Palavras-chave:} Pesquisa e Desenvolvimento (P\&D); Método Científico; Hipóteses; Avaliação Experimental; Estruturas de Dados; Dados Abertos; Atenção Primária à Saúde; Roteamento de Veículos; Busca Local.
 \end{abstract}
@@ -139,13 +139,13 @@ Em 06/11/2026 ouvimos agentes de saúde, e cada pedido virou uma regra do planej
 \paragraph{Bases de dados.} O projeto usa duas bases abertas e uma sintética:
 \begin{itemize}
     \item \textbf{GeoSaúde, Território Base (jul.\ 2025)}~\cite{geosaude}: arquivo KMZ da Prefeitura de Porto Alegre com os polígonos dos territórios das unidades de APS e os pontos das unidades. Usamos os 132 territórios de unidades de saúde.
-    \item \textbf{OpenStreetMap}~\cite{haklay2008}: extrato da Região Sul do Brasil distribuído pela Geofabrik~\cite{geofabrik} em formato PBF (cerca de 430~MB, baixado em 08/11/2026). Dele extraímos a rede de caminhada de Porto Alegre: 166.538 nós e 190.780 trechos de via.
+    \item \textbf{OpenStreetMap}~\cite{haklay2008}: extrato da Região Sul do Brasil distribuído pela Geofabrik~\cite{geofabrik} em formato PBF (cerca de 430~MB, baixado em 08/11/2026). Dele extraímos a rede de caminhada de Porto Alegre: 166.538 nós e 190.780 trechos de via. Essa rede alimenta o roteador interno do aplicativo; as matrizes dos estudos E1 a E3 vieram do OSRM, sobre outro extrato (Seção~5.3).
     \item \textbf{Pacientes sintéticos}: localizações sorteadas dentro dos polígonos e perfis clínicos (condições, intervalos máximos entre visitas, pesos de prioridade de 1 a 5, datas da última visita) gerados com o gerador pseudoaleatório Mulberry32 e sementes fixas. Nenhum dado de paciente real foi usado.
 \end{itemize}
 
 \subsection{Formulação do Problema Computacional}
 
-\paragraph{Entradas.} Uma unidade de saúde (nó~0) atende os pacientes $P$ de um território dado por polígonos. Cada paciente $p$ tem localização e condições $C_p$. A condição $c$ tem a última visita $\ell_c$, o intervalo máximo $I_c$, o peso clínico $w_c \in \{1,\dots,5\}$ e o prazo $d_c = \ell_c + I_c$. A janela de planejamento tem $N$ dias úteis $t_1 < \dots < t_N$, com antecipação máxima de $A$ dias. Cada equipe $k \in K$ tem jornada diária de $T_k$ minutos, dias disponíveis e profissionais por categoria. Uma matriz, possivelmente assimétrica, dá o tempo $\tau_{ij}$ e a distância $\delta_{ij}$ a pé entre os nós.
+\paragraph{Entradas.} Uma unidade de saúde (nó~0) atende os pacientes $P$ de um território dado por polígonos. Cada paciente $p$ tem localização e condições $C_p$. A condição $c$ tem a última visita $\ell_c$, o intervalo máximo $I_c$, o peso clínico $w_c \in \{1,\dots,5\}$ e o prazo $d_c = \ell_c + I_c$. A janela de planejamento tem $N$ dias úteis (segunda a sexta, sem descontar feriados) $t_1 < \dots < t_N$, com antecipação máxima de $A$ dias corridos. Cada equipe $k \in K$ tem jornada diária de $T_k$ minutos, dias disponíveis e profissionais por categoria. Uma matriz, possivelmente assimétrica, dá o tempo $\tau_{ij}$ e a distância $\delta_{ij}$ a pé entre os nós.
 
 \paragraph{Demanda.} Cada paciente gera no máximo uma visita candidata $v$ na janela, ligada à condição de prazo mais próximo, com prazo $d_v$, peso $w_v$ e tempo de serviço $s_v$ (atendimento mais folga). A visita entra na demanda se já venceu, se vence dentro da antecipação $A$ ou se tem prazo rígido.
 
@@ -161,7 +161,8 @@ Em 06/11/2026 ouvimos agentes de saúde, e cada pedido virou uma regra do planej
 \paragraph{Saídas e critérios.} A saída é um plano: para cada dia e equipe, a sequência de visitas com horários previstos, e a lista de pendências com motivo. Seja $t(v)$ o dia atribuído a $v$ (para pendências, $t_N$) e $W = \sum_v w_v$. Os critérios são a prioridade atendida a tempo $\Phi$, o atraso controlável ponderado $\Delta$ e a distância percorrida $D$:
 \begin{align}
   \Phi &= \frac{100}{W} \sum_{v \text{ atendida}} w_v \, \bigl[\, t(v) \le \max(d_v, t_1) \,\bigr], \label{eq:phi}\\
-  \Delta &= \sum_{v} w_v \, \max\bigl(0,\; t(v) - \max(d_v, t_1)\bigr), \label{eq:delta}\\
+  \Delta &= \frac{1}{W}\sum_{v} w_v \, \max\bigl(0,\; t(v) -
+\max(d_v, t_1)\bigr), \label{eq:delta}\\
   D &= \textstyle\sum_{r}\sum_{(i,j)\in r} \delta_{ij}. \label{eq:dist}
 \end{align}
 Em~\eqref{eq:phi} e~\eqref{eq:delta}, uma visita já vencida no início conta como a tempo se feita no primeiro dia, porque o atraso anterior à janela não depende do plano.
@@ -189,7 +190,7 @@ Os limiares de $H_2$ e $H_3$ tornam mensurável o ``sem elevar excessivamente'' 
 \subsection{Métricas de Sucesso}
 \begin{itemize}
     \item \textbf{Prioridade atendida a tempo $\Phi$} (\%), Eq.~\eqref{eq:phi}: a métrica principal de $H_1$.
-    \item \textbf{Atraso controlável ponderado $\Delta$} (dias $\times$ peso), Eq.~\eqref{eq:delta}, para $H_1$.
+    \item \textbf{Atraso controlável ponderado $\Delta$} (dias, média ponderada pela prioridade), Eq.~\eqref{eq:delta}, para $H_1$.
     \item \textbf{Distância a pé $D$} (km), Eq.~\eqref{eq:dist}, para $H_2$.
     \item \textbf{Cobertura efetiva} (\%): visitas concluídas sobre a demanda inicial inteira.
     \item \textbf{Dias úteis até concluir} um acúmulo de visitas (estudo de 250 pacientes).
@@ -202,7 +203,7 @@ Os limiares de $H_2$ e $H_3$ tornam mensurável o ``sem elevar excessivamente'' 
 
 \subsection{Modelagem Computacional e Arquitetura}
 
-O artefato é um monorepo em TypeScript (Node.js 20 ou superior) com três pacotes:
+O artefato é um monorepo em TypeScript (Node.js 22 ou superior) com três pacotes:
 \begin{itemize}
     \item \texttt{@routing/core}: núcleo de planejamento, puro, sem estado e sem dependências externas. Recebe um cenário serializável e devolve um plano verificado.
     \item \texttt{@routing/server}: servidor Fastify com SQLite (WAL e chaves estrangeiras ativas). Versiona cenários, planos e resultados de visitas, calcula as matrizes de caminhada e exporta rotas em CSV, GPX e Excel.
@@ -231,17 +232,17 @@ As entidades do domínio foram mapeadas nestas estruturas de dados:
 
 \subsection{Algoritmos e Análise de Custo/Complexidade}\label{sec:algoritmos}
 
-Todo plano percorre o mesmo pipeline: (1)~demanda; (2)~matriz de caminhada; (3)~estratégia; (4)~garantia de prazos rígidos; (5)~melhoria intra-rota 1.5-opt; (6)~verificação formal. Só a etapa 3 muda entre os métodos.
+Todo plano percorre o mesmo pipeline: (1)~validação do cenário e seleção dos pacientes elegíveis; (2)~demanda; (3)~matriz de caminhada, com validação; (4)~estratégia; (5)~garantia de prazos rígidos; (6)~melhoria intra-rota 1.5-opt; (7)~verificação formal. Só a etapa 4 muda entre os métodos, mas a busca mensal também chama internamente a garantia de prazos rígidos e o 1.5-opt (Listagem~\ref{lst:busca}).
 
 \paragraph{Matriz de caminhada.} Cada ponto é projetado no segmento de via mais próximo (erro explícito se estiver a mais de 1~km de qualquer via). A matriz sai de um Dijkstra~\cite{dijkstra1959} a partir de cada origem, interrompido quando todos os destinos foram fixados. O peso de busca é a duração da aresta, a 5~km/h (2,5~km/h em escadas), seguindo o perfil \texttt{foot} do OSRM~\cite{luxen2011}. Ruas que tocam uma área de risco desenhada pela equipe têm o peso multiplicado por 25, mas o tempo e a distância devolvidos são os reais.
 
-\paragraph{Estratégias de referência.} A regra de \emph{urgência} ordena, para cada dia e equipe, as candidatas já vencidas por uma pontuação (dias de atraso $\times 10$ + peso $\times 5$) e as acrescenta ao fim da rota enquanto a jornada comportar. O \emph{vizinho mais próximo} parte da unidade e acrescenta a candidata elegível e viável mais próxima em tempo de caminhada, até esgotar a jornada.
+\paragraph{Estratégias de referência.} A regra de \emph{urgência} ordena, para cada dia e equipe, as candidatas vencidas ou que vencem no dia por uma pontuação (dias de atraso $\times 10$ + peso $\times 5$) e as acrescenta ao fim da rota enquanto a jornada comportar. O \emph{vizinho mais próximo} parte da unidade e, a cada passo, acrescenta a candidata elegível e viável de menor tempo de caminhada a partir da posição atual (a unidade na primeira escolha e, depois, a última visita da rota), até não haver outra que caiba na jornada.
 
 \paragraph{Busca mensal (heurística principal).} Parte do plano do vizinho mais próximo, garante os prazos rígidos e aplica duas fases de busca local sobre o mês inteiro (Listagem~\ref{lst:busca}). Cada movimento realoca uma visita para outra rota (outro dia ou outra equipe) ou troca duas visitas entre rotas. O ganho de um movimento é
 \begin{equation}
   g = \Delta\tau + \lambda \sum w_v\,\Delta a_v - \mu \sum w_v\,\Delta \pi_v,
 \end{equation}
-em que $\Delta\tau$ é a variação do tempo de caminhada, $a_v$ é o atraso controlável da visita e $\pi_v \in\{0,1\}$ indica atendimento sem atraso. Os pesos $\lambda = 12$ e $\mu = 24$ dizem quantos minutos de caminhada valem um ponto de prioridade atrasado um dia e um ponto atendido prontamente. Eles foram fixados por julgamento, não ajustados aos dados. Um movimento só é aceito se o tempo e a distância totais não superarem os do início da fase e se os pontos atendidos prontamente não diminuírem.
+em que $\Delta\tau$ é a variação do tempo de caminhada, $a_v$ é o atraso controlável da visita e $\pi_v \in\{0,1\}$ indica atendimento sem atraso. Os pesos $\lambda = 12$ e $\mu = 24$ dizem quantos minutos de caminhada valem um ponto de prioridade atrasado um dia e um ponto atendido prontamente. Eles foram fixados por julgamento, não ajustados aos dados. Um movimento só é aceito se o tempo e a distância totais não superarem os do início da fase (medidos depois da primeira inserção de pendências, quando há recuperação) e se os pontos atendidos prontamente não diminuírem. O orçamento é relativo ao estado inicial de cada fase, não ao plano do vizinho mais próximo: a recuperação de pendências pode aumentar a caminhada antes de o orçamento ser fixado e, ao final, depois dos movimentos.
 
 \begin{lstlisting}[language=pseudo, caption={Busca mensal (simplificada do código em \texttt{main-heuristic.ts}).}, label={lst:busca}, mathescape=true]
 função BuscaMensal(candidatas V, dias t1..tN, equipes K, matriz (τ, δ))
@@ -267,7 +268,7 @@ função Fase(S, recuperar, μ)
 
 \paragraph{Prazos rígidos, 1.5-opt e verificação.} A garantia de prazos rígidos roda depois de qualquer estratégia: percorre as visitas obrigatórias por prazo e as insere na melhor posição viável até o prazo, retirando visitas sem prazo rígido, das de menor peso para as de maior. O 1.5-opt combina reinserção de um nó e inversão de subsegmento (2-opt~\cite{croes1958}) em primeira melhoria, até não haver ganho no tempo da rota. O verificador formal recusa equipe inexistente, indisponível ou incompatível, jornada excedida, paciente repetido, visita em dia de ausência, visita depois do prazo rígido e paciente fora do território. Nenhum plano é devolvido sem passar por ele.
 
-\paragraph{Complexidade.} Sejam $n$ o número de candidatas, $R = |K| \cdot N$ o número de rotas, $L$ o máximo de visitas numa rota (limitado pela jornada, na prática até cerca de 10) e $n_a \le \min(n, RL)$ o número de visitas alocadas. A Tabela~\ref{tab:complexidade} resume o custo de cada etapa. A avaliação de cada posição recalcula a rota em $O(L)$, o que deixa as fórmulas simples em troca de um fator $L$.
+\paragraph{Complexidade.} Sejam $n$ o número de candidatas, $R = |K| \cdot N$ o número de rotas, $L$ o máximo de visitas numa rota (limitado pela jornada) e $n_a \le \min(n, RL)$ o número de visitas alocadas. A Tabela~\ref{tab:complexidade} resume o custo de cada etapa. A avaliação de cada posição recalcula a rota em $O(L)$, o que deixa as fórmulas simples em troca de um fator $L$.
 
 \begin{table}[ht]
 \centering
@@ -284,15 +285,25 @@ Matriz de caminhada & um Dijkstra com heap binário por origem~\cite{cormen} & $
 Demanda & uma passada pelas condições de cada paciente & $O(\sum_p |C_p|)$ \\
 Urgência & ordenação e varredura por rota & $O(R\, n \log n)$ \\
 Vizinho mais próximo & cada inserção varre as candidatas & $O(R\, L\, n)$ \\
-1.5-opt (uma passada) & $O(L^2)$ movimentos, cada um avaliado em $O(L)$ & $O(L^3)$ \\
-Busca mensal (uma iteração) & cada visita $\times$ cada rota $\times$ cada posição, avaliada em $O(L)$ & $O(n_a\, R\, L^2)$ \\
-Busca mensal (total) & até 80 iterações por fase, duas fases & $O(160\, n_a\, R\, L^2)$ \\
+1.5-opt (uma varredura) & $O(L^2)$ movimentos, cada um avaliado
+em $O(L)$; repete até não haver ganho & $O(L^3)$ por varredura \\
+Busca mensal (uma iteração) & cada visita alocada $\times$ cada rota
+$\times$ cada posição, avaliada em $O(L)$; as trocas custam
+$O(n_a^2 L) \le O(n_a R L^2)$, pois $n_a \le RL$
+& $O(n_a R L^2)$ \\
+Recuperação de pendências & só na segunda fase, antes e depois
+dos movimentos (três passadas): cada pendência $\times$ cada rota
+$\times$ cada posição, avaliada em $O(L)$ & $O\bigl((n-n_a)\, R\, L^2\bigr)$ \\
+Busca mensal (total) & até 80 movimentos aceitos por fase, duas
+fases, a recuperação de pendências, o 1.5-opt inicial em todas as
+rotas e nas rotas alteradas após cada movimento & $O\bigl((160\,
+n_a + n)\, R\, L^2\bigr)$ mais o custo do 1.5-opt \\
 Verificador formal & uma passada pelas rotas com tabelas hash & $O(R\,L + n)$ \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
-Com $L$ limitado pela jornada, a iteração da busca cresce como $n_a \cdot R$: linear no número de visitas alocadas e linear no horizonte. O limite de 80 iterações garante término, mas, abaixo dele, o número de iterações efetivas também cresce com a instância. Na matriz, a interrupção antecipada do Dijkstra e o tamanho dos territórios (poucos km\textsuperscript{2}) deixam o custo real muito abaixo do limite.
+Se $L$ fosse constante, a iteração da busca cresceria como $n_a \cdot R$; na grade, porém, o comprimento médio das rotas cresce com $n_a$ ($L \approx n_a/R$), de modo que a iteração se aproxima de $O(n_a^3/R)$. O limite de 80 iterações garante término, mas, abaixo dele, o número de iterações efetivas também cresce com a instância. Na matriz, a interrupção antecipada do Dijkstra e o tamanho dos territórios (poucos km\textsuperscript{2}) deixam o custo real muito abaixo do limite.
 
 \subsection{Tratamento e Pré-processamento dos Dados}
 
@@ -309,10 +320,10 @@ Com $L$ limitado pela jornada, a iteração da busca cresce como $n_a \cdot R$: 
 
 \subsection{Ambiente Experimental e Variáveis}
 \begin{itemize}
-    \item \textbf{Ambiente:} TypeScript 5.4 executado em Node.js; matrizes de E1 a E3 obtidas da API Table do OSRM com o perfil \texttt{foot} sobre o OpenStreetMap, guardadas em cache e reaproveitadas em toda reexecução. A grade fatorial foi reexecutada em 22/11/2026 num AMD Ryzen 7 5700X3D (8 núcleos), 32~GB de RAM, Windows 11 Pro e Node.js 26.13, e as Tabelas~\ref{tab:fatorial} e~\ref{tab:experimentos} vêm dessa execução. Os tempos de E1 e E3 vêm da execução original, cuja máquina não foi registrada nos arquivos de resultado.
+    \item \textbf{Ambiente:} TypeScript 5.4 executado em Node.js; matrizes de E1 a E3 obtidas da API Table do OSRM com o perfil \texttt{foot}, sobre o extrato \texttt{PortoAlegre.osm.pbf} da BBBike (ver ``Mapa dos estudos'' na Seção~5.3), guardadas em cache e reaproveitadas em toda reexecução. A grade fatorial foi reexecutada em 22/11/2026 num AMD Ryzen 7 5700X3D (8 núcleos), 32~GB de RAM, Windows 11 Pro e Node.js 26.13, e as Tabelas~\ref{tab:fatorial} e~\ref{tab:experimentos} vêm dessa execução. Os tempos de E1 e E3 vêm da execução original, cuja máquina não foi registrada nos arquivos de resultado.
     \item \textbf{Variáveis Independentes:} estratégia (busca mensal, vizinho mais próximo, urgência); território; número de pacientes $n$; área do território; horizonte $N$; proporção de visitas já vencidas no início; probabilidade de falta por tentativa.
     \item \textbf{Variáveis Dependentes:} $\Phi$, $\Delta$, $D$, cobertura efetiva, dias úteis até concluir um acúmulo, tempo de planejamento e número de planos recusados pelo verificador.
-    \item \textbf{Variáveis de Controle:} em cada comparação, as três estratégias recebem a mesma demanda, a mesma matriz, a mesma equipe (240~min/dia, 300~min/dia em E3), $A = 2$ dias e os mesmos sorteios de falta (números aleatórios comuns por paciente e data); sementes fixas; uma execução por configuração, sem descarte de aquecimento, porque as métricas de plano são determinísticas e só o tempo varia entre execuções.
+    \item \textbf{Variáveis de Controle:} em cada comparação, as três estratégias recebem a mesma demanda, a mesma matriz, a mesma equipe (240~min/dia, 300~min/dia em E3), $A = 2$ dias e os mesmos sorteios de falta (números aleatórios comuns por paciente e data); sementes fixas; uma execução por configuração, sem descarte de aquecimento nem repetição, porque as métricas de plano são determinísticas; por isso os tempos incluem o efeito da compilação JIT nas primeiras execuções, e o desvio-padrão da Tabela~\ref{tab:experimentos} reflete a variação entre cenários, não o ruído de medição.
 \end{itemize}
 
 \subsection{Cenários e Protocolo de Coleta}
@@ -334,11 +345,11 @@ A simulação executa cada dia útil: sorteia a falta de cada visita planejada, 
 
 \subsection{Apresentação dos Dados Coletados}
 
-\paragraph{E1, cidade inteira.} A Tabela~\ref{tab:cidade} resume as 393 execuções pareadas de cada estratégia. A busca mensal atendeu a tempo 34,63\% dos pontos de prioridade, 6,45\pp\ acima do vizinho mais próximo, e caminhou 1,1\% menos. Venceu 307 dos 393 pares em $\Phi$, empatou 58 e perdeu 28. A cobertura quase não muda entre os métodos: o ganho está em \emph{quando} e \emph{quem} é atendido, não em quantos.
+\paragraph{E1, cidade inteira.} A Tabela~\ref{tab:cidade} resume as 393 execuções pareadas de cada estratégia. A busca mensal atendeu a tempo 34,63\% dos pontos de prioridade, 6,45\pp\ acima do vizinho mais próximo, e caminhou 1,1\% menos. Venceu 307 dos 393 pares em $\Phi$, empatou 58 e perdeu 28. A cobertura quase não muda entre os métodos (a da busca mensal é a menor das três: 98,07\% contra 98,23\% e 98,55\%): o ganho está em \emph{quando} e \emph{quem} é atendido, não em quantos.
 
 \begin{table}[ht]
 \centering
-\caption{E1: médias em 131 territórios $\times$ 3 níveis de falta (simulação de 22 dias úteis)}
+\caption{E1: médias em 131 territórios $\times$ 3 níveis de falta (simulação de 22 dias úteis); tempos da execução original, em máquina não registrada; mapa BBBike incompleto ao sul (Seção~5.3)}
 \label{tab:cidade}
 \begin{tabular}{@{}lrrr@{}}
 \toprule
@@ -353,7 +364,7 @@ Tempo de planejamento acumulado (ms) & 131,87 & 12,78 & 9,00 \\
 \end{tabular}
 \end{table}
 
-\paragraph{E2, grade fatorial.} A Tabela~\ref{tab:fatorial} traz o ganho pareado da busca mensal. Frente ao vizinho, ganhou em média 9,65\pp\ de $\Phi$ e 0,55 dia de atraso, mas caminhou 3,03\% mais (113,16 contra 109,83~km) e caminhou mais em 473 dos 972 pares. Frente à urgência, venceu todos os 972 pares em $\Phi$ e em atraso. O ganho frente ao vizinho cai pouco com a taxa de faltas (Fig.~\ref{fig:faltas}).
+\paragraph{E2, grade fatorial.} A Tabela~\ref{tab:fatorial} traz o ganho pareado da busca mensal. Frente ao vizinho, ganhou em média 9,65\pp\ de $\Phi$ e 0,55 dia de atraso, mas caminhou 3,03\% mais (113,16 contra 109,83~km) e caminhou mais em 473 dos 972 pares. Frente à urgência, venceu todos os 972 pares em $\Phi$ e em atraso. O ganho frente ao vizinho cai pouco com a taxa de faltas (Fig.~\ref{fig:faltas}). Este estudo usou o extrato de mapa que não cobria a Restinga (Seção~5.3): os quilômetros absolutos, e possivelmente a comparação de distância, não são representativos.
 
 \begin{table}[ht]
 \centering
@@ -397,7 +408,7 @@ Tempo de planejamento acumulado (ms) & 131,87 & 12,78 & 9,00 \\
 \label{fig:faltas}
 \end{figure}
 
-\paragraph{E3, acúmulo de 250 pacientes.} Nos 9 pares, a busca mensal concluiu as 250 visitas em 88,11 dias úteis, contra 93,67 do vizinho ($-5{,}56$), e caminhou 13,03\% menos (Tabela~\ref{tab:longo}). A vantagem em dias cresce com as faltas, de 3,67 para 8,33 dias úteis. Todas as 27 execuções concluíram as 250 visitas.
+\paragraph{E3, acúmulo de 250 pacientes.} Nos 9 pares, a busca mensal concluiu as 250 visitas em 88,11 dias úteis, contra 93,67 do vizinho ($-5{,}56$) e 89,78 da urgência ($-1{,}67$), e caminhou 13,03\% menos que o vizinho (Tabela~\ref{tab:longo}). Frente ao vizinho, a vantagem em dias cresce com as faltas, de 3,67 para 8,33 dias úteis; frente à urgência ela é pequena (0,66 a 3,34 dias úteis) e, com 3 sementes, diferenças menores que um dia não são distinguíveis. Na prioridade, a busca atendeu a tempo 49,05\% dos pontos, contra 30,22\% do vizinho e 16,05\% da urgência, com atraso controlável $\Delta$ de 5,13 dias, contra 11,49 e 12,33, e venceu os 9 pares nas duas métricas frente a cada referência. Todas as 27 execuções concluíram as 250 visitas. Este estudo usou o extrato de mapa que não cobria a Restinga (Seção~5.3): os valores absolutos de dias e quilômetros não são representativos.
 
 \begin{table}[ht]
 \centering
@@ -456,14 +467,14 @@ Tempo de planejamento acumulado (ms) & 131,87 & 12,78 & 9,00 \\
 
 Com o horizonte, o tempo da busca mensal passa de 10,99~ms (5 dias) para 34,31~ms (10 dias) e 96,07~ms (22 dias); o do vizinho, de 1,59 para 2,42~ms. Nas simulações dinâmicas, cada replanejamento da busca levou 16,1~ms em média e 160,6~ms no pior caso.
 
-\paragraph{E4, propriedades.} Os 900 planos foram aceitos pelo verificador, sem visitas duplicadas, com equipes compatíveis, horários ordenados, totais de rota iguais aos da matriz e jornadas respeitadas. Toda visita de prazo rígido foi agendada a tempo ou ficou pendente como obrigatória, com o motivo. Para estimar a sensibilidade dos testes, desativamos no código compilado, uma de cada vez, a regra de ausência e a de quantidade por categoria: as suítes falharam nos dois casos.
+\paragraph{E4, propriedades.} Os 900 planos foram aceitos pelo verificador, sem visitas duplicadas, com equipes compatíveis, horários ordenados, totais de rota iguais aos da matriz e jornadas respeitadas. Toda visita de prazo rígido foi agendada a tempo ou ficou pendente como obrigatória, com o motivo. Isso mostra ausência de violações nos 900 planos sorteados, não que o sistema nunca viole uma restrição. Para estimar a sensibilidade dos testes, desativamos no código compilado, uma de cada vez, a regra de ausência e a de quantidade por categoria: as suítes falharam nos dois casos. As outras regras não foram testadas dessa forma.
 
 \subsection{Validação ou Refutação das Hipóteses}
 \begin{itemize}
-    \item \textbf{Hipótese $H_1$ (prioridade e atraso): confirmada.} Nos três estudos, a busca mensal teve $\Phi$ médio maior e $\Delta$ menor que as duas referências, e mais vitórias do que derrotas: 307/58/28 em E1 e 899/64/9 em E2 frente ao vizinho, 972/0/0 frente à urgência, e conclusão 5,56 dias úteis antes em E3.
-    \item \textbf{Hipótese $H_2$ (deslocamento): confirmada em parte.} A busca caminhou menos que o vizinho em E1 ($-1{,}1\%$) e em E3 ($-13{,}03\%$), mas mais em E2 ($+3{,}03\%$), o que refuta $H_2$ como afirmação geral. A causa está no algoritmo: os movimentos nunca ultrapassam o orçamento de caminhada da fase, mas a segunda fase reinsere pendências \emph{antes} de fixar esse orçamento. A busca atende mais visitas (cobertura 0,90\pp\ maior em E2), e essas visitas custam caminhada. Na grade, com mais carga por equipe, a heurística troca caminhada por prioridade.
+    \item \textbf{Hipótese $H_1$ (prioridade e atraso): sustentada nos três estudos, de modo provisório em E2 e E3.} Nos três estudos, a busca mensal teve $\Phi$ médio maior e $\Delta$ menor que as duas referências, e mais vitórias do que derrotas em $\Phi$: frente ao vizinho, 307/58/28 em E1, 899/64/9 em E2 e 9/0/0 em E3; frente à urgência, 972/0/0 em E2 e 9/0/0 em E3. Em E3, a busca também concluiu as 250 visitas 5,56 dias úteis antes do vizinho e, pela Tabela~\ref{tab:longo}, 1,67 dia antes da urgência em média (0,66 dia com 0\% de faltas, diferença que 3 sementes não permitem distinguir de zero). E2 e E3 usaram o mapa incompleto (Seção~5.3). Os resultados são descritivos, sem teste inferencial.
+    \item \textbf{Hipótese $H_2$ (deslocamento): refutada em E2; sustentada, de modo provisório, em E1 e E3.} A busca caminhou menos que o vizinho em E1 ($-1{,}1\%$) e em E3 ($-13{,}03\%$), mas mais em E2 ($+3{,}03\%$); pelo critério declarado (distância média maior em algum estudo), $H_2$ está refutada. Uma explicação provável, não demonstrada: os movimentos não ultrapassam o orçamento de caminhada da fase, mas a segunda fase reinsere pendências \emph{antes} de fixar esse orçamento e de novo depois dos movimentos, e essas inserções não estão sob orçamento. Em E2 a busca atendeu mais visitas (cobertura 0,90\pp\ maior), o que pode custar caminhada; em E1, porém, ela atendeu menos (98,07\% contra 98,23\%) e caminhou menos, de modo que parte da diferença de distância pode refletir a diferença de cobertura. Não separamos esses efeitos (por exemplo, com quilômetros por visita concluída ou com pares de cobertura igual) nem analisamos a diferença por fator da grade. Como E2 usa o mapa incompleto, também não sabemos se a derrota vem do algoritmo ou da geometria.
     \item \textbf{Hipótese $H_3$ (custo): confirmada no escopo definido.} O pior plano inicial da grade, com 90 pacientes e 22 dias úteis, levou 570,9~ms (média de 248,9~ms nessa combinação); na execução original, o máximo foi 822,9~ms. Fora desse escopo, com 250 pacientes e 261 dias úteis (E3), um replanejamento levou de 5 a 22~s, o que já não é interativo.
-    \item \textbf{Complexidade Empírica vs. Teórica:} a curva acompanha a ordem calculada e fica abaixo do limite superior. Com o horizonte fixo, $R$ é constante e o comprimento médio das rotas cresce com as visitas alocadas ($L \approx n_a/R$), de modo que uma iteração da busca custa $O(n_a R L^2) \approx O(n_a^3/R)$. Entre $n=15$ e $n=90$, $n_a$ cresceu 3,4 vezes; o limite cúbico prevê até 39 vezes mais tempo por iteração, e o tempo total cresceu 18 vezes (inclinação 1,62 em $n$), porque muitas posições são descartadas cedo pela jornada e pelo orçamento. Para o vizinho, $O(R L n) \approx O(n\, n_a)$ prevê cerca de 20 vezes, e o observado foi 12 (inclinação 1,40); para a urgência, $O(R\, n\log n)$ prevê cerca de 10 vezes, e o observado foi 6,4, quase linear, porque em instâncias pequenas o custo fixo de montar as rotas pesa mais. Com $n$ fixo, o tempo da busca cresceu 8,7 vezes quando o horizonte cresceu 4,4 vezes, coerente com o fator $R$ multiplicado pelo aumento de $n_a$ (mais dias acomodam mais visitas).
+    \item \textbf{Complexidade Empírica vs. Teórica:} a curva é compatível com o limite calculado e fica abaixo dele, o que não prova a ordem assintótica; os expoentes abaixo são inclinações entre dois pontos ($n=15$ e $n=90$) e descrevem estas instâncias. Com o horizonte fixo, $R$ é constante e o comprimento médio das rotas cresce com as visitas alocadas ($L \approx n_a/R$), de modo que uma iteração da busca custa $O(n_a R L^2) \approx O(n_a^3/R)$. Entre $n=15$ e $n=90$, $n_a$ cresceu 3,43 vezes; o limite cúbico prevê até 40 vezes mais tempo por iteração, e o tempo total cresceu 18 vezes (inclinação 1,62 em $n$ pela média e 1,43 pela mediana), porque muitas posições são descartadas cedo pela jornada e pelo orçamento. Para o vizinho, $O(R L n) \approx O(n\, n_a)$ prevê cerca de 20 vezes, e o observado foi 12 (inclinação 1,40); para a urgência, $O(R\, n\log n)$ prevê cerca de 10 vezes, e o observado foi 6,4, quase linear, porque em instâncias pequenas o custo fixo de montar as rotas pesa mais. Com $n$ fixo, o tempo da busca cresceu 8,7 vezes quando o horizonte cresceu 4,4 vezes, mas, como $n_a$ e o comprimento das rotas também mudam com o horizonte, não separamos o efeito de $R$ do de $n_a$ e de $L$.
 \end{itemize}
 
 \subsection{Discussão Técnica e Limitações Observadas}
@@ -472,8 +483,48 @@ A regra de urgência mostra o risco de priorizar sem olhar o mapa: atende primei
 
 \begin{itemize}
     \item \textbf{Custo computacional.} É o principal preço da busca: cerca de dez vezes o tempo do vizinho em E1, ainda 0,13~s por mês simulado. Em E3, com horizonte de 261 dias úteis, cada replanejamento levou de 5 a 22~s, e todos os replanejamentos de uma execução somaram de 22 a 179~s. O artefato planeja um mês por vez, mas acúmulos grandes com horizontes longos pedem uma busca incremental.
-    \item \textbf{Mapa dos estudos.} O extrato da BBBike usado nas matrizes de E2 e E3 termina na latitude $-30{,}141$ e não cobre a Restinga: os pacientes foram projetados em poucas ruas, a quilômetros de distância (a distância do posto aos pacientes assume poucos valores, como 2,35 e 8,67~km). As comparações entre métodos se mantêm, porque todos usam a mesma matriz, mas os quilômetros absolutos daquele território não o representam. A rede atual, do extrato da Região Sul, cobre 129 dos 132 territórios.
+    \item \textbf{Mapa dos estudos.} As matrizes de E1 a E3 vieram
+do OSRM construído sobre o extrato \texttt{PortoAlegre.osm.pbf},
+da BBBike (SHA-256 \texttt{ee35c72a\ldots 055a0}). Esse extrato
+termina na latitude $-30{,}141$ e não cobre a Restinga, o
+extremo sul nem as ilhas de Porto Alegre. Em E2 e E3, realizados
+na Restinga, os pacientes foram projetados em poucas ruas, a
+quilômetros de distância (a distância do posto aos pacientes
+assume poucos valores, como 2,35 e 8,67~km).
+
+Os três métodos recebem a mesma matriz em cada comparação, o
+que garante as mesmas condições de custo, mas não demonstra que
+a ordenação entre eles se manteria com uma rede geograficamente
+adequada. A falta de cobertura distorce não apenas as distâncias
+absolutas, mas também os tempos de deslocamento que determinam
+quantas visitas cabem em cada jornada; assim, pode afetar as
+visitas selecionadas e o desempenho relativo das estratégias.
+Por isso, os resultados de E2 e E3 -- inclusive a refutação de
+$H_2$ em E2 e a redução de 13,03\% na distância em E3 -- são
+provisórios até a repetição com a rede da Região Sul.
+
+Em E1, avaliamos 131 dos 132 territórios e excluímos um por
+falta de caminho a pé completo na matriz. Isso não garante que
+as matrizes dos territórios incluídos ao sul e nas ilhas fossem
+representativas, e por isso as médias de E1 também pedem
+cautela. Não registramos a data nem a versão do extrato da
+execução original de E1. Depois, reexecutamos E1 com uma versão
+mais recente do mapa, e os resultados variaram pouco.
+
+A rede atual, derivada do extrato da Região Sul da Geofabrik
+baixado em 08/11/2026, cobre 129 dos 132 territórios do
+GeoSaúde; nos três restantes (ilhas e zona rural), pontos
+sintéticos ficam a mais de 1~km de qualquer via. Esse número
+descreve a cobertura da rede atual, não uma reavaliação de E1
+a E3.
     \item \textbf{Roteador próprio.} Para dispensar o Docker, construímos um roteador interno. Em 930 pares de pontos, a diferença mediana em relação ao OSRM foi de 1,0\% no tempo e 0,1\% na distância.
+    \item \textbf{Antecipação.} Só a busca mensal pode atender uma
+visita antes do prazo (até $A$ dias); os baselines só agendam
+visitas vencidas ou que vencem no próprio dia. Parte do ganho em $\Phi$ pode vir
+dessa permissão e não da busca em si, porque o denominador de
+$\Phi$ inclui candidatas dentro de $A$ que os baselines não
+atendem antes do prazo. Não rodamos uma referência com
+antecipação para separar os efeitos.
     \item \textbf{Prazo rígido guloso.} A garantia de visitas obrigatórias não muda de dia ou de equipe uma visita obrigatória já colocada; em casos raros, informa que não cabe quando um arranjo melhor existiria.
     \item \textbf{Comportamento inesperado.} O pior par de E2 (15 pacientes, área original, 5 dias, 50\% vencidas) perde 4,09\pp\ para o vizinho, igual nos três níveis de falta; os cinco piores pares vêm de dois cenários. Com horizonte curto e metade das visitas vencidas, há poucos dias para onde mover visitas, mas não investigamos a causa exata dessas derrotas.
     \item \textbf{Memória.} Não medimos o pico de memória do planejamento. A maior estrutura é o grafo de caminhada (8~MB em disco, carregado como arrays tipados); as matrizes de 91$\times$91 da grade ocupam poucas dezenas de kB.
@@ -485,7 +536,7 @@ A regra de urgência mostra o risco de priorizar sem olhar o mapa: atende primei
 \subsection{Análise Multidimensional de Impacto}
 \begin{itemize}
     \item \textbf{Impacto Social e Cidadania:} os beneficiários diretos são as equipes de saúde da família (agentes comunitários, enfermagem, medicina, odontologia), que deixam de montar a agenda à mão e passam a ver, para cada paciente, por que ele foi ou não incluído. Os beneficiários indiretos são os pacientes acompanhados em casa, sobretudo os de maior prioridade clínica: nos experimentos, 6,45\pp\ a mais dos pontos de prioridade foram atendidos dentro do prazo. As estatísticas de uso dão à coordenação da unidade uma visão do trabalho que hoje não existe: visitas por equipe e período, motivos de faltas e transferências entre unidades.
-    \item \textbf{Impacto Econômico e Eficiência Operacional:} o ganho está no tempo da equipe. Em E3, a busca concluiu o mesmo acúmulo 5,6 dias úteis antes e com 13\% menos caminhada, o que, numa equipe, equivale a mais de uma semana de visitas liberada. O artefato roda num computador comum, sem licenças nem servidor de mapas pago. Esses números vêm de simulação; o ganho real só pode ser medido com uma unidade usando o sistema.
+    \item \textbf{Impacto Econômico e Eficiência Operacional:} o ganho está no tempo da equipe. Em E3, a busca concluiu o mesmo acúmulo 5,6 dias úteis antes e com 13\% menos caminhada, o que, numa equipe, equivale a mais de uma semana de visitas liberada. O artefato roda num computador comum, sem licenças nem servidor de mapas pago. Esses números vêm de simulação com pacientes sintéticos e mapa incompleto; o ganho real só pode ser medido com uma unidade usando o sistema.
     \item \textbf{Dimensão Ética, Legal e Governança de Dados (LGPD):}
     \begin{itemize}
         \item No projeto, não há dados pessoais: os pacientes são sintéticos, e o GeoSaúde e o OpenStreetMap são bases públicas de território e de vias. Em uso real, o cadastro importado conteria endereço, coordenadas e condições de saúde, que são dados pessoais sensíveis (LGPD, art.~5º, II, e art.~11~\cite{lgpd}). O tratamento teria amparo na execução de políticas públicas de saúde, mas exigiria controle de acesso por usuário, registro de quem acessou o quê, criptografia do banco e retenção limitada. Hoje o servidor roda num computador da unidade, sem dados enviados a terceiros, mas também sem contas de usuário. Isso basta para avaliação, não para produção.
@@ -498,7 +549,7 @@ A regra de urgência mostra o risco de priorizar sem olhar o mapa: atende primei
 \subsection{Viabilidade de Implantação e Transferência Tecnológica}
 \begin{itemize}
     \item \textbf{Aderência ao Setor de Aplicação:} o parceiro natural é a Secretaria Municipal de Saúde de Porto Alegre, que mantém o GeoSaúde, e suas unidades de saúde da família. O artefato já usa os territórios oficiais e importa o cadastro da unidade de uma planilha. Em outros municípios, bastaria trocar os polígonos e o extrato do OpenStreetMap. O código é aberto e pode ser mantido por um grupo universitário em extensão.
-    \item \textbf{Desafios para Ambiente de Produção:} o mínimo é um computador com Node.js 20 e um navegador; o roteador e a rede de vias (8~MB) vêm embutidos e funcionam sem internet, exceto pelas imagens de fundo do mapa. Para produção, faltam contas de usuário e perfis de acesso, uso por várias unidades num servidor comum, cópia de segurança do banco e, principalmente, integração com o e-SUS APS e o prontuário eletrônico, de onde viriam o cadastro e o histórico de visitas, hoje importados por planilha.
+    \item \textbf{Desafios para Ambiente de Produção:} o mínimo é um computador com Node.js 22 e um navegador; o roteador e a rede de vias (8~MB) vêm embutidos e funcionam sem internet, exceto pelas imagens de fundo do mapa. Para produção, faltam contas de usuário e perfis de acesso, uso por várias unidades num servidor comum, cópia de segurança do banco e, principalmente, integração com o e-SUS APS e o prontuário eletrônico, de onde viriam o cadastro e o histórico de visitas, hoje importados por planilha.
     \item \textbf{Manutenibilidade e Sustentabilidade da Base:} três bases precisam de atualização periódica. A rede de vias é regerada do OpenStreetMap com um comando, em cerca de 15~s, e deve ser atualizada a cada poucos meses ou quando a equipe notar ruas faltando. Os territórios devem acompanhar as versões do GeoSaúde. O cadastro de pacientes precisa ser atualizado a cada mudança (óbito, mudança de endereço, transferência), o que só será sustentável com a integração ao e-SUS APS. O histórico de visitas se mantém sozinho com o registro diário.
 \end{itemize}
 
@@ -506,15 +557,15 @@ A regra de urgência mostra o risco de priorizar sem olhar o mapa: atende primei
 \section{Conclusões e Lições Aprendidas do Processo de P\&D}
 
 \subsection{Síntese dos Resultados Técnicos}
-Os resultados mostram que o planejamento mensal de visitas domiciliares a pé pode ser automatizado com uma heurística simples de explicar, que roda num computador comum e é verificada formalmente a cada plano. A busca mensal atendeu mais prioridade clínica a tempo e acumulou menos atraso que as regras simples nos três estudos, com caminhada igual ou menor em dois deles. A solução respeitou todas as restrições em 900 planos aleatórios. A viabilidade operacional ainda não foi demonstrada: os pacientes são sintéticos, e nenhuma equipe usou o sistema em campo.
+Os resultados mostram que o planejamento mensal de visitas domiciliares a pé pode ser automatizado com uma heurística simples de explicar, que roda num computador comum e é verificada formalmente a cada plano. Nos três estudos, a busca mensal atendeu mais prioridade a tempo e acumulou menos atraso que as regras simples; em E3, também concluiu o acúmulo antes delas. Ela caminhou menos que o vizinho mais próximo em E1 e E3 e mais em E2, onde $H_2$ foi refutada, e os três estudos usaram um mapa que não cobre a Restinga, o extremo sul nem as ilhas. Nenhum dos 900 planos aleatórios violou as restrições checadas pelo verificador. A viabilidade operacional ainda não foi demonstrada: os pacientes são sintéticos, e nenhuma equipe usou o sistema em campo.
 
 \subsection{O Que Funcionou vs. O Que Não Funcionou}
 \textbf{Funcionou:}
 \begin{itemize}
     \item mover visitas \emph{entre dias} sob orçamento de caminhada: é o que separa a busca mensal das regras diárias;
     \item comparações pareadas com números aleatórios comuns, que isolam o efeito do método;
-    \item o verificador formal e os testes de propriedade, que pegaram de propósito as regras desativadas;
-    \item tratar cada pedido dos agentes como regra opcional: sem as marcações novas, os três estudos reexecutados reproduziram linha a linha os resultados anteriores (5.103 linhas).
+    \item o verificador formal e os testes de propriedade, que detectaram as duas regras desativadas de propósito (ausência e quantidade por categoria);
+    \item tratar cada pedido dos agentes como regra opcional: sem as marcações novas, os três estudos reexecutados reproduziram linha a linha as métricas de plano anteriores (5.103 linhas, sem as colunas de tempo); a reexecução de E1 com um mapa mais recente, descrita na Seção~5.3, é outra execução.
 \end{itemize}
 \textbf{Não funcionou ou precisou ser refeito:}
 \begin{itemize}
@@ -631,7 +682,7 @@ C. Wohlin, P. Runeson, M. Höst, M. C. Ohlsson, B. Regnell, and A. Wesslén.
 \appendix
 \section{Guia de Reprodutibilidade}
 
-Requisitos: Node.js 20 ou superior, npm e git. Para recalcular as matrizes dos experimentos (opcional, porque elas acompanham os resultados em cache), Docker com o OSRM preparado com o perfil \texttt{foot}.
+Requisitos do aplicativo e da bancada: Node.js 22 ou superior, npm, bash e git (a reexecução de E2 usou Node.js 26.13). Para recalcular as matrizes dos experimentos (opcional, porque elas acompanham os resultados em cache), Docker com o OSRM preparado com o perfil \texttt{foot}.
 
 \begin{lstlisting}[language=bash, caption={Instruções de Execução dos Experimentos}]
 # 1. Clonar o repositorio
